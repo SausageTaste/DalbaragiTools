@@ -46,6 +46,8 @@ target_include_directories(daltools PUBLIC ./include
 
 target_compile_features(daltools PUBLIC cxx_std_17)
 
+add_library(dalbaragi::daltools ALIAS daltools)
+
 
 # Import external libraries
 # ----------------------------------------------------------------------------------
