@@ -56,6 +56,10 @@ namespace {
             }
         }
 
+        void append_char(const char c) {
+            this->m_data.push_back(c);
+        }
+
         void append_str(const char* const str, const size_t str_size) {
             this->m_data.insert(this->m_data.end(), str, str + str_size);
             this->m_data.push_back(0);
@@ -82,6 +86,14 @@ namespace {
         }
 
         //
+
+        auto data() const {
+            return this->m_data.data();
+        }
+
+        auto size() const {
+            return this->m_data.size();
+        }
 
         void reserve(const size_t reserve_size) {
             this->m_data.reserve(reserve_size);
@@ -365,7 +377,12 @@ namespace {
 
 namespace dal::parser {
 
-    ModelExportResult build_binary_model(binary_buffer_t& output, const Model& input) {
+    ModelExportResult build_binary_model(
+        binary_buffer_t& output,
+        const Model& input,
+        const crypto::PublicKeySignature::SecretKey* const sign_key,
+        crypto::PublicKeySignature* const sign_mgr
+    ) {
         BinaryBuildBuffer buffer;
 
         ::append_bin_aabb(buffer, input.m_aabb);
@@ -400,14 +417,30 @@ namespace dal::parser {
             buffer += ::build_bin_mesh_indexed_joint(unit.m_mesh);
         }
 
+        // Null terminated signature
+        if (nullptr != sign_key && nullptr != sign_key) {
+            const auto signature = sign_mgr->create_signature(buffer.data(), buffer.size(), *sign_key);
+            if (!signature.has_value())
+                return ModelExportResult::unknown_error;
+
+            buffer.append_str(signature->make_hex_str());
+        }
+        else {
+            buffer.append_char('\0');
+        }
+
         output = buffer.move();
         return ModelExportResult::success;
     }
 
-    std::optional<binary_buffer_t> build_binary_model(const Model& input) {
+    std::optional<binary_buffer_t> build_binary_model(
+        const Model& input,
+        const crypto::PublicKeySignature::SecretKey* const sign_key,
+        crypto::PublicKeySignature* const sign_mgr
+    ) {
         binary_buffer_t result;
 
-        if (ModelExportResult::success != build_binary_model(result, input)) {
+        if (ModelExportResult::success != build_binary_model(result, input, sign_key, sign_mgr)) {
             return std::nullopt;
         }
         else {

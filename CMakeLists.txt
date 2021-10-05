@@ -25,46 +25,54 @@ FetchContent_Declare(
     GIT_TAG        v1.2.11
 )
 
+FetchContent_Declare(
+    fetch_libhydrogen
+    GIT_REPOSITORY https://github.com/jedisct1/libhydrogen
+)
+
 FetchContent_MakeAvailable(fetch_glm)
+FetchContent_MakeAvailable(fetch_libhydrogen)
 
 
 # Define project library
 # ----------------------------------------------------------------------------------
 
-add_library(daltools
+add_library(libdaltools
     ${source_dir}/model_parser.cpp
     ${source_dir}/struct.cpp
     ${source_dir}/byte_tool.cpp
     ${source_dir}/modifier.cpp
     ${source_dir}/model_exporter.cpp
+    ${source_dir}/crypto.cpp
 )
 
-target_include_directories(daltools PUBLIC ./include
+target_include_directories(libdaltools PUBLIC ./include
     INTERFACE
         ${PROJECT_SOURCE_DIR}/include
 )
 
-target_compile_features(daltools PUBLIC cxx_std_17)
+target_compile_features(libdaltools PUBLIC cxx_std_17)
 
-add_library(dalbaragi::daltools ALIAS daltools)
+add_library(dalbaragi::daltools ALIAS libdaltools)
 
 
 # Import external libraries
 # ----------------------------------------------------------------------------------
 
 if (ANDROID)
-    target_link_libraries(daltools PRIVATE z)
+    target_link_libraries(libdaltools PRIVATE z)
 
 else()
     FetchContent_MakeAvailable(fetch_zlib)
-    target_link_libraries(daltools PRIVATE zlibstatic)
-    target_include_directories(daltools PRIVATE ${fetch_zlib_SOURCE_DIR} ${fetch_zlib_BINARY_DIR})
+    target_link_libraries(libdaltools PRIVATE zlibstatic)
+    target_include_directories(libdaltools PRIVATE ${fetch_zlib_SOURCE_DIR} ${fetch_zlib_BINARY_DIR})
 
 endif()
 
-target_link_libraries(daltools
+target_link_libraries(libdaltools
     PUBLIC
         glm::glm
+        hydrogen
 )
 
 

@@ -164,6 +164,8 @@ namespace dal::parser {
         std::vector<Animation> m_animations;
         Skeleton m_skeleton;
         AABB3 m_aabb;
+
+        std::string m_signature_hex;
     };
 
 }
