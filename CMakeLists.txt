@@ -43,6 +43,7 @@ add_library(daltools
     ${source_dir}/byte_tool.cpp
     ${source_dir}/modifier.cpp
     ${source_dir}/model_exporter.cpp
+    ${source_dir}/crypto.cpp
 )
 
 target_include_directories(daltools PUBLIC ./include
