@@ -95,6 +95,9 @@ namespace {
     }
 
 
+    enum class KeyType{ sign, unknown };
+
+
     class ArgParser_Model {
 
     private:
@@ -202,9 +205,6 @@ namespace {
     };
 
 
-    enum class KeyType{ sign, unknown };
-
-
     class ArgParser_Keygen {
 
     private:
@@ -249,6 +249,59 @@ namespace {
                         case 'o':
                             ::assert_or_runtime_error(++i < argc, "output path(-o) needs a parameter");
                             this->m_output_path = argv[i];
+                            break;
+                        default:
+                            throw std::runtime_error{ "unkown argument: "s + one };
+                    }
+                }
+                else {
+                    throw std::runtime_error{ "unkown argument: "s + one };
+                }
+            }
+
+            this->assert_integrity();
+        }
+
+    };
+
+
+    class ArgParser_ModelPrint {
+
+    private:
+        std::string m_source_path;
+
+    public:
+        ArgParser_ModelPrint(int argc, char** argv) {
+            this->parse(argc, argv);
+        }
+
+        void assert_integrity() const {
+            namespace fs = std::filesystem;
+            using namespace std::string_literals;
+
+            if (this->m_source_path.empty())
+                throw std::runtime_error{ "source path has not been provided" };
+
+            if (!fs::exists(this->m_source_path))
+                throw std::runtime_error{ "source file doesn't exist: "s + this->m_source_path };
+        }
+
+        auto& source_path() const {
+            return this->m_source_path;
+        }
+
+    private:
+        void parse(const int argc, const char *const *const argv) {
+            using namespace std::string_literals;
+
+            for (int i = 2; i < argc; ++i) {
+                const auto one = argv[i];
+
+                if ('-' == one[0]) {
+                    switch (one[1]) {
+                        case 's':
+                            ::assert_or_runtime_error(++i < argc, "source path(-s) needs a parameter");
+                            this->m_source_path = argv[i];
                             break;
                         default:
                             throw std::runtime_error{ "unkown argument: "s + one };
@@ -430,6 +483,25 @@ namespace {
         }
     }
 
+    void work_model_print(int argc, char* argv[]) {
+        ::Timer timer;
+
+        ArgParser_ModelPrint parser{ argc, argv };
+
+        std::cout << "    Model loading";
+        timer.check();
+        const auto model = ::load_model(parser.source_path().c_str());
+        std::cout << " done (" << timer.get_elapsed() << ")\n";
+
+        std::cout << "        render units straight:       " << model.m_units_straight.size() << std::endl;
+        std::cout << "        render units straight joint: " << model.m_units_straight_joint.size() << std::endl;
+        std::cout << "        render units indexed:        " << model.m_units_indexed.size() << std::endl;
+        std::cout << "        render units indexed joint:  " << model.m_units_indexed_joint.size() << std::endl;
+        std::cout << "        joints: " << model.m_skeleton.m_joints.size() << std::endl;
+        std::cout << "        animations: " << model.m_animations.size() << std::endl;
+        std::cout << "        signature: " << model.m_signature_hex << std::endl;
+    }
+
 }
 
 
@@ -443,6 +515,8 @@ int main(int argc, char* argv[]) try {
         ::work_model_mod(argc, argv);
     else if ("keygen"s == argv[1])
         ::work_keygen(argc, argv);
+    else if ("modelprint"s == argv[1])
+        ::work_model_print(argc, argv);
     else
         throw std::runtime_error{ "unkown operation: "s + argv[1] };
 }
