@@ -49,7 +49,8 @@ namespace {
     };
 
 
-    std::vector<uint8_t> read_file(const char* const path) {
+    template <typename T>
+    T read_file(const char* const path) {
         using namespace std::string_literals;
 
         std::ifstream file{ path, std::ios::ate | std::ios::binary | std::ios::in };
@@ -58,7 +59,7 @@ namespace {
             throw std::runtime_error("failed to open file: "s + path);
 
         const auto file_size = static_cast<size_t>(file.tellg());
-        std::vector<uint8_t> buffer;
+        T buffer;
         buffer.resize(file_size);
 
         file.seekg(0);
@@ -69,13 +70,18 @@ namespace {
     }
 
     dal::parser::Model load_model(const char* const path) {
-        const auto model_data = ::read_file(path);
+        const auto model_data = ::read_file<std::vector<uint8_t>>(path);
         const auto unzipped = dal::parser::unzip_dmd(model_data.data(), model_data.size());
         return dal::parser::parse_dmd(unzipped->data(), unzipped->size()).value();
     }
 
-    void export_model(const char* const path, const dal::parser::Model& model) {
-        const auto binary_built = dal::parser::build_binary_model(model, nullptr, nullptr);
+    void export_model(
+        const char* const path,
+        const dal::parser::Model& model,
+        const dal::crypto::PublicKeySignature::SecretKey* const sign_key,
+        dal::crypto::PublicKeySignature* const sign_mgr
+    ) {
+        const auto binary_built = dal::parser::build_binary_model(model, sign_key, sign_mgr);
         const auto zipped = dal::parser::zip_binary_model(binary_built->data(), binary_built->size());
 
         std::ofstream file(path, std::ios::binary);
@@ -93,6 +99,7 @@ namespace {
 
     private:
         std::string m_source_path, m_output_path;
+        std::string m_secret_key_path;
 
         bool m_work_indexing = false;
         bool m_work_merge_by_material = false;
@@ -127,6 +134,10 @@ namespace {
             return this->m_output_path;
         }
 
+        auto& secret_key_path() const {
+            return this->m_secret_key_path;
+        }
+
         bool work_indexing() const {
             return this->m_work_indexing;
         }
@@ -159,6 +170,10 @@ namespace {
                         case 'o':
                             ::assert_or_runtime_error(++i < argc, "output path(-o) needs a parameter");
                             this->m_output_path = argv[i];
+                            break;
+                        case 'k':
+                            ::assert_or_runtime_error(++i < argc, "secret key path(-k) needs a parameter");
+                            this->m_secret_key_path = argv[i];
                             break;
                         case 'i':
                             this->m_work_indexing = true;
@@ -287,8 +302,9 @@ namespace {
 
 namespace {
 
-    int work_model_mod(int argc, char* argv[]) {
+    void work_model_mod(int argc, char* argv[]) {
         namespace dalp = dal::parser;
+        using namespace std::string_literals;
 
         ::Timer timer;
         const ::ArgParser_Model parser{ argc, argv };
@@ -366,19 +382,27 @@ namespace {
             }
             else {
                 std::cout << " failed (" << timer.get_elapsed() << ")\n";
-                return -1;
+                throw std::runtime_error{ "Failed reducing joints" };
             }
         }
 
         std::cout << "    Exporting";
         timer.check();
-        ::export_model(parser.output_path().c_str(), model);
-        std::cout << " done to '" << parser.output_path() << "' (" << timer.get_elapsed() << ")\n";
 
-        return 0;
+        if (!parser.secret_key_path().empty()) {
+            dal::crypto::PublicKeySignature sign_mgr{ dal::crypto::CONTEXT_PARSER };
+            const auto key_hex = ::read_file<std::string>(parser.secret_key_path().c_str());
+            const dal::crypto::PublicKeySignature::SecretKey sk{ key_hex };
+            ::export_model(parser.output_path().c_str(), model, &sk, &sign_mgr);
+        }
+        else {
+            ::export_model(parser.output_path().c_str(), model, nullptr, nullptr);
+        }
+
+        std::cout << " done to '" << parser.output_path() << "' (" << timer.get_elapsed() << ")\n";
     }
 
-    int work_keygen(int argc, char* argv[]) {
+    void work_keygen(int argc, char* argv[]) {
         ::ArgParser_Keygen parser{ argc, argv };
 
         std::cout << parser.output_path() << std::endl;
@@ -404,8 +428,6 @@ namespace {
                 }
             }
         }
-
-        return 0;
     }
 
 }
@@ -414,13 +436,22 @@ namespace {
 int main(int argc, char* argv[]) try {
     using namespace std::string_literals;
 
+    if (argc < 2)
+        throw std::runtime_error{ "Operation must be specified" };
+
     if ("model"s == argv[1])
-        return work_model_mod(argc, argv);
+        ::work_model_mod(argc, argv);
     else if ("keygen"s == argv[1])
-        return work_keygen(argc, argv);
+        ::work_keygen(argc, argv);
     else
-        return -1;
+        throw std::runtime_error{ "unkown operation: "s + argv[1] };
 }
 catch (const std::runtime_error& e) {
     std::cout << "std::runtime_error: " << e.what() << std::endl;
+}
+catch (const std::exception& e) {
+    std::cout << "std::exception: " << e.what() << std::endl;
+}
+catch (...) {
+    std::cout << "unknown object thrown: " << std::endl;
 }
