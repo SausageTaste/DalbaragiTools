@@ -25,7 +25,13 @@ FetchContent_Declare(
     GIT_TAG        v1.2.11
 )
 
+FetchContent_Declare(
+    fetch_libhydrogen
+    GIT_REPOSITORY https://github.com/jedisct1/libhydrogen
+)
+
 FetchContent_MakeAvailable(fetch_glm)
+FetchContent_MakeAvailable(fetch_libhydrogen)
 
 
 # Define project library
@@ -65,6 +71,7 @@ endif()
 target_link_libraries(daltools
     PUBLIC
         glm::glm
+        hydrogen
 )
 
 
