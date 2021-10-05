@@ -70,17 +70,32 @@ namespace dal::crypto {
 
     public:
         class PublicKey : public IKey {
+
+        public:
             using IKey::IKey;
+
+            bool is_valid() const;
+
         };
 
 
         class SecretKey : public IKey {
+
+        public:
             using IKey::IKey;
+
+            bool is_valid() const;
+
         };
 
 
         class Signature : public IKey {
+
+        public:
             using IKey::IKey;
+
+            bool is_valid() const;
+
         };
 
 

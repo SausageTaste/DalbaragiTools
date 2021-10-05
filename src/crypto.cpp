@@ -77,6 +77,24 @@ namespace dal::crypto {
 }
 
 
+//
+namespace dal::crypto {
+
+    bool PublicKeySignature::PublicKey::is_valid() const {
+        return this->size() == hydro_sign_PUBLICKEYBYTES;
+    }
+
+    bool PublicKeySignature::SecretKey::is_valid() const {
+        return this->size() == hydro_sign_SECRETKEYBYTES;
+    }
+
+    bool PublicKeySignature::Signature::is_valid() const {
+        return this->size() == hydro_sign_BYTES;
+    }
+
+}
+
+
 // SignManager
 namespace dal::crypto {
 
@@ -108,6 +126,9 @@ namespace dal::crypto {
     ) {
         std::optional<Signature> output{ std::nullopt };
 
+        if (!secret_key.is_valid())
+            return output;
+
         uint8_t signature[hydro_sign_BYTES];
         if (0 == hydro_sign_create(signature, msg, msg_size, this->context_char(), secret_key.data())) {
             output = Signature{};
@@ -123,6 +144,11 @@ namespace dal::crypto {
         const PublicKeySignature::PublicKey& public_key,
         const PublicKeySignature::Signature& signature
     ) {
+        if (!public_key.is_valid())
+            return false;
+        if (!signature.is_valid())
+            return false;
+
         return 0 == hydro_sign_verify(signature.data(), msg, msg_size, this->context_char(), public_key.data());
     }
 
