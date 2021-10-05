@@ -373,6 +373,9 @@ namespace dal::parser {
             header = ::parse_render_unit(header, end, unit);
         }
 
+        output.m_signature_hex = reinterpret_cast<const char*>(header);
+        header += output.m_signature_hex.size() + 1;
+
         if (header != end)
             return ModelParseResult::corrupted_content;
         else

@@ -175,7 +175,7 @@ namespace {
         std::cout << "        animations: " << model->m_animations.size() << std::endl;
 
         {
-            const auto binary = dal::parser::build_binary_model(*model);
+            const auto binary = dal::parser::build_binary_model(*model, nullptr, nullptr);
             const auto zipped_second = dalp::zip_binary_model(binary->data(), binary->size());
             const auto unzipped_second = dalp::unzip_dmd(zipped_second->data(), zipped_second->size());
             const auto model_second = dal::parser::parse_dmd(unzipped_second->data(), unzipped_second->size());
@@ -248,7 +248,7 @@ namespace {
         }
         model->m_units_straight_joint.clear();
 
-        const auto binary_built = dalp::build_binary_model(*model);
+        const auto binary_built = dalp::build_binary_model(*model, nullptr, nullptr);
         const auto zipped = dalp::zip_binary_model(binary_built->data(), binary_built->size());
 
         std::ofstream file(src_path, std::ios::binary);

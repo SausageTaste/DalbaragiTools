@@ -6,3 +6,10 @@ namespace dal::parser {
     constexpr char MAGIC_NUMBERS_DAL_MODEL[] = "dalmdl";
 
 }
+
+
+namespace dal::crypto {
+
+    constexpr char CONTEXT_PARSER[] = "dalparse";
+
+}

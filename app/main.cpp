@@ -74,7 +74,7 @@ namespace {
     }
 
     void export_model(const char* const path, const dal::parser::Model& model) {
-        const auto binary_built = dal::parser::build_binary_model(model);
+        const auto binary_built = dal::parser::build_binary_model(model, nullptr, nullptr);
         const auto zipped = dal::parser::zip_binary_model(binary_built->data(), binary_built->size());
 
         std::ofstream file(path, std::ios::binary);
