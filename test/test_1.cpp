@@ -173,6 +173,7 @@ namespace {
         std::cout << "        render units indexed joint:  " << model->m_units_indexed_joint.size() << std::endl;
         std::cout << "        joints: " << model->m_skeleton.m_joints.size() << std::endl;
         std::cout << "        animations: " << model->m_animations.size() << std::endl;
+        std::cout << "        signature: " << model->m_signature_hex << std::endl;
 
         {
             const auto binary = dal::parser::build_binary_model(*model, nullptr, nullptr);
@@ -187,6 +188,7 @@ namespace {
             std::cout << "        render units indexed joint:  " << model_second->m_units_indexed_joint.size() << std::endl;
             std::cout << "        joints: " << model_second->m_skeleton.m_joints.size() << std::endl;
             std::cout << "        animations: " << model_second->m_animations.size() << std::endl;
+            std::cout << "        signature: " << model_second->m_signature_hex << std::endl;
 
             std::cout << "    * Built binary" << std::endl;
             std::cout << "        original zipped   binary size: " << zipped.size() << std::endl;
