@@ -30,8 +30,15 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/jedisct1/libhydrogen
 )
 
+FetchContent_Declare(
+    fetch_argparse
+    GIT_REPOSITORY https://github.com/p-ranav/argparse
+    GIT_TAG        v2.2
+)
+
 FetchContent_MakeAvailable(fetch_glm)
 FetchContent_MakeAvailable(fetch_libhydrogen)
+FetchContent_MakeAvailable(fetch_argparse)
 
 
 # Define project library

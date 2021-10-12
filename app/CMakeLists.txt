@@ -13,4 +13,5 @@ target_compile_features(daltools PUBLIC cxx_std_17)
 target_link_libraries(daltools
     PRIVATE
         dalbaragi::daltools
+        argparse::argparse
 )
