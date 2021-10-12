@@ -455,7 +455,7 @@ namespace {
         auto files = parser.get<std::vector<std::string>>("files");
         std::cout << files.size() << " files provided" << std::endl;
         for (const auto& src_path : files) {
-            std::cout << "Start for file '" << src_path << "'\n";
+            std::cout << "\nStart for file '" << src_path << "'\n";
 
             std::cout << "    Model loading";
             timer.check();
@@ -523,12 +523,17 @@ namespace {
                 std::cout << "    Reducing joints";
                 timer.check();
 
-                if (dal::parser::reduce_joints(model)) {
-                    std::cout << " done (" << timer.get_elapsed() << ")\n";
-                }
-                else {
-                    std::cout << " failed (" << timer.get_elapsed() << ")\n";
-                    throw std::runtime_error{ "Failed reducing joints" };
+                const auto result = dal::parser::reduce_joints(model);
+                switch (result) {
+                    case dal::parser::JointReductionResult::success:
+                        std::cout << " done (" << timer.get_elapsed() << ")\n";
+                        break;
+                    case dal::parser::JointReductionResult::needless:
+                        std::cout << " skipped (" << timer.get_elapsed() << ")\n";
+                        break;
+                    default:
+                        std::cout << " failed (" << timer.get_elapsed() << ")\n";
+                        throw std::runtime_error{ "Failed reducing joints" };
                 }
             }
 
@@ -564,12 +569,12 @@ namespace {
                 const auto key_hex = ::read_file<std::string>(key_path->c_str());
                 const dal::crypto::PublicKeySignature::SecretKey sk{ key_hex };
                 ::export_model(output_path.u8string().c_str(), model, &sk, &sign_mgr);
+                std::cout << " and signing done to " << output_path << " (" << timer.get_elapsed() << ")\n";
             }
             else {
                 ::export_model(output_path.u8string().c_str(), model, nullptr, nullptr);
+                std::cout << " done to " << output_path << " (" << timer.get_elapsed() << ")\n";
             }
-
-            std::cout << " done to " << output_path << " (" << timer.get_elapsed() << ")\n";
         }
     }
 
