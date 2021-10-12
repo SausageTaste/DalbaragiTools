@@ -579,9 +579,12 @@ namespace {
                 }
 
                 if (key_path.has_value()) {
-                    dal::crypto::PublicKeySignature sign_mgr{ dal::crypto::CONTEXT_PARSER };
                     const auto key_hex = ::read_file<std::string>(key_path->c_str());
                     const dal::crypto::PublicKeySignature::SecretKey sk{ key_hex };
+                    if (!sk.is_valid())
+                        throw std::runtime_error{ "Input secret key is not valid" };
+
+                    dal::crypto::PublicKeySignature sign_mgr{ dal::crypto::CONTEXT_PARSER };
                     ::export_model(output_path.u8string().c_str(), model, &sk, &sign_mgr);
                     std::cout << " and signing done to " << output_path << " (" << timer.get_elapsed() << ")\n";
                 }
