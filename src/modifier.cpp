@@ -416,9 +416,9 @@ namespace dal::parser {
     }
 
 
-    bool reduce_joints(dal::parser::Model& model) {
+    JointReductionResult reduce_joints(dal::parser::Model& model) {
         if (model.m_animations.empty())
-            return false;
+            return JointReductionResult::needless;
 
         const auto needed_joint_names = ::make_set_union(
             ::get_joint_names_with_non_identity_transform(model.m_animations, model.m_skeleton),
@@ -452,7 +452,7 @@ namespace dal::parser {
 
         model.m_skeleton = new_skeleton;
 
-        return true;
+        return JointReductionResult::success;
     }
 
 }
