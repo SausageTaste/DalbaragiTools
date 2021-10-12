@@ -457,7 +457,7 @@ int main(int argc, char* argv[]) try {
     else if ("keygen"s == argv[1])
         ::work_keygen(argc, argv);
     else
-        throw std::runtime_error{ "unkown operation: "s + argv[1] };
+        throw std::runtime_error{ "unkown operation ("s + argv[1] + "). It must be one of { model, keygen }" };
 }
 catch (const std::runtime_error& e) {
     std::cout << "\nstd::runtime_error: " << e.what() << std::endl;
