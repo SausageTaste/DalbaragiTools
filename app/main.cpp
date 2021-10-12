@@ -616,30 +616,53 @@ namespace {
     }
 
     void work_keygen(int argc, char* argv[]) {
-        ::ArgParser_Keygen parser{ argc, argv };
+        ::Timer timer;
+        argparse::ArgumentParser parser{ "daltools" };
 
-        std::cout << parser.output_path() << std::endl;
+        parser.add_argument("operation")
+            .help("Operation name");
 
-        switch (parser.key_type()) {
-            case ::KeyType::sign:
+        parser.add_argument("-s", "--sign")
+            .help("Generate key pair for signing")
+            .default_value(false)
+            .implicit_value(true);
+
+        parser.add_argument("-o", "--output")
+            .help("File path to save key files. Extension must be omitted")
+            .required();
+
+        parser.parse_args(argc, argv);
+
+        const auto output_prefix = parser.get<std::string>("--output");
+
+        if (parser["--sign"] == true) {
+            std::cout << "Keypair for signing\n";
+            timer.check();
+
+            dal::crypto::PublicKeySignature sign_mgr{ dal::crypto::CONTEXT_PARSER };
+            const auto [pk, sk] = sign_mgr.gen_keys();
+
             {
-                dal::crypto::PublicKeySignature sign_mgr{ dal::crypto::CONTEXT_PARSER };
-                const auto [pk, sk] = sign_mgr.gen_keys();
+                const auto path = output_prefix + "-sign_sec.dky";
+                std::ofstream file(path, std::ios::binary);
+                const auto data = sk.make_hex_str();
+                file.write(data.data(), data.size());
+                file.close();
 
-                {
-                    std::ofstream file(parser.output_path() + "-secret.dky", std::ios::binary);
-                    const auto data = sk.make_hex_str();
-                    file.write(data.data(), data.size());
-                    file.close();
-                }
-
-                {
-                    std::ofstream file(parser.output_path() + "-public.dky", std::ios::binary);
-                    const auto data = pk.make_hex_str();
-                    file.write(data.data(), data.size());
-                    file.close();
-                }
+                std::cout << "    Secret key: " << path << '\n';
             }
+
+            {
+                const auto path = output_prefix + "-sign_pub.dky";
+                std::ofstream file(path, std::ios::binary);
+                const auto data = pk.make_hex_str();
+                file.write(data.data(), data.size());
+                file.close();
+
+                std::cout << "    Public key: " << path << '\n';
+            }
+
+            std::cout << "    took " << timer.get_elapsed() << " seconds\n";
         }
     }
 
