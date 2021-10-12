@@ -452,7 +452,9 @@ namespace {
 
         parser.parse_args(argc, argv);
 
-        auto files = parser.get<std::vector<std::string>>("files");
+        const auto files = parser.get<std::vector<std::string>>("files");
+        bool export_needed = false;
+
         std::cout << files.size() << " files provided" << std::endl;
         for (const auto& src_path : files) {
             std::cout << "\nStart for file '" << src_path << "'\n";
@@ -479,6 +481,7 @@ namespace {
                     ::flip_uv_vertically(unit.m_mesh);
                 }
 
+                export_needed = true;
                 std::cout << " done (" << timer.get_elapsed() << ")\n";
             }
 
@@ -491,6 +494,7 @@ namespace {
                 model.m_units_indexed = dal::parser::merge_by_material(model.m_units_indexed);
                 model.m_units_indexed_joint = dal::parser::merge_by_material(model.m_units_indexed_joint);
 
+                export_needed = true;
                 std::cout << " done (" << timer.get_elapsed() << ")\n";
             }
 
@@ -504,6 +508,8 @@ namespace {
                     new_unit.m_material = unit.m_material;
                     new_unit.m_mesh = dal::parser::convert_to_indexed(unit.m_mesh);
                     model.m_units_indexed.push_back(new_unit);
+
+                    export_needed = true;
                 }
                 model.m_units_straight.clear();
 
@@ -513,6 +519,8 @@ namespace {
                     new_unit.m_material = unit.m_material;
                     new_unit.m_mesh = dal::parser::convert_to_indexed(unit.m_mesh);
                     model.m_units_indexed_joint.push_back(new_unit);
+
+                    export_needed = true;
                 }
                 model.m_units_straight_joint.clear();
 
@@ -526,6 +534,7 @@ namespace {
                 const auto result = dal::parser::reduce_joints(model);
                 switch (result) {
                     case dal::parser::JointReductionResult::success:
+                        export_needed = true;
                         std::cout << " done (" << timer.get_elapsed() << ")\n";
                         break;
                     case dal::parser::JointReductionResult::needless:
@@ -537,43 +546,49 @@ namespace {
                 }
             }
 
-            std::cout << "    Exporting";
-            timer.check();
+            const auto key_path = parser.present("--key");
+            if (key_path.has_value())
+                export_needed = true;
 
-            std::filesystem::path output_path;
-            {
-                const auto subfolder = parser.present("--subfolder");
-                const auto suffix = parser.present("--suffix");
+            if (export_needed) {
+                std::cout << "    Exporting";
+                timer.check();
 
-                if (!suffix && !subfolder) {
-                    output_path = ::insert_suffix(src_path, "_");
+                std::filesystem::path output_path;
+                {
+                    const auto subfolder = parser.present("--subfolder");
+                    const auto suffix = parser.present("--suffix");
+
+                    if (!suffix && !subfolder) {
+                        output_path = ::insert_suffix(src_path, "_");
+                    }
+                    else if (suffix && !subfolder) {
+                        output_path = ::insert_suffix(src_path, *suffix);
+                    }
+                    else if (!suffix && subfolder) {
+                        output_path = ::insert_subfolder_suffix(src_path, *subfolder, "");
+                        ::create_folders_of_path(output_path, 1);
+                    }
+                    else if (suffix && subfolder) {
+                        output_path = ::insert_subfolder_suffix(src_path, *subfolder, *suffix);
+                        ::create_folders_of_path(output_path, 1);
+                    }
+                    else {
+                        throw std::runtime_error{ "This shouldn't happen" };
+                    }
                 }
-                else if (suffix && !subfolder) {
-                    output_path = ::insert_suffix(src_path, *suffix);
-                }
-                else if (!suffix && subfolder) {
-                    output_path = ::insert_subfolder_suffix(src_path, *subfolder, "");
-                    ::create_folders_of_path(output_path, 1);
-                }
-                else if (suffix && subfolder) {
-                    output_path = ::insert_subfolder_suffix(src_path, *subfolder, *suffix);
-                    ::create_folders_of_path(output_path, 1);
+
+                if (key_path.has_value()) {
+                    dal::crypto::PublicKeySignature sign_mgr{ dal::crypto::CONTEXT_PARSER };
+                    const auto key_hex = ::read_file<std::string>(key_path->c_str());
+                    const dal::crypto::PublicKeySignature::SecretKey sk{ key_hex };
+                    ::export_model(output_path.u8string().c_str(), model, &sk, &sign_mgr);
+                    std::cout << " and signing done to " << output_path << " (" << timer.get_elapsed() << ")\n";
                 }
                 else {
-                    throw std::runtime_error{ "This shouldn't happen" };
+                    ::export_model(output_path.u8string().c_str(), model, nullptr, nullptr);
+                    std::cout << " done to " << output_path << " (" << timer.get_elapsed() << ")\n";
                 }
-            }
-
-            if (auto key_path = parser.present("--key")) {
-                dal::crypto::PublicKeySignature sign_mgr{ dal::crypto::CONTEXT_PARSER };
-                const auto key_hex = ::read_file<std::string>(key_path->c_str());
-                const dal::crypto::PublicKeySignature::SecretKey sk{ key_hex };
-                ::export_model(output_path.u8string().c_str(), model, &sk, &sign_mgr);
-                std::cout << " and signing done to " << output_path << " (" << timer.get_elapsed() << ")\n";
-            }
-            else {
-                ::export_model(output_path.u8string().c_str(), model, nullptr, nullptr);
-                std::cout << " done to " << output_path << " (" << timer.get_elapsed() << ")\n";
             }
         }
     }
