@@ -201,7 +201,7 @@ namespace {
             std::cout << "        result: " << (dal::parser::JointReductionResult::fail != dalp::reduce_joints(model_cpy)) << std::endl;
         }
 
-        constexpr double TEST_DURATION = 1.0;
+        constexpr double TEST_DURATION = 5.0;
 
         {
 
@@ -215,7 +215,7 @@ namespace {
                 ++process_count;
             }
 
-            std::cout << "        processed " << process_count << " times\n";
+            std::cout << "        processed " << static_cast<double>(process_count) / TEST_DURATION << " times per sec\n";
         }
 
         {
@@ -229,7 +229,7 @@ namespace {
                 ++process_count;
             }
 
-            std::cout << "        processed " << process_count << " times\n";
+            std::cout << "        processed " << static_cast<double>(process_count) / TEST_DURATION << " times per sec\n";
         }
     }
 
