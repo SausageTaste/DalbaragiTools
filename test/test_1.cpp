@@ -140,31 +140,6 @@ namespace {
 
 namespace {
 
-    void test_byte_tools() {
-        std::cout << "< Test byte tools >" << std::endl;
-
-        {
-            const float TEST = 45.5;
-            uint8_t buffer[4];
-            dalp::to_float32(TEST, buffer);
-            std::cout << "    after casting: " << dalp::make_float32(buffer) << std::endl;
-        }
-
-        {
-            const int32_t TEST = 76;
-            uint8_t buffer[4];
-            dalp::to_int32(TEST, buffer);
-            std::cout << "    after casting: " << dalp::make_int32(buffer) << std::endl;
-        }
-
-        {
-            const int32_t TEST = 72;
-            uint8_t buffer[2];
-            dalp::to_int16(TEST, buffer);
-            std::cout << "    after casting: " << dalp::make_int16(buffer) << std::endl;
-        }
-    }
-
     void test_a_model(const char* const model_path) {
         std::cout << "< " << model_path << " >" << std::endl;
 
@@ -226,9 +201,24 @@ namespace {
             std::cout << "        result: " << (dal::parser::JointReductionResult::fail != dalp::reduce_joints(model_cpy)) << std::endl;
         }
 
-        {
-            constexpr double TEST_DURATION = 2.0;
+        constexpr double TEST_DURATION = 1.0;
 
+        {
+
+            std::cout << "    * Measuring import performance" << std::endl;
+
+            const auto start_time = ::get_cur_sec();
+            size_t process_count = 0;
+
+            while (::get_cur_sec() - start_time < TEST_DURATION) {
+                const auto model = dal::parser::parse_dmd(unzipped->data(), unzipped->size());
+                ++process_count;
+            }
+
+            std::cout << "        processed " << process_count << " times\n";
+        }
+
+        {
             std::cout << "    * Measuring export performance" << std::endl;
 
             const auto start_time = ::get_cur_sec();
@@ -296,6 +286,4 @@ int main() {
             ::test_a_model(entry.path().string());
         }
     }
-
-    std::cout << std::endl; ::test_byte_tools();
 }
