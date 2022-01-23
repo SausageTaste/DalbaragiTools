@@ -37,10 +37,31 @@ namespace dal::parser {
 
     template <typename T>
     const uint8_t* assemble_4_bytes_array(const uint8_t* src, T* const dst, const size_t size) {
-        for ( size_t i = 0; i < size; ++i ) {
-            dst[i] = assemble_4_bytes<T>(src); src += 4;
+        static_assert(4 == sizeof(T));
+        const auto copy_size = 4 * size;
+
+#if true
+        if (is_big_endian()) {
+            const auto dst_loc = reinterpret_cast<uint8_t*>(dst);
+
+            for (size_t i = 0; i < size; ++i) {
+                dst_loc[4 * i + 0] = src[4 * i + 3];
+                dst_loc[4 * i + 1] = src[4 * i + 2];
+                dst_loc[4 * i + 2] = src[4 * i + 1];
+                dst_loc[4 * i + 3] = src[4 * i + 0];
+            }
         }
-        return src;
+        else {
+            const auto copy_size = 4 * size;
+            memcpy(dst, src, copy_size);
+        }
+#else
+        for ( size_t i = 0; i < size; ++i ) {
+            dst[i] = assemble_4_bytes<T>(src);
+        }
+#endif
+
+        return src + copy_size;
     }
 
 
