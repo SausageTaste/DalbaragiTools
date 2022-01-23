@@ -8,9 +8,13 @@ namespace dal::parser {
 
     bool is_big_endian();
 
+
     bool make_bool8(const uint8_t* begin);
+
     int32_t make_int16(const uint8_t* begin);
+
     int32_t make_int32(const uint8_t* begin);
+
     float make_float32(const uint8_t* begin);
 
     template <typename T>
@@ -66,8 +70,11 @@ namespace dal::parser {
 
 
     uint8_t to_bool8(const bool v);
+
     void to_int16(const int32_t v, uint8_t* const buffer);
+
     void to_int32(const int32_t v, uint8_t* const buffer);
+
     void to_float32(const float v, uint8_t* const buffer);
 
 }
