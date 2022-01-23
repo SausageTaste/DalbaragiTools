@@ -17,10 +17,6 @@ namespace {
         dalp::binary_buffer_t m_data;
 
     public:
-        BinaryBuildBuffer() {
-            this->reserve(1024);
-        }
-
         BinaryBuildBuffer& operator+=(const BinaryBuildBuffer& other) {
             this->m_data.insert(this->m_data.end(), other.m_data.begin(), other.m_data.end());
             return *this;
@@ -35,9 +31,7 @@ namespace {
         }
 
         void append_int32_array(const int32_t* const arr, const size_t arr_size) {
-            for (size_t i = 0; i < arr_size; ++i) {
-                this->append_int32(arr[i]);
-            }
+            this->append_4_bytes_array(arr, arr_size);
         }
 
         void append_float32(const float v) {
@@ -45,15 +39,11 @@ namespace {
         }
 
         void append_float32_array(const float* const arr, const size_t arr_size) {
-            for (size_t i = 0; i < arr_size; ++i) {
-                this->append_float32(arr[i]);
-            }
+            this->append_4_bytes_array(arr, arr_size);
         }
 
         void append_float32_vector(const std::vector<float>& v) {
-            for (auto x : v) {
-                this->append_float32(x);
-            }
+            this->append_4_bytes_array(v.data(), v.size());
         }
 
         void append_char(const char c) {
@@ -118,6 +108,21 @@ namespace {
             }
             else {
                 this->m_data.insert(this->m_data.end(), src_loc, src_loc + 4);
+            }
+        }
+
+        template <typename T>
+        void append_4_bytes_array(const T* const arr, const size_t size) {
+            static_assert(4 == sizeof(T));
+
+            if (dalp::is_big_endian()) {
+                for (size_t i = 0; i < size; ++i) {
+                    this->append_4_bytes(arr[i]);
+                }
+            }
+            else {
+                const auto src_loc = reinterpret_cast<const uint8_t*>(arr);
+                this->m_data.insert(this->m_data.end(), src_loc, src_loc + 4 * size);
             }
         }
 

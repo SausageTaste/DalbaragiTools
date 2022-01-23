@@ -18,6 +18,12 @@ namespace dalp = dal::parser;
 
 namespace {
 
+    constexpr unsigned NANOSEC_PER_SEC = 1000000000;
+
+    double get_cur_sec(void) {
+        return static_cast<double>(std::chrono::steady_clock::now().time_since_epoch().count()) / static_cast<double>(NANOSEC_PER_SEC);
+    }
+
     std::vector<std::string> get_all_dir_within_folder(std::string folder) {
         std::vector<std::string> names;
 
@@ -218,6 +224,22 @@ namespace {
             std::cout << "    * Reducing joints" << std::endl;
             auto model_cpy = model.value();
             std::cout << "        result: " << (dal::parser::JointReductionResult::fail != dalp::reduce_joints(model_cpy)) << std::endl;
+        }
+
+        {
+            constexpr double TEST_DURATION = 2.0;
+
+            std::cout << "    * Measuring export performance" << std::endl;
+
+            const auto start_time = ::get_cur_sec();
+            size_t process_count = 0;
+
+            while (::get_cur_sec() - start_time < TEST_DURATION) {
+                const auto binary = dal::parser::build_binary_model(*model, nullptr, nullptr);
+                ++process_count;
+            }
+
+            std::cout << "        processed " << process_count << " times\n";
         }
     }
 
