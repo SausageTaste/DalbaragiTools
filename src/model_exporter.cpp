@@ -434,7 +434,11 @@ namespace dal::parser {
             buffer.append_char('\0');
         }
 
-        output = buffer.move();
+        auto zipped = ::compress_dal_model(buffer.data(), buffer.size());
+        if (!zipped.has_value())
+            return ModelExportResult::compression_failure;
+
+        output = std::move(zipped.value());
         return ModelExportResult::success;
     }
 

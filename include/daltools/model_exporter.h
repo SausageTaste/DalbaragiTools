@@ -14,6 +14,7 @@ namespace dal::parser {
 
     enum class ModelExportResult{
         success,
+        compression_failure,
         unknown_error,
     };
 
@@ -30,7 +31,5 @@ namespace dal::parser {
         const crypto::PublicKeySignature::SecretKey* const sign_key,
         crypto::PublicKeySignature* const sign_mgr
     );
-
-    std::optional<binary_buffer_t> zip_binary_model(const uint8_t* const data, const size_t data_size);
 
 }

@@ -136,13 +136,12 @@ namespace {
         using namespace std::string_literals;
 
         const auto binary_built = dal::parser::build_binary_model(model, sign_key, sign_mgr);
-        const auto zipped = dal::parser::zip_binary_model(binary_built->data(), binary_built->size());
 
         std::ofstream file(path, std::ios::binary);
         if (!file.is_open())
             throw std::runtime_error{ "Failed to open file to write: "s + path };
 
-        file.write(reinterpret_cast<const char*>(zipped->data()), zipped->size());
+        file.write(reinterpret_cast<const char*>(binary_built->data()), binary_built->size());
         file.close();
     }
 

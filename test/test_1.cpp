@@ -157,8 +157,7 @@ namespace {
 
         {
             const auto binary = dal::parser::build_binary_model(*model, nullptr, nullptr);
-            const auto zipped_second = dalp::zip_binary_model(binary->data(), binary->size());
-            const auto model_second = dal::parser::parse_dmd(zipped_second->data(), zipped_second->size());
+            const auto model_second = dal::parser::parse_dmd(binary->data(), binary->size());
 
             std::cout << "    * Second model parsed" << std::endl;
             std::cout << "        render units straight:       " << model_second->m_units_straight.size() << std::endl;
@@ -171,8 +170,8 @@ namespace {
 
             std::cout << "    * Built binary" << std::endl;
             std::cout << "        original binary size: " << file_content.size() << std::endl;
-            std::cout << "        built    binary size: " << zipped_second->size() << std::endl;
-            std::cout << "        compare: " << ::compare_binary_buffers(file_content, *zipped_second) << std::endl;
+            std::cout << "        built    binary size: " << binary->size() << std::endl;
+            std::cout << "        compare: " << ::compare_binary_buffers(file_content, *binary) << std::endl;
 
             ::compare_models(*model, *model_second);
         }
@@ -258,10 +257,9 @@ namespace {
         model->m_units_straight_joint.clear();
 
         const auto binary_built = dalp::build_binary_model(*model, nullptr, nullptr);
-        const auto zipped = dalp::zip_binary_model(binary_built->data(), binary_built->size());
 
         std::ofstream file(src_path, std::ios::binary);
-        file.write(reinterpret_cast<const char*>(zipped->data()), zipped->size());
+        file.write(reinterpret_cast<const char*>(binary_built->data()), binary_built->size());
         file.close();
 
         std::cout << " -> Done" << std::endl;
