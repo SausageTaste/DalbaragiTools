@@ -317,37 +317,9 @@ namespace {
         return header;
     }
 
-}
 
-
-namespace dal::parser {
-
-    ModelParseResult unzip_dmd(std::vector<uint8_t>& output, const uint8_t* const file_content, const size_t content_size) {
-        // Check magic numbers
-        if (!::is_magic_numbers_correct(file_content))
-            return ModelParseResult::magic_numbers_dont_match;
-
-        // Decompress
-        auto unzipped = ::unzip_dal_model(file_content, content_size);
-        if (!unzipped)
-            return ModelParseResult::decompression_failed;
-
-        output = std::move(*unzipped);
-        return ModelParseResult::success;
-    }
-
-    std::optional<std::vector<uint8_t>> unzip_dmd(const uint8_t* const file_content, const size_t content_size) {
-        std::vector<uint8_t> output;
-
-        if (ModelParseResult::success != dalp::unzip_dmd(output, file_content, content_size))
-            return std::nullopt;
-        else
-            return output;
-    }
-
-    ModelParseResult parse_dmd(Model& output, const uint8_t* const unzipped_content, const size_t content_size) {
-        const uint8_t* const end = unzipped_content + content_size;
-        const uint8_t* header = unzipped_content;
+    dalp::ModelParseResult parse_all(dalp::Model& output, const uint8_t* const begin, const uint8_t* const end) {
+        const uint8_t* header = begin;
 
         header = ::parse_aabb(header, end, output.m_aabb);
         header = ::parse_skeleton(header, end, output.m_skeleton);
@@ -377,15 +349,33 @@ namespace dal::parser {
         header += output.m_signature_hex.size() + 1;
 
         if (header != end)
-            return ModelParseResult::corrupted_content;
+            return dalp::ModelParseResult::corrupted_content;
         else
-            return ModelParseResult::success;
+            return dalp::ModelParseResult::success;
     }
 
-    std::optional<Model> parse_dmd(const uint8_t* const unzipped_content, const size_t content_size) {
+}
+
+
+namespace dal::parser {
+
+    ModelParseResult parse_dmd(Model& output, const uint8_t* const file_content, const size_t content_size) {
+        // Check magic numbers
+        if (!::is_magic_numbers_correct(file_content))
+            return dalp::ModelParseResult::magic_numbers_dont_match;
+
+        // Decompress
+        const auto unzipped = ::unzip_dal_model(file_content, content_size);
+        if (!unzipped)
+            return dalp::ModelParseResult::decompression_failed;
+
+        return ::parse_all(output, unzipped->data(), unzipped->data() + unzipped->size());
+    }
+
+    std::optional<Model> parse_dmd(const uint8_t* const file_content, const size_t content_size) {
         Model output;
 
-        if (ModelParseResult::success != dalp::parse_dmd(output, unzipped_content, content_size))
+        if (ModelParseResult::success != dalp::parse_dmd(output, file_content, content_size))
             return std::nullopt;
         else
             return output;

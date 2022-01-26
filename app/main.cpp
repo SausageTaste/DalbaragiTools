@@ -124,8 +124,7 @@ namespace {
 
     dal::parser::Model load_model(const char* const path) {
         const auto model_data = ::read_file<std::vector<uint8_t>>(path);
-        const auto unzipped = dal::parser::unzip_dmd(model_data.data(), model_data.size());
-        return dal::parser::parse_dmd(unzipped->data(), unzipped->size()).value();
+        return dal::parser::parse_dmd(model_data.data(), model_data.size()).value();
     }
 
     void export_model(

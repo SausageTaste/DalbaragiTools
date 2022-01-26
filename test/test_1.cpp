@@ -143,9 +143,8 @@ namespace {
     void test_a_model(const char* const model_path) {
         std::cout << "< " << model_path << " >" << std::endl;
 
-        const auto zipped = ::read_file(model_path);
-        const auto unzipped = dal::parser::unzip_dmd(zipped.data(), zipped.size());
-        const auto model = dal::parser::parse_dmd(unzipped->data(), unzipped->size());
+        const auto file_content = ::read_file(model_path);
+        const auto model = dal::parser::parse_dmd(file_content.data(), file_content.size());
 
         std::cout << "    * Loaded and parsed" << std::endl;
         std::cout << "        render units straight:       " << model->m_units_straight.size() << std::endl;
@@ -159,8 +158,7 @@ namespace {
         {
             const auto binary = dal::parser::build_binary_model(*model, nullptr, nullptr);
             const auto zipped_second = dalp::zip_binary_model(binary->data(), binary->size());
-            const auto unzipped_second = dalp::unzip_dmd(zipped_second->data(), zipped_second->size());
-            const auto model_second = dal::parser::parse_dmd(unzipped_second->data(), unzipped_second->size());
+            const auto model_second = dal::parser::parse_dmd(zipped_second->data(), zipped_second->size());
 
             std::cout << "    * Second model parsed" << std::endl;
             std::cout << "        render units straight:       " << model_second->m_units_straight.size() << std::endl;
@@ -172,11 +170,9 @@ namespace {
             std::cout << "        signature: " << model_second->m_signature_hex << std::endl;
 
             std::cout << "    * Built binary" << std::endl;
-            std::cout << "        original zipped   binary size: " << zipped.size() << std::endl;
-            std::cout << "        original unzipped binary size: " << unzipped->size() << std::endl;
-            std::cout << "        built    zipped   binary size: " << zipped_second->size() << std::endl;
-            std::cout << "        built    unzipped binary size: " << unzipped_second->size() << std::endl;
-            std::cout << "        compare: " << ::compare_binary_buffers(*unzipped_second, *unzipped) << std::endl;
+            std::cout << "        original binary size: " << file_content.size() << std::endl;
+            std::cout << "        built    binary size: " << zipped_second->size() << std::endl;
+            std::cout << "        compare: " << ::compare_binary_buffers(file_content, *zipped_second) << std::endl;
 
             ::compare_models(*model, *model_second);
         }
@@ -201,7 +197,7 @@ namespace {
             std::cout << "        result: " << (dal::parser::JointReductionResult::fail != dalp::reduce_joints(model_cpy)) << std::endl;
         }
 
-        constexpr double TEST_DURATION = 5.0;
+        constexpr double TEST_DURATION = 0.5;
 
         {
 
@@ -211,7 +207,7 @@ namespace {
             size_t process_count = 0;
 
             while (::get_cur_sec() - start_time < TEST_DURATION) {
-                const auto model = dal::parser::parse_dmd(unzipped->data(), unzipped->size());
+                const auto model = dal::parser::parse_dmd(file_content.data(), file_content.size());
                 ++process_count;
             }
 
@@ -241,8 +237,7 @@ namespace {
         std::cout << "Convert " << src_path << " to indexed model to " << dst_path;
 
         const auto model_data = ::read_file(dst_path);
-        const auto unzipped = dal::parser::unzip_dmd(model_data.data(), model_data.size());
-        auto model = dal::parser::parse_dmd(unzipped->data(), unzipped->size());
+        auto model = dal::parser::parse_dmd(model_data.data(), model_data.size());
 
         for (const auto& unit : model->m_units_straight) {
             dalp::RenderUnit<dalp::Mesh_Indexed> new_unit;
