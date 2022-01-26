@@ -369,7 +369,49 @@ namespace dal::parser {
         if (!unzipped)
             return dalp::ModelParseResult::decompression_failed;
 
+        // Parse
         return ::parse_all(output, unzipped->data(), unzipped->data() + unzipped->size());
+    }
+
+    ModelParseResult parse_verify_dmd(
+        Model& output,
+        const uint8_t* const file_content,
+        const size_t content_size,
+        const crypto::PublicKeySignature::PublicKey& public_key,
+        crypto::PublicKeySignature& sign_mgr
+    ) {
+        // Check magic numbers
+        if (!::is_magic_numbers_correct(file_content))
+            return dalp::ModelParseResult::magic_numbers_dont_match;
+
+        // Decompress
+        const auto unzipped = ::unzip_dal_model(file_content, content_size);
+        if (!unzipped)
+            return dalp::ModelParseResult::decompression_failed;
+
+        // Parse
+        {
+            const auto parse_result = ::parse_all(output, unzipped->data(), unzipped->data() + unzipped->size());
+            if (dalp::ModelParseResult::success != parse_result)
+                return parse_result;
+        }
+
+        // Varify
+        {
+            const dal::crypto::PublicKeySignature::Signature signature{ output.m_signature_hex };
+
+            const auto varify_result = sign_mgr.verify(
+                unzipped->data(),
+                unzipped->size() - output.m_signature_hex.size() - 1,
+                public_key,
+                signature
+            );
+
+            if (!varify_result)
+                return ModelParseResult::invalid_signature;
+        }
+
+        return ModelParseResult::success;
     }
 
     std::optional<Model> parse_dmd(const uint8_t* const file_content, const size_t content_size) {
