@@ -51,6 +51,7 @@ add_library(libdaltools
     ${source_dir}/modifier.cpp
     ${source_dir}/model_exporter.cpp
     ${source_dir}/crypto.cpp
+    ${source_dir}/compression.cpp
 )
 
 target_include_directories(libdaltools PUBLIC ./include

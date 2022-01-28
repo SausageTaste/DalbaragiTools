@@ -1,9 +1,8 @@
 #include "daltools/model_exporter.h"
 
-#include <zlib.h>
-
 #include "daltools/byte_tool.h"
 #include "daltools/konst.h"
+#include "daltools/compression.h"
 
 
 namespace dalp = dal::parser;
@@ -133,17 +132,6 @@ namespace {
 
 namespace {
 
-    size_t compress_zip(uint8_t* const dst, const size_t dst_size, const uint8_t* const src, const size_t src_size) {
-        uLongf dst_len = dst_size;
-
-        if (Z_OK == compress(dst, &dst_len, src, src_size)) {
-            return dst_len;
-        }
-        else {
-            return 0;
-        }
-    }
-
     std::optional<dalp::binary_buffer_t> compress_dal_model(const uint8_t* const src, const size_t src_size) {
         dalp::binary_buffer_t output(src_size + 64);
 
@@ -155,12 +143,12 @@ namespace {
         memcpy(output.data(), dalp::MAGIC_NUMBERS_DAL_MODEL, dalp::MAGIC_NUMBER_SIZE);
         memcpy(output.data() + dalp::MAGIC_NUMBER_SIZE, &src_size_int32, sizeof(int32_t));
 
-        const auto result_size = ::compress_zip(output.data() + data_offset, output.size() - data_offset, src, src_size);
-        if (0 == result_size) {
+        const auto result = dal::compress_zip(output.data() + data_offset, output.size() - data_offset, src, src_size);
+        if (dal::CompressResult::success != result.m_result) {
             return std::nullopt;
         }
         else {
-            output.resize(result_size + data_offset);
+            output.resize(result.m_output_size + data_offset);
             return output;
         }
     }
