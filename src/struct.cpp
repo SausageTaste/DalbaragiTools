@@ -92,3 +92,19 @@ namespace dal::parser {
     }
 
 }
+
+
+// Animation
+namespace dal::parser {
+
+    std::optional<size_t> Animation::find_by_name(const char* const name) const {
+        for (size_t i = 0; i < this->m_joints.size(); ++i) {
+            if (this->m_joints[i].m_name == name) {
+                return i;
+            }
+        }
+
+        return std::nullopt;
+    }
+
+}

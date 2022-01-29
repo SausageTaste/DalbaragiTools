@@ -3,6 +3,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <optional>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -147,11 +148,22 @@ namespace dal::parser {
         bool is_identity_transform() const;
     };
 
-    struct Animation {
+
+    class Animation {
+
+    public:
         std::string m_name;
         std::vector<AnimJoint> m_joints;
         float m_duration_tick;
         float m_ticks_par_sec;
+
+    public:
+        std::optional<size_t> find_by_name(const char* const name) const;
+
+        std::optional<size_t> find_by_name(const std::string& name) const {
+            return this->find_by_name(name.c_str());
+        }
+
     };
 
 
