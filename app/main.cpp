@@ -13,43 +13,10 @@
 #include "daltools/byte_tool.h"
 #include "daltools/model_exporter.h"
 #include "daltools/konst.h"
+#include "daltools/util.h"
 
 
 namespace {
-
-    constexpr unsigned MISCROSEC_PER_SEC = 1000000;
-    constexpr unsigned NANOSEC_PER_SEC = 1000000000;
-
-    class Timer {
-
-    private:
-        std::chrono::steady_clock::time_point m_last_checked = std::chrono::steady_clock::now();
-
-    public:
-        void check() {
-            this->m_last_checked = std::chrono::steady_clock::now();
-        }
-
-        double get_elapsed() const {
-            const auto deltaTime_microsec = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - this->m_last_checked).count();
-            return static_cast<double>(deltaTime_microsec) / static_cast<double>(MISCROSEC_PER_SEC);
-        }
-
-        double check_get_elapsed() {
-            const auto now = std::chrono::steady_clock::now();
-            const auto deltaTime_microsec = std::chrono::duration_cast<std::chrono::microseconds>(now - this->m_last_checked).count();
-            this->m_last_checked = now;
-
-            return static_cast<double>(deltaTime_microsec) / static_cast<double>(MISCROSEC_PER_SEC);
-        }
-
-    protected:
-        auto& last_checked(void) const {
-            return this->m_last_checked;
-        }
-
-    };
-
 
     size_t calc_path_length(const std::filesystem::path& path) {
         size_t output = 0;
@@ -192,7 +159,7 @@ namespace {
         namespace dalp = dal::parser;
         using namespace std::string_literals;
 
-        ::Timer timer;
+        dal::Timer timer;
         argparse::ArgumentParser parser{ "daltools" };
 
         parser.add_argument("operation")
@@ -391,7 +358,7 @@ namespace {
     }
 
     void work_keygen(int argc, char* argv[]) {
-        ::Timer timer;
+        dal::Timer timer;
         argparse::ArgumentParser parser{ "daltools" };
 
         parser.add_argument("operation")
