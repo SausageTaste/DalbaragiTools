@@ -48,16 +48,16 @@ namespace dal {
 // Timer
 namespace dal {
 
-    void Timer::check(void) {
+    void Timer::check() {
         this->m_last_checked = std::chrono::steady_clock::now();
     }
 
-    double Timer::get_elapsed(void) const {
+    double Timer::get_elapsed() const {
         const auto delta_time_ms = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - this->m_last_checked).count();
         return static_cast<double>(delta_time_ms) / static_cast<double>(::MISCROSEC_PER_SEC);
     }
 
-    double Timer::check_get_elapsed(void) {
+    double Timer::check_get_elapsed() {
         const auto now = std::chrono::steady_clock::now();
         const auto delta_time_microsec = std::chrono::duration_cast<std::chrono::microseconds>(now - this->m_last_checked).count();
         this->m_last_checked = now;
@@ -71,7 +71,7 @@ namespace dal {
 // TimerThatCaps
 namespace dal {
 
-    double TimerThatCaps::check_get_elapsed_cap_fps(void) {
+    double TimerThatCaps::check_get_elapsed_cap_fps() {
         this->wait_to_cap_fps();
         return this->check_get_elapsed();
     }
@@ -91,7 +91,7 @@ namespace dal {
 
     // Private
 
-    void TimerThatCaps::wait_to_cap_fps(void) {
+    void TimerThatCaps::wait_to_cap_fps() {
         const auto wake_time = this->last_checked() + std::chrono::microseconds{ this->m_desired_delta_microsec };
         ::sleep_hybrid_until(wake_time);
     }

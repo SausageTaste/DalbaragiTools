@@ -16,14 +16,14 @@ namespace dal {
         std::chrono::steady_clock::time_point m_last_checked = std::chrono::steady_clock::now();
 
     public:
-        void check(void);
+        void check();
 
-        double get_elapsed(void) const;
+        double get_elapsed() const;
 
-        double check_get_elapsed(void);
+        double check_get_elapsed();
 
     protected:
-        auto& last_checked(void) const {
+        auto& last_checked() const {
             return this->m_last_checked;
         }
 
