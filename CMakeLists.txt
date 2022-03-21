@@ -9,6 +9,10 @@ project(DalbaragiTools
 
 set(source_dir ${PROJECT_SOURCE_DIR}/src)
 
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
+
 
 # Define external libraries
 # ----------------------------------------------------------------------------------
