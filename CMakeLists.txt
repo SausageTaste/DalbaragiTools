@@ -40,9 +40,16 @@ FetchContent_Declare(
     GIT_TAG        v2.2
 )
 
+FetchContent_Declare(
+    fetch_json
+    GIT_REPOSITORY https://github.com/nlohmann/json
+    GIT_TAG        v3.10.5
+)
+
 FetchContent_MakeAvailable(fetch_glm)
 FetchContent_MakeAvailable(fetch_libhydrogen)
 FetchContent_MakeAvailable(fetch_argparse)
+FetchContent_MakeAvailable(fetch_json)
 
 
 # Define project library
@@ -57,6 +64,7 @@ add_library(libdaltools
     ${source_dir}/crypto.cpp
     ${source_dir}/compression.cpp
     ${source_dir}/util.cpp
+    ${source_dir}/json_parser.cpp
 )
 
 target_include_directories(libdaltools PUBLIC ./include
@@ -86,6 +94,7 @@ target_link_libraries(libdaltools
     PUBLIC
         glm::glm
         hydrogen
+        nlohmann_json::nlohmann_json
 )
 
 
