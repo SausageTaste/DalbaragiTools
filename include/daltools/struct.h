@@ -19,6 +19,16 @@ namespace dal::parser {
     };
 
 
+    class Transform {
+
+    public:
+        glm::vec3 m_pos;
+        glm::quat m_quat;
+        float m_scale = 1.f;
+
+    };
+
+
     struct Vertex {
         glm::vec3 m_position;
         glm::vec3 m_normal;
@@ -178,6 +188,86 @@ namespace dal::parser {
         AABB3 m_aabb;
 
         std::string m_signature_hex;
+    };
+
+
+    struct SceneIntermediate {
+
+    public:
+        struct IActor {
+            std::string m_name;
+            std::string m_parent_name;
+            std::vector<std::string> m_collections;
+            Transform m_transform;
+            bool m_hidden = false;
+        };
+
+
+        struct VertexBuffer {
+            std::vector<float> m_positions;
+            std::vector<float> m_uv_coordinates;
+            std::vector<float> m_normals;
+        };
+
+
+        struct Mesh {
+            std::string m_name;
+            std::map<std::string, VertexBuffer> m_vertices;
+        };
+
+
+        struct Material {
+            std::string m_name;
+
+            float m_roughness = 0.5;
+            float m_metallic = 0.0;
+            bool m_transparency = false;
+
+            std::string m_albedo_map;
+            std::string m_roughness_map;
+            std::string m_metallic_map;
+            std::string m_normal_map;
+        };
+
+
+        struct MeshActor : public IActor {
+            std::string m_mesh_name;
+        };
+
+
+        struct ILight {
+            glm::vec3 m_color;
+            float m_intensity = 1000.f;
+            bool m_has_shadow = false;
+        };
+
+
+        struct DirectionalLight : public IActor, public ILight {
+
+        };
+
+
+        struct PointLight : public IActor, public ILight {
+            float m_max_distance = 0.f;
+            float m_half_intense_distance = 0.f;
+        };
+
+
+        struct Spotlight : public PointLight {
+            float m_spot_degree = 0.f;
+            float m_spot_blend = 0.f;
+        };
+
+
+    public:
+        std::vector<Mesh> m_meshes;
+        std::vector<Material> m_materials;
+
+        std::vector<MeshActor> m_mesh_actors;
+        std::vector<DirectionalLight> m_dlights;
+        std::vector<PointLight> m_plights;
+        std::vector<Spotlight> m_slights;
+
     };
 
 }
