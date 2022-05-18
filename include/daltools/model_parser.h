@@ -28,4 +28,11 @@ namespace dal::parser {
         crypto::PublicKeySignature& m_sign_mgr
     );
 
+
+    enum class JsonParseResult {
+        success,
+    };
+
+    JsonParseResult parse_json(SceneIntermediate& scene, const uint8_t* const file_content, const size_t content_size);
+
 }
