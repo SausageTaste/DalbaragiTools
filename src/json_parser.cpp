@@ -13,54 +13,118 @@ namespace {
     using scene_t = dal::parser::SceneIntermediate;
 
 
-    void parse_mesh(const json_t& json_mesh, scene_t::Mesh& output_mesh) {
+    void parse_vec3(const json_t& json_data, glm::vec3& output) {
+        output[0] = json_data[0];
+        output[1] = json_data[1];
+        output[2] = json_data[2];
+    }
 
+    void parse_quat(const json_t& json_data, glm::quat& output) {
+        output.w = json_data[0];
+        output.x = json_data[1];
+        output.y = json_data[2];
+        output.z = json_data[3];
+    }
+
+    void parse_transform(const json_t& json_data, dal::parser::Transform& output) {
+        ::parse_vec3(json_data["translation"], output.m_pos);
+        ::parse_quat(json_data["rotation"], output.m_quat);
+        output.m_scale = json_data["scale"];
+    }
+
+    template <typename T>
+    void parse_list(const json_t& json_data, std::vector<T>& output) {
+        for (auto& x : json_data) {
+            output.push_back(x);
+        }
+    }
+
+    void parse_actor(const json_t& json_data, scene_t::IActor& actor) {
+        actor.m_name = json_data["name"];
+        actor.m_parent_name = json_data["parent name"];
+        ::parse_list(json_data["collections"], actor.m_collections);
+        ::parse_transform(json_data["transform"], actor.m_transform);
+        actor.m_hidden = json_data["hidden"];
+    }
+
+    void parse_vertex_buffer(const json_t& json_vbuf, scene_t::VertexBuffer& vertex_buf) {
+
+    }
+
+    void parse_mesh(const json_t& json_mesh, scene_t::Mesh& output_mesh) {
+        output_mesh.m_name = json_mesh["name"];
+        
+        for (auto& x : json_mesh["vertices"]) {
+            ::parse_vertex_buffer(x, output_mesh.m_vertices.emplace_back());
+        }
     }
 
     void parse_material(const json_t& json_mesh, scene_t::Material& output_material) {
-
+        output_material.m_name = json_mesh["name"];
+        output_material.m_roughness = json_mesh["roughness"];
+        output_material.m_metallic = json_mesh["metallic"];
+        output_material.m_transparency = json_mesh["transparency"];
+        output_material.m_albedo_map = json_mesh["albedo map"];
+        output_material.m_roughness_map = json_mesh["roughness map"];
+        output_material.m_metallic_map = json_mesh["metallic map"];
+        output_material.m_normal_map = json_mesh["normal map"];
     }
 
-    void parse_mesh_actor(const json_t& json_mesh, scene_t::MeshActor& output_mesh_actor) {
-
+    void parse_mesh_actor(const json_t& json_data, scene_t::MeshActor& output) {
+        output.m_mesh_name = json_data["mesh name"];
+        ::parse_actor(json_data, output);
     }
 
-    void parse_dlight(const json_t& json_mesh, scene_t::DirectionalLight& output_dlight) {
-
+    void parse_ilight(const json_t& json_data, scene_t::ILight& output) {
+        ::parse_vec3(json_data["color"], output.m_color);
+        output.m_intensity = json_data["intensity"];
+        output.m_has_shadow = json_data["has shadow"];
     }
 
-    void parse_plight(const json_t& json_mesh, scene_t::PointLight& output_plight) {
-
+    void parse_dlight(const json_t& json_data, scene_t::DirectionalLight& output) {
+        ::parse_actor(json_data, output);
+        ::parse_ilight(json_data, output);
     }
 
-    void parse_slight(const json_t& json_mesh, scene_t::Spotlight& output_slight) {
+    void parse_plight(const json_t& json_data, scene_t::PointLight& output) {
+        output.m_max_distance = json_data["max distance"];
+        output.m_half_intense_distance = json_data["half intense distance"];
 
+        ::parse_actor(json_data, output);
+        ::parse_ilight(json_data, output);
     }
 
-    void parse_scene(const json_t& json_scene, scene_t& scene) {
-        scene.m_name = json_scene["name"];
+    void parse_slight(const json_t& json_data, scene_t::Spotlight& output) {
+        ::parse_plight(json_data, output);
 
-        for (auto& x : json_scene["meshes"]) {
+        output.m_spot_degree = json_data["spot degree"];
+        output.m_spot_blend = json_data["spot blend"];
+    }
+
+    void parse_scene(const json_t& json_data, scene_t& scene) {
+        scene.m_name = json_data["name"];
+
+        for (auto& x : json_data["meshes"]) {
             ::parse_mesh(x, scene.m_meshes.emplace_back());
         }
 
-        for (auto& x : json_scene["materials"]) {
+        for (auto& x : json_data["materials"]) {
             ::parse_material(x, scene.m_materials.emplace_back());
         }
 
-        for (auto& x : json_scene["mesh actors"]) {
+        for (auto& x : json_data["mesh actors"]) {
             ::parse_mesh_actor(x, scene.m_mesh_actors.emplace_back());
         }
 
-        for (auto& x : json_scene["directional lights"]) {
+        for (auto& x : json_data["directional lights"]) {
             ::parse_dlight(x, scene.m_dlights.emplace_back());
         }
 
-        for (auto& x : json_scene["point lights"]) {
+        for (auto& x : json_data["point lights"]) {
             ::parse_plight(x, scene.m_plights.emplace_back());
         }
 
-        for (auto& x : json_scene["spotlights"]) {
+        for (auto& x : json_data["spotlights"]) {
             ::parse_slight(x, scene.m_slights.emplace_back());
         }
     }

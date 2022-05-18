@@ -204,6 +204,7 @@ namespace dal::parser {
 
 
         struct VertexBuffer {
+            std::string m_material_name;
             std::vector<float> m_positions;
             std::vector<float> m_uv_coordinates;
             std::vector<float> m_normals;
@@ -212,7 +213,7 @@ namespace dal::parser {
 
         struct Mesh {
             std::string m_name;
-            std::map<std::string, VertexBuffer> m_vertices;
+            std::vector<VertexBuffer> m_vertices;
         };
 
 
