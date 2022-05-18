@@ -108,15 +108,42 @@ namespace {
         actor.m_hidden = json_data["hidden"];
     }
 
-    void parse_vertex_buffer(const json_t& json_vbuf, scene_t::VertexBuffer& vertex_buf) {
+    void parse_vertex_buffer(const json_t& json_vbuf, scene_t::VertexBuffer& output, const ::BinaryData& binary_data) {
+        output.m_material_name = json_vbuf["material name"];
 
+        {
+            const size_t bin_pos = json_vbuf["vertices binary data"]["position"];
+            const size_t bin_size = json_vbuf["vertices binary data"]["size"];
+            auto& dst_buf = output.m_positions;
+
+            dst_buf.resize(bin_size / 4);
+            dal::parser::assemble_4_bytes_array(binary_data.ptr_at(bin_pos), dst_buf.data(), bin_size / 4);
+        }
+
+        {
+            const size_t bin_pos = json_vbuf["uv coordinates binary data"]["position"];
+            const size_t bin_size = json_vbuf["uv coordinates binary data"]["size"];
+            auto& dst_buf = output.m_uv_coordinates;
+
+            dst_buf.resize(bin_size / 4);
+            dal::parser::assemble_4_bytes_array(binary_data.ptr_at(bin_pos), dst_buf.data(), bin_size / 4);
+        }
+
+        {
+            const size_t bin_pos = json_vbuf["normals binary data"]["position"];
+            const size_t bin_size = json_vbuf["normals binary data"]["size"];
+            auto& dst_buf = output.m_normals;
+
+            dst_buf.resize(bin_size / 4);
+            dal::parser::assemble_4_bytes_array(binary_data.ptr_at(bin_pos), dst_buf.data(), bin_size / 4);
+        }
     }
 
-    void parse_mesh(const json_t& json_mesh, scene_t::Mesh& output_mesh) {
+    void parse_mesh(const json_t& json_mesh, scene_t::Mesh& output_mesh, const ::BinaryData& binary_data) {
         output_mesh.m_name = json_mesh["name"];
-        
+
         for (auto& x : json_mesh["vertices"]) {
-            ::parse_vertex_buffer(x, output_mesh.m_vertices.emplace_back());
+            ::parse_vertex_buffer(x, output_mesh.m_vertices.emplace_back(), binary_data);
         }
     }
 
@@ -162,11 +189,11 @@ namespace {
         output.m_spot_blend = json_data["spot blend"];
     }
 
-    void parse_scene(const json_t& json_data, scene_t& scene) {
+    void parse_scene(const json_t& json_data, scene_t& scene, const ::BinaryData& binary_data) {
         scene.m_name = json_data["name"];
 
         for (auto& x : json_data["meshes"]) {
-            ::parse_mesh(x, scene.m_meshes.emplace_back());
+            ::parse_mesh(x, scene.m_meshes.emplace_back(), binary_data);
         }
 
         for (auto& x : json_data["materials"]) {
@@ -202,7 +229,7 @@ namespace dal::parser {
         binary_data.parse_from_json(json_data["binary data"]);
 
         for (auto& x : json_data["scenes"]) {
-            ::parse_scene(x, scenes.emplace_back());
+            ::parse_scene(x, scenes.emplace_back(), binary_data);
         }
 
         return JsonParseResult::success;
