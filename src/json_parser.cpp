@@ -1,6 +1,9 @@
 #include "daltools/model_parser.h"
 
+#include <optional>
+
 #include <nlohmann/json.hpp>
+#include <libbase64.h>
 
 #include "daltools/byte_tool.h"
 #include "daltools/konst.h"
@@ -11,6 +14,64 @@ namespace {
 
     using json_t = nlohmann::json;
     using scene_t = dal::parser::SceneIntermediate;
+
+
+    std::vector<uint8_t> decode_base64(const std::string& base64_data) {
+        std::vector<uint8_t> output(base64_data.size());
+        size_t output_size = output.size();
+
+        const auto result = base64_decode(
+            base64_data.c_str(),
+            base64_data.size(),
+            reinterpret_cast<char*>(output.data()),
+            &output_size,
+            0
+        );
+
+        if (1 != result) {
+            output.clear();
+        }
+        else {
+            output.resize(output_size);
+        }
+
+        return output;
+    }
+
+
+    class BinaryData {
+        std::vector<uint8_t> m_data;
+
+    public:
+        auto ptr_at(const size_t index) const {
+            return &this->m_data[index];
+        }
+
+        bool parse_from_json(const json_t& json_data) {
+            const size_t raw_size = json_data["raw size"];
+
+            auto base64_decoded = ::decode_base64(json_data["base64"]);
+            if (base64_decoded.empty()) {
+                return false;
+            }
+
+            if (json_data.contains("compressed size")) {
+                this->m_data.resize(raw_size);
+                const auto result = dal::decompress_zip(this->m_data.data(), this->m_data.size(), base64_decoded.data(), base64_decoded.size());
+                if (dal::CompressResult::success != result.m_result) {
+                    return false;
+                }
+
+                assert(result.m_output_size == this->m_data.size());
+            }
+            else {
+                this->m_data = std::move(base64_decoded);
+            }
+
+            return true;
+        }
+
+    };
 
 
     void parse_vec3(const json_t& json_data, glm::vec3& output) {
@@ -136,6 +197,9 @@ namespace dal::parser {
 
     JsonParseResult parse_json(std::vector<SceneIntermediate>& scenes, const uint8_t* const file_content, const size_t content_size) {
         const auto json_data = nlohmann::json::parse(file_content, file_content + content_size);
+
+        ::BinaryData binary_data;
+        binary_data.parse_from_json(json_data["binary data"]);
 
         for (auto& x : json_data["scenes"]) {
             ::parse_scene(x, scenes.emplace_back());

@@ -46,10 +46,17 @@ FetchContent_Declare(
     GIT_TAG        v3.10.5
 )
 
+FetchContent_Declare(
+    fetch_base64
+    GIT_REPOSITORY https://github.com/aklomp/base64
+    GIT_TAG        master
+)
+
 FetchContent_MakeAvailable(fetch_glm)
 FetchContent_MakeAvailable(fetch_libhydrogen)
 FetchContent_MakeAvailable(fetch_argparse)
 FetchContent_MakeAvailable(fetch_json)
+FetchContent_MakeAvailable(fetch_base64)
 
 
 # Define project library
@@ -95,6 +102,7 @@ target_link_libraries(libdaltools
         glm::glm
         hydrogen
         nlohmann_json::nlohmann_json
+        base64
 )
 
 
