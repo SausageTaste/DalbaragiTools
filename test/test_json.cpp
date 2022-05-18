@@ -58,8 +58,8 @@ namespace {
 
     void test_a_json(const char* const file_path) {
         const auto file_content = ::read_file(file_path);
-        dal::parser::SceneIntermediate scene;
-        const auto result = dal::parser::parse_json(scene, file_content.data(), file_content.size());
+        std::vector<dal::parser::SceneIntermediate> scenes;
+        const auto result = dal::parser::parse_json(scenes, file_content.data(), file_content.size());
     }
 
 }

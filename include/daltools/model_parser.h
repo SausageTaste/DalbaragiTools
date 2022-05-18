@@ -8,7 +8,7 @@
 
 namespace dal::parser {
 
-    enum class ModelParseResult{
+    enum class ModelParseResult {
         success,
         magic_numbers_dont_match,
         decompression_failed,
@@ -33,6 +33,6 @@ namespace dal::parser {
         success,
     };
 
-    JsonParseResult parse_json(SceneIntermediate& scene, const uint8_t* const file_content, const size_t content_size);
+    JsonParseResult parse_json(std::vector<SceneIntermediate>& scenes, const uint8_t* const file_content, const size_t content_size);
 
 }

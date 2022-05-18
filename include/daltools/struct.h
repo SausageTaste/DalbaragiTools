@@ -260,6 +260,8 @@ namespace dal::parser {
 
 
     public:
+        std::string m_name;
+
         std::vector<Mesh> m_meshes;
         std::vector<Material> m_materials;
 
