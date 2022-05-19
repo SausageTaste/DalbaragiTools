@@ -203,17 +203,11 @@ namespace dal::parser {
         };
 
 
-        struct VertexBuffer {
-            std::string m_material_name;
+        struct Mesh {
+            std::string m_name;
             std::vector<float> m_positions;
             std::vector<float> m_uv_coordinates;
             std::vector<float> m_normals;
-        };
-
-
-        struct Mesh {
-            std::string m_name;
-            std::vector<VertexBuffer> m_vertices;
         };
 
 
@@ -231,8 +225,14 @@ namespace dal::parser {
         };
 
 
-        struct MeshActor : public IActor {
+        struct RenderPair {
             std::string m_mesh_name;
+            std::string m_material_name;
+        };
+
+
+        struct MeshActor : public IActor {
+            std::vector<RenderPair> m_render_pairs;
         };
 
 

@@ -108,12 +108,12 @@ namespace {
         actor.m_hidden = json_data["hidden"];
     }
 
-    void parse_vertex_buffer(const json_t& json_vbuf, scene_t::VertexBuffer& output, const ::BinaryData& binary_data) {
-        output.m_material_name = json_vbuf["material name"];
+    void parse_mesh(const json_t& json_data, scene_t::Mesh& output, const ::BinaryData& binary_data) {
+        output.m_name = json_data["name"];
 
         {
-            const size_t bin_pos = json_vbuf["vertices binary data"]["position"];
-            const size_t bin_size = json_vbuf["vertices binary data"]["size"];
+            const size_t bin_pos = json_data["vertices binary data"]["position"];
+            const size_t bin_size = json_data["vertices binary data"]["size"];
             auto& dst_buf = output.m_positions;
 
             dst_buf.resize(bin_size / 4);
@@ -121,8 +121,8 @@ namespace {
         }
 
         {
-            const size_t bin_pos = json_vbuf["uv coordinates binary data"]["position"];
-            const size_t bin_size = json_vbuf["uv coordinates binary data"]["size"];
+            const size_t bin_pos = json_data["uv coordinates binary data"]["position"];
+            const size_t bin_size = json_data["uv coordinates binary data"]["size"];
             auto& dst_buf = output.m_uv_coordinates;
 
             dst_buf.resize(bin_size / 4);
@@ -130,20 +130,12 @@ namespace {
         }
 
         {
-            const size_t bin_pos = json_vbuf["normals binary data"]["position"];
-            const size_t bin_size = json_vbuf["normals binary data"]["size"];
+            const size_t bin_pos = json_data["normals binary data"]["position"];
+            const size_t bin_size = json_data["normals binary data"]["size"];
             auto& dst_buf = output.m_normals;
 
             dst_buf.resize(bin_size / 4);
             dal::parser::assemble_4_bytes_array(binary_data.ptr_at(bin_pos), dst_buf.data(), bin_size / 4);
-        }
-    }
-
-    void parse_mesh(const json_t& json_mesh, scene_t::Mesh& output_mesh, const ::BinaryData& binary_data) {
-        output_mesh.m_name = json_mesh["name"];
-
-        for (auto& x : json_mesh["vertices"]) {
-            ::parse_vertex_buffer(x, output_mesh.m_vertices.emplace_back(), binary_data);
         }
     }
 
@@ -159,8 +151,13 @@ namespace {
     }
 
     void parse_mesh_actor(const json_t& json_data, scene_t::MeshActor& output) {
-        output.m_mesh_name = json_data["mesh name"];
         ::parse_actor(json_data, output);
+
+        for (auto& x : json_data["render pairs"]) {
+            auto& pair = output.m_render_pairs.emplace_back();
+            pair.m_mesh_name = x["mesh name"];
+            pair.m_material_name = x["material name"];
+        }
     }
 
     void parse_ilight(const json_t& json_data, scene_t::ILight& output) {
