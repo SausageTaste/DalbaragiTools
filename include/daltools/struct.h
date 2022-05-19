@@ -13,6 +13,8 @@ namespace dal::parser {
 
     using jointID_t = int32_t;
 
+    constexpr jointID_t NULL_JID = -1;
+
 
     struct AABB3 {
         glm::vec3 m_min, m_max;
@@ -212,11 +214,24 @@ namespace dal::parser {
         };
 
 
+        struct VertexJointPair {
+            jointID_t m_index = NULL_JID;
+            float m_weight = 0.f;
+        };
+
+
+        struct Vertex {
+            glm::vec3 m_pos;
+            glm::vec2 uv_coord;
+            glm::vec3 m_normal;
+            std::vector<VertexJointPair> m_joints;
+        };
+
+
         struct Mesh {
             std::string m_name;
-            std::vector<float> m_positions;
-            std::vector<float> m_uv_coordinates;
-            std::vector<float> m_normals;
+            std::string m_skeleton_name;
+            std::vector<Vertex> m_vertices;
         };
 
 

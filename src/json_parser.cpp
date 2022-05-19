@@ -12,6 +12,7 @@
 
 namespace {
 
+    namespace dalp = dal::parser;
     using json_t = nlohmann::json;
     using scene_t = dal::parser::SceneIntermediate;
 
@@ -44,7 +45,7 @@ namespace {
 
     public:
         auto ptr_at(const size_t index) const {
-            return &this->m_data[index];
+            return this->m_data.data() + index;
         }
 
         bool parse_from_json(const json_t& json_data) {
@@ -110,32 +111,63 @@ namespace {
 
     void parse_mesh(const json_t& json_data, scene_t::Mesh& output, const ::BinaryData& binary_data) {
         output.m_name = json_data["name"];
+        output.m_skeleton_name = json_data["skeleton name"];
+
+        size_t vertex_count = json_data["vertex count"];
+        output.m_vertices.resize(vertex_count);
+
+        assert(!dal::parser::is_big_endian());
+        static_assert(sizeof(float) * 2 == sizeof(glm::vec2));
+        static_assert(sizeof(float) * 3 == sizeof(glm::vec3));
 
         {
             const size_t bin_pos = json_data["vertices binary data"]["position"];
             const size_t bin_size = json_data["vertices binary data"]["size"];
-            auto& dst_buf = output.m_positions;
 
-            dst_buf.resize(bin_size / 4);
-            dal::parser::assemble_4_bytes_array(binary_data.ptr_at(bin_pos), dst_buf.data(), bin_size / 4);
+            for (size_t i = 0; i < vertex_count; ++i) {
+                const auto ptr = binary_data.ptr_at(bin_pos + i * sizeof(glm::vec3));
+                output.m_vertices[i].m_pos = *reinterpret_cast<const glm::vec3*>(ptr);
+            }
         }
 
         {
             const size_t bin_pos = json_data["uv coordinates binary data"]["position"];
             const size_t bin_size = json_data["uv coordinates binary data"]["size"];
-            auto& dst_buf = output.m_uv_coordinates;
 
-            dst_buf.resize(bin_size / 4);
-            dal::parser::assemble_4_bytes_array(binary_data.ptr_at(bin_pos), dst_buf.data(), bin_size / 4);
+            for (size_t i = 0; i < vertex_count; ++i) {
+                const auto ptr = binary_data.ptr_at(bin_pos + i * sizeof(glm::vec2));
+                output.m_vertices[i].uv_coord = *reinterpret_cast<const glm::vec2*>(ptr);
+            }
         }
 
         {
             const size_t bin_pos = json_data["normals binary data"]["position"];
             const size_t bin_size = json_data["normals binary data"]["size"];
-            auto& dst_buf = output.m_normals;
 
-            dst_buf.resize(bin_size / 4);
-            dal::parser::assemble_4_bytes_array(binary_data.ptr_at(bin_pos), dst_buf.data(), bin_size / 4);
+            for (size_t i = 0; i < vertex_count; ++i) {
+                const auto ptr = binary_data.ptr_at(bin_pos + i * sizeof(glm::vec3));
+                output.m_vertices[i].m_normal = glm::normalize(*reinterpret_cast<const glm::vec3*>(ptr));
+            }
+        }
+
+        {
+            const size_t bin_pos = json_data["joints binary data"]["position"];
+            const size_t bin_size = json_data["joints binary data"]["size"];
+
+            auto ptr = binary_data.ptr_at(bin_pos);
+
+            for (size_t i = 0; i < vertex_count; ++i) {
+                auto& vertex = output.m_vertices[i];
+                const auto joint_count = dalp::make_int32(ptr); ptr += 4;
+
+                for (size_t j = 0; j < joint_count; ++j) {
+                    auto& joint = vertex.m_joints.emplace_back();
+                    joint.m_index = dalp::make_int32(ptr); ptr += 4;
+                    joint.m_weight = dalp::make_float32(ptr); ptr += 4;
+                }
+            }
+
+            assert(ptr == binary_data.ptr_at(bin_pos + bin_size));
         }
     }
 

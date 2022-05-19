@@ -485,27 +485,17 @@ namespace dal::parser {
             const auto actor_mat = src_mesh_actor.m_transform.make_mat4();
 
             for (auto& pair : src_mesh_actor.m_render_pairs) {
-                auto& dst_pair = output.m_units_straight.emplace_back();
-
+                auto& dst_pair = output.m_units_indexed.emplace_back();
                 auto& src_mesh = scene.find_mesh_by_name(pair.m_mesh_name);
-                dst_pair.m_mesh.m_vertices = src_mesh->m_positions;
-                dst_pair.m_mesh.m_texcoords = src_mesh->m_uv_coordinates;
-                dst_pair.m_mesh.m_normals = src_mesh->m_normals;
-                dst_pair.m_name = src_mesh->m_name;
 
-                const auto vertex_count = dst_pair.m_mesh.m_vertices.size() / 3;
-                static_assert(sizeof(glm::vec3) == sizeof(float) * 3);
-                for (size_t i = 0; i < vertex_count; ++i) {
-                    {
-                        auto& v3 = *reinterpret_cast<glm::vec3*>(dst_pair.m_mesh.m_vertices.data() + i * 3);
-                        v3 = actor_mat * glm::vec4{ v3, 1 };
-                    }
-
-                    {
-                        auto& v3 = *reinterpret_cast<glm::vec3*>(dst_pair.m_mesh.m_normals.data() + i * 3);
-                        v3 = actor_mat * glm::vec4{ v3, 1 };
-                    }
+                for (auto& src_vert : src_mesh->m_vertices) {
+                    auto& dst_vert = dst_pair.m_mesh.m_vertices.emplace_back();
+                    dst_vert.m_position = actor_mat * glm::vec4{ src_vert.m_pos, 1 };
+                    dst_vert.m_uv_coords = src_vert.uv_coord;
+                    dst_vert.m_normal = actor_mat * glm::vec4{ src_vert.m_normal, 0 };
                 }
+
+                dst_pair.m_name = src_mesh->m_name;
 
                 auto& src_material = scene.find_material_by_name(pair.m_material_name);
                 if (src_material.has_value())
