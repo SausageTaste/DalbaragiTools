@@ -63,13 +63,6 @@ namespace {
         std::vector<dal::parser::SceneIntermediate> scenes;
         const auto result = dal::parser::parse_json(scenes, file_content.data(), file_content.size());
 
-        const auto model = dal::parser::convert_to_model_dmd(scenes[0]);
-        const auto binary_built = dal::parser::build_binary_model(model, nullptr, nullptr);
-
-        std::ofstream file(::find_root_path() + "/shit.dmd", std::ios::binary);
-        file.write(reinterpret_cast<const char*>(binary_built->data()), binary_built->size());
-        file.close();
-
         return;
     }
 
