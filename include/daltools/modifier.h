@@ -19,4 +19,7 @@ namespace dal::parser {
 
     JointReductionResult reduce_joints(dal::parser::Model& model);
 
+
+    Model convert_to_model_dmd(const SceneIntermediate& scene);
+
 }

@@ -26,8 +26,17 @@ namespace dal::parser {
         glm::quat m_quat;
         float m_scale = 1.f;
 
-    };
+    public:
+        glm::mat4 Transform::make_mat4() const {
+            const auto identity = glm::mat4{ 1 };
+            const auto scale_mat = glm::scale(identity, glm::vec3{ this->m_scale, this->m_scale , this->m_scale });
+            const auto translate_mat = glm::translate(identity, this->m_pos);
 
+            return translate_mat * glm::mat4_cast(this->m_quat) * scale_mat;
+        }
+
+    };
+    
 
     struct Vertex {
         glm::vec3 m_position;
@@ -270,6 +279,11 @@ namespace dal::parser {
         std::vector<DirectionalLight> m_dlights;
         std::vector<PointLight> m_plights;
         std::vector<Spotlight> m_slights;
+
+    public:
+        std::optional<Mesh> find_mesh_by_name(const std::string& name) const;
+
+        std::optional<Material> find_material_by_name(const std::string& name) const;
 
     };
 

@@ -108,3 +108,29 @@ namespace dal::parser {
     }
 
 }
+
+
+// SceneIntermediate
+namespace dal::parser {
+
+    std::optional<SceneIntermediate::Mesh> SceneIntermediate::find_mesh_by_name(const std::string& name) const {
+        for (auto& mesh : this->m_meshes) {
+            if (mesh.m_name == name) {
+                return mesh;
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<SceneIntermediate::Material> SceneIntermediate::find_material_by_name(const std::string& name) const {
+        for (auto& x : this->m_materials) {
+            if (x.m_name == name) {
+                return x;
+            }
+        }
+
+        return std::nullopt;
+    }
+
+}
