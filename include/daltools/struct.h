@@ -249,6 +249,20 @@ namespace dal::parser {
         };
 
 
+        struct SkelJoint {
+            std::string m_name;
+            std::string m_parent_name;
+            JointType m_joint_type = JointType::basic;
+            glm::mat4 m_offset_mat{ 1 };
+        };
+
+
+        struct Skeleton {
+            std::string m_name;
+            std::vector<SkelJoint> m_joints;
+        };
+
+
         struct RenderPair {
             std::string m_mesh_name;
             std::string m_material_name;
@@ -289,6 +303,7 @@ namespace dal::parser {
 
         std::vector<Mesh> m_meshes;
         std::vector<Material> m_materials;
+        std::vector<Skeleton> m_skeletons;
 
         std::vector<MeshActor> m_mesh_actors;
         std::vector<DirectionalLight> m_dlights;

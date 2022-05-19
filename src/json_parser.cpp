@@ -182,6 +182,25 @@ namespace {
         output_material.m_normal_map = json_mesh["normal map"];
     }
 
+    void parse_skeleton_joint(const json_t& json_data, scene_t::SkelJoint& output) {
+        output.m_name = json_data["name"];
+        output.m_parent_name = json_data["parent name"];
+        output.m_joint_type = static_cast<dalp::JointType>(static_cast<int>(json_data["joint type"]));
+
+        const auto mat_ptr = &output.m_offset_mat[0][0];
+        for (int i = 0; i < 16; ++i) {
+            mat_ptr[i] = json_data["offset matrix"][i];
+        }
+    }
+
+    void parse_skeleton(const json_t& json_data, scene_t::Skeleton& output) {
+        output.m_name = json_data["name"];
+
+        for (auto& x : json_data["joints"]) {
+            ::parse_skeleton_joint(x, output.m_joints.emplace_back());
+        }
+    }
+
     void parse_mesh_actor(const json_t& json_data, scene_t::MeshActor& output) {
         ::parse_actor(json_data, output);
 
@@ -227,6 +246,10 @@ namespace {
 
         for (auto& x : json_data["materials"]) {
             ::parse_material(x, scene.m_materials.emplace_back());
+        }
+
+        for (auto& x : json_data["skeletons"]) {
+            ::parse_skeleton(x, scene.m_skeletons.emplace_back());
         }
 
         for (auto& x : json_data["mesh actors"]) {
