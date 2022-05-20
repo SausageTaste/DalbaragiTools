@@ -201,6 +201,34 @@ namespace {
         }
     }
 
+    void parse_anim_joint(const json_t& json_data, scene_t::AnimJoint& output) {
+        output.m_name = json_data["name"];
+
+        for (auto& x : json_data["positions"]) {
+            const auto& value = x["value"];
+            output.add_position(x["time point"], value[0], value[1], value[2]);
+        }
+
+        for (auto& x : json_data["rotations"]) {
+            const auto& value = x["value"];
+            output.add_rotation(x["time point"], value[0], value[1], value[2], value[3]);
+        }
+
+        for (auto& x : json_data["scales"]) {
+            const auto& value = x["value"];
+            output.add_scale(x["time point"], value);
+        }
+    }
+
+    void parse_animation(const json_t& json_data, scene_t::Animation& output) {
+        output.m_name = json_data["name"];
+        output.m_ticks_per_sec = json_data["ticks per seconds"];
+
+        for (auto& x : json_data["joints"]) {
+            ::parse_anim_joint(x, output.m_joints.emplace_back());
+        }
+    }
+
     void parse_mesh_actor(const json_t& json_data, scene_t::MeshActor& output) {
         ::parse_actor(json_data, output);
 
@@ -250,6 +278,10 @@ namespace {
 
         for (auto& x : json_data["skeletons"]) {
             ::parse_skeleton(x, scene.m_skeletons.emplace_back());
+        }
+
+        for (auto& x : json_data["animations"]) {
+            ::parse_animation(x, scene.m_animations.emplace_back());
         }
 
         for (auto& x : json_data["mesh actors"]) {

@@ -110,6 +110,33 @@ namespace dal::parser {
 }
 
 
+//
+namespace dal::parser {
+
+    void SceneIntermediate::AnimJoint::add_position(float time, float x, float y, float z) {
+        auto& added = this->m_positions.emplace_back();
+
+        added.first = time;
+        added.second = glm::vec3{ x, y, z };
+    }
+
+    void SceneIntermediate::AnimJoint::add_rotation(float time, float w, float x, float y, float z) {
+        auto& added = this->m_rotations.emplace_back();
+
+        added.first = time;
+        added.second = glm::quat{ w, x, y, z };
+    }
+
+    void SceneIntermediate::AnimJoint::add_scale(float time, float x) {
+        auto& added = this->m_scales.emplace_back();
+
+        added.first = time;
+        added.second = x;
+    }
+
+}
+
+
 // SceneIntermediate
 namespace dal::parser {
 

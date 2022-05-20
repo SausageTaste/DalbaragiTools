@@ -263,6 +263,31 @@ namespace dal::parser {
         };
 
 
+        struct AnimJoint {
+
+        public:
+            std::string m_name;
+            std::vector<std::pair<float, glm::vec3>> m_positions;
+            std::vector<std::pair<float, glm::quat>> m_rotations;
+            std::vector<std::pair<float, float>> m_scales;
+
+        public:
+            void add_position(float time, float x, float y, float z);
+
+            void add_rotation(float time, float w, float x, float y, float z);
+
+            void add_scale(float time, float x);
+
+        };
+
+
+        struct Animation {
+            std::string m_name;
+            std::vector<AnimJoint> m_joints;
+            float m_ticks_per_sec = 1;
+        };
+
+
         struct RenderPair {
             std::string m_mesh_name;
             std::string m_material_name;
@@ -304,6 +329,7 @@ namespace dal::parser {
         std::vector<Mesh> m_meshes;
         std::vector<Material> m_materials;
         std::vector<Skeleton> m_skeletons;
+        std::vector<Animation> m_animations;
 
         std::vector<MeshActor> m_mesh_actors;
         std::vector<DirectionalLight> m_dlights;
