@@ -641,10 +641,13 @@ namespace dal::parser {
 
                     for (auto& src_vert : src_mesh->m_vertices) {
                         auto& dst_vert = dst_pair.m_mesh.m_vertices.emplace_back();
-                        dst_pair.m_mesh.m_indices.push_back(dst_pair.m_mesh.m_indices.size());
                         dst_vert.m_position = src_vert.m_pos;
                         dst_vert.m_uv_coords = src_vert.uv_coord;
                         dst_vert.m_normal = src_vert.m_normal;
+                    }
+
+                    for (auto src_index : src_mesh->m_indices) {
+                        dst_pair.m_mesh.m_indices.push_back(src_index);
                     }
 
                     auto& src_material = scene.find_material_by_name(pair.m_material_name);
@@ -657,7 +660,6 @@ namespace dal::parser {
 
                     for (auto& src_vert : src_mesh->m_vertices) {
                         auto& dst_vert = dst_pair.m_mesh.m_vertices.emplace_back();
-                        dst_pair.m_mesh.m_indices.push_back(dst_pair.m_mesh.m_indices.size());
                         dst_vert.m_position = src_vert.m_pos;
                         dst_vert.m_uv_coords = src_vert.uv_coord;
                         dst_vert.m_normal = src_vert.m_normal;
@@ -670,6 +672,10 @@ namespace dal::parser {
                         for (int i = valid_joint_count; i < 4; ++i) {
                             dst_vert.m_joint_indices[i] = -1;
                         }
+                    }
+
+                    for (auto src_index : src_mesh->m_indices) {
+                        dst_pair.m_mesh.m_indices.push_back(src_index);
                     }
 
                     auto& src_material = scene.find_material_by_name(pair.m_material_name);
