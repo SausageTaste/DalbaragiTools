@@ -465,6 +465,22 @@ namespace {
     namespace dalp = dal::parser;
 
 
+    void apply_transform(const glm::mat4& m, glm::vec3& v) {
+        v = m * glm::vec4{ v, 1 };
+    }
+
+    void apply_transform(const glm::mat3& m, glm::quat& q) {
+        static_assert(0 * sizeof(float) == offsetof(glm::quat, x));
+        static_assert(1 * sizeof(float) == offsetof(glm::quat, y));
+        static_assert(2 * sizeof(float) == offsetof(glm::quat, z));
+        static_assert(3 * sizeof(float) == offsetof(glm::quat, w));
+        static_assert(3 * sizeof(float) == sizeof(glm::vec3));
+
+        auto& quat_rotation_part = *reinterpret_cast<glm::vec3*>(&q.x);
+        quat_rotation_part = m * quat_rotation_part;
+    }
+
+
     void convert_material(dalp::Material& dst, const dalp::SceneIntermediate::Material& src) {
         dst.m_roughness = src.m_roughness;
         dst.m_metallic = src.m_metallic;
@@ -506,12 +522,64 @@ namespace {
 
 namespace dal::parser {
 
+    void apply_root_transform(SceneIntermediate& scene) {
+        const auto& root_m4 = scene.m_root_transform;
+        const auto root_m4_inv = glm::inverse(root_m4);
+        const auto root_m3 = glm::mat3{ root_m4 };
+
+        for (auto& mesh : scene.m_meshes) {
+            for (auto& vertex : mesh.m_vertices) {
+                ::apply_transform(root_m4, vertex.m_pos);
+                vertex.m_normal = root_m3 * vertex.m_normal;
+            }
+        }
+
+        for (auto& skeleton : scene.m_skeletons) {
+            for (auto& joint : skeleton.m_joints) {
+                joint.m_offset_mat = root_m4 * joint.m_offset_mat * root_m4_inv;
+            }
+        }
+
+        for (auto& animation : scene.m_animations) {
+            for (auto& joint : animation.m_joints) {
+                for (auto& x : joint.m_positions) {
+                    ::apply_transform(root_m4, x.second);
+                }
+
+                for (auto& x : joint.m_rotations) {
+                    ::apply_transform(root_m3, x.second);
+                }
+            }
+        }
+
+        for (auto& mesh_actor : scene.m_mesh_actors) {
+            ::apply_transform(root_m4, mesh_actor.m_transform.m_pos);
+            ::apply_transform(root_m3, mesh_actor.m_transform.m_quat);
+        }
+
+        for (auto& light : scene.m_dlights) {
+            ::apply_transform(root_m4, light.m_transform.m_pos);
+            ::apply_transform(root_m3, light.m_transform.m_quat);
+        }
+
+        for (auto& light : scene.m_plights) {
+            ::apply_transform(root_m4, light.m_transform.m_pos);
+            ::apply_transform(root_m3, light.m_transform.m_quat);
+        }
+
+        for (auto& light : scene.m_slights) {
+            ::apply_transform(root_m4, light.m_transform.m_pos);
+            ::apply_transform(root_m3, light.m_transform.m_quat);
+        }
+
+        scene.m_root_transform = glm::mat4{1};
+    }
+
+
     Model convert_to_model_dmd(const SceneIntermediate& scene) {
         Model output;
 
         for (auto& src_mesh_actor : scene.m_mesh_actors) {
-            const auto actor_mat = src_mesh_actor.m_transform.make_mat4();
-
             for (auto& pair : src_mesh_actor.m_render_pairs) {
                 auto& src_mesh = scene.find_mesh_by_name(pair.m_mesh_name);
 
@@ -522,9 +590,9 @@ namespace dal::parser {
                     for (auto& src_vert : src_mesh->m_vertices) {
                         auto& dst_vert = dst_pair.m_mesh.m_vertices.emplace_back();
                         dst_pair.m_mesh.m_indices.push_back(dst_pair.m_mesh.m_indices.size());
-                        dst_vert.m_position = actor_mat * glm::vec4{ src_vert.m_pos, 1 };
+                        dst_vert.m_position = src_vert.m_pos;
                         dst_vert.m_uv_coords = src_vert.uv_coord;
-                        dst_vert.m_normal = actor_mat * glm::vec4{ src_vert.m_normal, 0 };
+                        dst_vert.m_normal = src_vert.m_normal;
                     }
 
                     auto& src_material = scene.find_material_by_name(pair.m_material_name);
@@ -538,9 +606,9 @@ namespace dal::parser {
                     for (auto& src_vert : src_mesh->m_vertices) {
                         auto& dst_vert = dst_pair.m_mesh.m_vertices.emplace_back();
                         dst_pair.m_mesh.m_indices.push_back(dst_pair.m_mesh.m_indices.size());
-                        dst_vert.m_position = actor_mat * glm::vec4{ src_vert.m_pos, 1 };
+                        dst_vert.m_position = src_vert.m_pos;
                         dst_vert.m_uv_coords = src_vert.uv_coord;
-                        dst_vert.m_normal = actor_mat * glm::vec4{ src_vert.m_normal, 0 };
+                        dst_vert.m_normal = src_vert.m_normal;
 
                         const int valid_joint_count = std::min<int>(4, src_vert.m_joints.size());
                         for (int i = 0; i < valid_joint_count; ++i) {
