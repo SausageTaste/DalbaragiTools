@@ -329,6 +329,7 @@ namespace dal::parser {
 
     public:
         std::string m_name;
+        glm::mat4 m_root_transform{1};
 
         std::vector<Mesh> m_meshes;
         std::vector<Material> m_materials;

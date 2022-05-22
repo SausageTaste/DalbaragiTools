@@ -88,6 +88,19 @@ namespace {
         output.z = json_data[3];
     }
 
+    void parse_mat4(const json_t& json_data, glm::mat4& output) {
+        const auto mat_ptr = &output[0][0];
+        for (int i = 0; i < 16; ++i) {
+            mat_ptr[i] = json_data[i];
+        }
+    }
+
+    glm::mat4 parse_mat4(const json_t& json_data) {
+        glm::mat4 output;
+        ::parse_mat4(json_data, output);
+        return output;
+    }
+
     void parse_transform(const json_t& json_data, dal::parser::Transform& output) {
         ::parse_vec3(json_data["translation"], output.m_pos);
         ::parse_quat(json_data["rotation"], output.m_quat);
@@ -186,11 +199,7 @@ namespace {
         output.m_name = json_data["name"];
         output.m_parent_name = json_data["parent name"];
         output.m_joint_type = static_cast<dalp::JointType>(static_cast<int>(json_data["joint type"]));
-
-        const auto mat_ptr = &output.m_offset_mat[0][0];
-        for (int i = 0; i < 16; ++i) {
-            mat_ptr[i] = json_data["offset matrix"][i];
-        }
+        ::parse_mat4(json_data["offset matrix"], output.m_offset_mat);
     }
 
     void parse_skeleton(const json_t& json_data, scene_t::Skeleton& output) {
@@ -267,6 +276,7 @@ namespace {
 
     void parse_scene(const json_t& json_data, scene_t& scene, const ::BinaryData& binary_data) {
         scene.m_name = json_data["name"];
+        scene.m_root_transform = ::parse_mat4(json_data["root transform"]);
 
         for (auto& x : json_data["meshes"]) {
             ::parse_mesh(x, scene.m_meshes.emplace_back(), binary_data);
