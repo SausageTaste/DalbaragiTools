@@ -134,6 +134,28 @@ namespace dal::parser {
         added.second = x;
     }
 
+    float SceneIntermediate::AnimJoint::get_max_time_point() const {
+        float max_value = 0;
+
+        for (auto& x : this->m_positions)
+            max_value = std::max(max_value, x.first);
+        for (auto& x : this->m_rotations)
+            max_value = std::max(max_value, x.first);
+        for (auto& x : this->m_scales)
+            max_value = std::max(max_value, x.first);
+
+        return max_value;
+    }
+
+    float SceneIntermediate::Animation::calc_duration_in_ticks() const {
+        float max_value = 0.f;
+
+        for (auto& joint : this->m_joints)
+            max_value = std::max(max_value, joint.get_max_time_point());
+
+        return 0.f != max_value ? max_value : 1.f;
+    }
+
 }
 
 

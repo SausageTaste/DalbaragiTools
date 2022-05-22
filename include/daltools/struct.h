@@ -38,7 +38,7 @@ namespace dal::parser {
         }
 
     };
-    
+
 
     struct Vertex {
         glm::vec3 m_position;
@@ -157,7 +157,7 @@ namespace dal::parser {
 
     struct AnimJoint {
         std::string m_name;
-        glm::mat4 m_transform;  // i dont remember what this was...
+        glm::mat4 m_transform{1};  // i dont remember what this was...
         std::vector<std::pair<float, glm::vec3>> m_translates;
         std::vector<std::pair<float, glm::quat>> m_rotations;
         std::vector<std::pair<float, float>> m_scales;
@@ -278,6 +278,8 @@ namespace dal::parser {
 
             void add_scale(float time, float x);
 
+            float get_max_time_point() const;
+
         };
 
 
@@ -285,6 +287,8 @@ namespace dal::parser {
             std::string m_name;
             std::vector<AnimJoint> m_joints;
             float m_ticks_per_sec = 1;
+
+            float calc_duration_in_ticks() const;
         };
 
 

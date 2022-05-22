@@ -1,5 +1,7 @@
 #include "daltools/modifier.h"
 
+#include <stdexcept>
+
 #include <unordered_set>
 #include <unordered_map>
 
@@ -473,6 +475,32 @@ namespace {
         dst.m_normal_map = src.m_normal_map;
     }
 
+    void convert_skeleton(dalp::Skeleton& dst, const dalp::SceneIntermediate::Skeleton& src) {
+        for (auto& src_joint : src.m_joints) {
+            auto& dst_joint = dst.m_joints.emplace_back();
+
+            dst_joint.m_name = src_joint.m_name;
+            dst_joint.m_parent_index = dst.find_by_name(src_joint.m_parent_name);
+            dst_joint.m_joint_type = src_joint.m_joint_type;
+            dst_joint.m_offset_mat = src_joint.m_offset_mat;
+        }
+    }
+
+    void convert_animation(dalp::Animation& dst, const dalp::SceneIntermediate::Animation& src) {
+        dst.m_name = src.m_name;
+        dst.m_ticks_par_sec = src.m_ticks_per_sec;
+        dst.m_duration_tick = src.calc_duration_in_ticks();
+
+        for (auto& src_joint : src.m_joints) {
+            auto& dst_joint = dst.m_joints.emplace_back();
+            dst_joint.m_name = src_joint.m_name;
+            dst_joint.m_translates = src_joint.m_positions;
+            dst_joint.m_rotations = src_joint.m_rotations;
+            dst_joint.m_scales = src_joint.m_scales;
+            dst_joint.m_transform = glm::mat4{1};
+        }
+    }
+
 }
 
 
@@ -485,23 +513,61 @@ namespace dal::parser {
             const auto actor_mat = src_mesh_actor.m_transform.make_mat4();
 
             for (auto& pair : src_mesh_actor.m_render_pairs) {
-                auto& dst_pair = output.m_units_indexed.emplace_back();
                 auto& src_mesh = scene.find_mesh_by_name(pair.m_mesh_name);
 
-                for (auto& src_vert : src_mesh->m_vertices) {
-                    auto& dst_vert = dst_pair.m_mesh.m_vertices.emplace_back();
-                    dst_pair.m_mesh.m_indices.push_back(dst_pair.m_mesh.m_indices.size());
-                    dst_vert.m_position = actor_mat * glm::vec4{ src_vert.m_pos, 1 };
-                    dst_vert.m_uv_coords = src_vert.uv_coord;
-                    dst_vert.m_normal = actor_mat * glm::vec4{ src_vert.m_normal, 0 };
+                if (src_mesh->m_skeleton_name.empty()) {
+                    auto& dst_pair = output.m_units_indexed.emplace_back();
+                    dst_pair.m_name = src_mesh->m_name;
+
+                    for (auto& src_vert : src_mesh->m_vertices) {
+                        auto& dst_vert = dst_pair.m_mesh.m_vertices.emplace_back();
+                        dst_pair.m_mesh.m_indices.push_back(dst_pair.m_mesh.m_indices.size());
+                        dst_vert.m_position = actor_mat * glm::vec4{ src_vert.m_pos, 1 };
+                        dst_vert.m_uv_coords = src_vert.uv_coord;
+                        dst_vert.m_normal = actor_mat * glm::vec4{ src_vert.m_normal, 0 };
+                    }
+
+                    auto& src_material = scene.find_material_by_name(pair.m_material_name);
+                    if (src_material.has_value())
+                        ::convert_material(dst_pair.m_material, *src_material);
                 }
+                else {
+                    auto& dst_pair = output.m_units_indexed_joint.emplace_back();
+                    dst_pair.m_name = src_mesh->m_name;
 
-                dst_pair.m_name = src_mesh->m_name;
+                    for (auto& src_vert : src_mesh->m_vertices) {
+                        auto& dst_vert = dst_pair.m_mesh.m_vertices.emplace_back();
+                        dst_pair.m_mesh.m_indices.push_back(dst_pair.m_mesh.m_indices.size());
+                        dst_vert.m_position = actor_mat * glm::vec4{ src_vert.m_pos, 1 };
+                        dst_vert.m_uv_coords = src_vert.uv_coord;
+                        dst_vert.m_normal = actor_mat * glm::vec4{ src_vert.m_normal, 0 };
 
-                auto& src_material = scene.find_material_by_name(pair.m_material_name);
-                if (src_material.has_value())
-                    ::convert_material(dst_pair.m_material, *src_material);
+                        const int valid_joint_count = std::min<int>(4, src_vert.m_joints.size());
+                        for (int i = 0; i < valid_joint_count; ++i) {
+                            dst_vert.m_joint_indices[i] = src_vert.m_joints[i].m_index;
+                            dst_vert.m_joint_weights[i] = src_vert.m_joints[i].m_weight;
+                        }
+                        for (int i = valid_joint_count; i < 4; ++i) {
+                            dst_vert.m_joint_indices[i] = -1;
+                        }
+                    }
+
+                    auto& src_material = scene.find_material_by_name(pair.m_material_name);
+                    if (src_material.has_value())
+                        ::convert_material(dst_pair.m_material, *src_material);
+                }
             }
+        }
+
+        if (scene.m_skeletons.size() > 1) {
+            throw std::runtime_error{"Multiple skeletons are not supported"};
+        }
+        else if (scene.m_skeletons.size() == 1) {
+            ::convert_skeleton(output.m_skeleton, scene.m_skeletons.back());
+        }
+
+        for (auto& src_anim : scene.m_animations) {
+            ::convert_animation(output.m_animations.emplace_back(), src_anim);
         }
 
         return output;
