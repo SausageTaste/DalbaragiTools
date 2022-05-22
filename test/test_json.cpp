@@ -53,6 +53,15 @@ namespace {
         return buffer;
     }
 
+    std::vector<uint8_t> read_file(const std::string& path) {
+        return ::read_file(path.c_str());
+    }
+
+    void write_file(const char* const path, const std::vector<uint8_t>& data) {
+        std::ofstream file{ path, std::ios::binary | std::ios::out };
+        file.write(reinterpret_cast<const char*>(data.data()), data.size());
+    }
+
 }
 
 
@@ -62,6 +71,15 @@ namespace {
         const auto file_content = ::read_file(file_path);
         std::vector<dal::parser::SceneIntermediate> scenes;
         const auto result = dal::parser::parse_json(scenes, file_content.data(), file_content.size());
+        for (auto& scene : scenes) {
+            dal::parser::apply_root_transform(scene);
+        }
+
+        const auto model = dal::parser::convert_to_model_dmd(scenes.back());
+        const auto binary = dal::parser::build_binary_model(model, nullptr, nullptr);
+        std::filesystem::path dmd_path = file_path;
+        dmd_path.replace_extension("dmd");
+        ::write_file(dmd_path.u8string().c_str(), *binary);
 
         return;
     }
@@ -76,5 +94,5 @@ int main() {
         }
     }
 
-	return 0;
+    return 0;
 }
