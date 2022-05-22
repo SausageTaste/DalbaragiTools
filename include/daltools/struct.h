@@ -232,6 +232,7 @@ namespace dal::parser {
             std::string m_name;
             std::string m_skeleton_name;
             std::vector<Vertex> m_vertices;
+            std::vector<size_t> m_indices;
         };
 
 

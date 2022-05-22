@@ -182,6 +182,13 @@ namespace {
 
             assert(ptr == binary_data.ptr_at(bin_pos + bin_size));
         }
+
+        {
+            output.m_indices.resize(output.m_vertices.size());
+            for (size_t i = 0; i < output.m_vertices.size(); ++i) {
+                output.m_indices[i] = i;
+            }
+        }
     }
 
     void parse_material(const json_t& json_mesh, scene_t::Material& output_material) {

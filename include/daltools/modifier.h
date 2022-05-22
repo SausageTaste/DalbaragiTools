@@ -22,6 +22,8 @@ namespace dal::parser {
 
     void apply_root_transform(SceneIntermediate& scene);
 
+    void reduce_indexed_vertices(SceneIntermediate& scene);
+
 
     Model convert_to_model_dmd(const SceneIntermediate& scene);
 

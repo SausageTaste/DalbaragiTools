@@ -463,6 +463,7 @@ namespace dal::parser {
 namespace {
 
     namespace dalp = dal::parser;
+    using scene_t = dalp::SceneIntermediate;
 
 
     void apply_transform(const glm::mat4& m, glm::vec3& v) {
@@ -479,6 +480,47 @@ namespace {
         auto& quat_rotation_part = *reinterpret_cast<glm::vec3*>(&q.x);
         quat_rotation_part = m * quat_rotation_part;
     }
+
+
+
+    bool are_vertices_same(const scene_t::Vertex& one, const scene_t::Vertex& two) {
+        if (one.m_pos != two.m_pos)
+            return false;
+        if (one.m_normal != two.m_normal)
+            return false;
+        if (one.uv_coord != two.uv_coord)
+            return false;
+
+        return true;
+    }
+
+    class IndexedMeshBuilder {
+
+    public:
+        std::vector<scene_t::Vertex> m_vertices;
+        std::vector<size_t> m_indices;
+
+    public:
+        void add(const scene_t::Vertex& vertex) {
+            const auto vert_size = this->m_vertices.size();
+
+            for (size_t i = 0; i < vert_size; ++i) {
+                if (::are_vertices_same(vertex, this->m_vertices[i])) {
+                    this->m_indices.push_back(i);
+                    return;
+                }
+            }
+
+            this->m_indices.push_back(this->m_vertices.size());
+            this->m_vertices.push_back(vertex);
+        }
+
+        void swap(scene_t::Mesh& mesh) {
+            std::swap(mesh.m_vertices, this->m_vertices);
+            std::swap(mesh.m_indices, this->m_indices);
+        }
+
+    };
 
 
     void convert_material(dalp::Material& dst, const dalp::SceneIntermediate::Material& src) {
@@ -573,6 +615,16 @@ namespace dal::parser {
         }
 
         scene.m_root_transform = glm::mat4{1};
+    }
+
+    void reduce_indexed_vertices(SceneIntermediate& scene) {
+        for (auto& mesh : scene.m_meshes) {
+            IndexedMeshBuilder builder;
+            for (auto& index : mesh.m_indices) {
+                builder.add(mesh.m_vertices[index]);
+            }
+            builder.swap(mesh);
+        }
     }
 
 

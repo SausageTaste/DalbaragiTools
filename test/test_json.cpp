@@ -73,6 +73,7 @@ namespace {
         const auto result = dal::parser::parse_json(scenes, file_content.data(), file_content.size());
         for (auto& scene : scenes) {
             dal::parser::apply_root_transform(scene);
+            dal::parser::reduce_indexed_vertices(scene);
         }
 
         const auto model = dal::parser::convert_to_model_dmd(scenes.back());
