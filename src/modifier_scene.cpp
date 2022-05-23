@@ -141,6 +141,8 @@ namespace {
 
 namespace dal::parser {
 
+    // Optimize
+
     void apply_root_transform(SceneIntermediate& scene) {
         const auto& root_m4 = scene.m_root_transform;
         const auto root_m4_inv = glm::inverse(root_m4);
@@ -232,6 +234,17 @@ namespace dal::parser {
         }
     }
 
+    // Modify
+
+    void flip_uv_vertically(SceneIntermediate& scene) {
+        for (auto& mesh : scene.m_meshes) {
+            for (auto& vertex : mesh.m_vertices) {
+                vertex.uv_coord.y = 1.f - vertex.uv_coord.y;
+            }
+        }
+    }
+
+    // Convert
 
     Model convert_to_model_dmd(const SceneIntermediate& scene) {
         Model output;

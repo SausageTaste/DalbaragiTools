@@ -75,6 +75,7 @@ namespace {
             dal::parser::apply_root_transform(scene);
             dal::parser::reduce_indexed_vertices(scene);
             dal::parser::remove_duplicate_materials(scene);
+            dal::parser::flip_uv_vertically(scene);
         }
 
         const auto model = dal::parser::convert_to_model_dmd(scenes.back());

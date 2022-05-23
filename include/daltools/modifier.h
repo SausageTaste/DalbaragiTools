@@ -20,6 +20,8 @@ namespace dal::parser {
     JointReductionResult reduce_joints(dal::parser::Model& model);
 
 
+    // Optimize
+
     void apply_root_transform(SceneIntermediate& scene);
 
     void reduce_indexed_vertices(SceneIntermediate& scene);
@@ -28,6 +30,11 @@ namespace dal::parser {
 
     void merge_by_material(SceneIntermediate& scene);
 
+    // Modify
+
+    void flip_uv_vertically(SceneIntermediate& scene);
+
+    // Convert
 
     Model convert_to_model_dmd(const SceneIntermediate& scene);
 
