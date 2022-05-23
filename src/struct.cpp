@@ -262,6 +262,20 @@ namespace dal::parser {
         return NULL_JID;
     }
 
+
+    bool scene_t::MeshActor::can_merge_with(const MeshActor& other) const {
+        if (this->m_parent_name != other.m_parent_name)
+            return false;
+        if (this->m_collections != other.m_collections)
+            return false;
+        if (this->m_transform != other.m_transform)
+            return false;
+        if (this->m_hidden != other.m_hidden)
+            return false;
+
+        return true;
+    }
+
 }
 
 

@@ -72,8 +72,9 @@ namespace {
         std::vector<dal::parser::SceneIntermediate> scenes;
         const auto result = dal::parser::parse_json(scenes, file_content.data(), file_content.size());
         for (auto& scene : scenes) {
-            dal::parser::optimize_scene(scene);
             dal::parser::flip_uv_vertically(scene);
+            dal::parser::clear_collection_info(scene);
+            dal::parser::optimize_scene(scene);
         }
 
         const auto model = dal::parser::convert_to_model_dmd(scenes.back());

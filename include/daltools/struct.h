@@ -29,6 +29,21 @@ namespace dal::parser {
         float m_scale = 1.f;
 
     public:
+        bool operator==(const Transform& other) const {
+            if (this->m_pos != other.m_pos)
+                return false;
+            if (this->m_quat != other.m_quat)
+                return false;
+            if (this->m_scale != other.m_scale)
+                return false;
+
+            return true;
+        }
+
+        bool operator!=(const Transform& other) const {
+            return !Transform::operator==(other);
+        }
+
         glm::mat4 Transform::make_mat4() const {
             const auto identity = glm::mat4{ 1 };
             const auto scale_mat = glm::scale(identity, glm::vec3{ this->m_scale, this->m_scale , this->m_scale });
@@ -346,7 +361,13 @@ namespace dal::parser {
 
 
         struct MeshActor : public IActor {
+
+        public:
             std::vector<RenderPair> m_render_pairs;
+
+        public:
+            bool can_merge_with(const MeshActor& other) const;
+
         };
 
 

@@ -534,6 +534,37 @@ namespace dal::parser {
         }
     }
 
+    void merge_redundant_mesh_actors(SceneIntermediate& scene) {
+        const auto mesh_actor_count = scene.m_mesh_actors.size();
+
+        for (size_t i = 1; i < mesh_actor_count; ++i) {
+            auto& prey_actor = scene.m_mesh_actors[i];
+
+            for (size_t j = 0; j < i; ++j) {
+                auto& dst_actor = scene.m_mesh_actors[j];
+                if (dst_actor.m_render_pairs.empty())
+                    continue;
+
+                if (dst_actor.can_merge_with(prey_actor)) {
+                    dst_actor.m_render_pairs.insert(
+                        dst_actor.m_render_pairs.end(),
+                        prey_actor.m_render_pairs.begin(),
+                        prey_actor.m_render_pairs.end()
+                    );
+                    prey_actor.m_render_pairs.clear();
+                }
+            }
+        }
+
+        scene.m_mesh_actors.erase(
+            std::remove_if(
+                scene.m_mesh_actors.begin(),
+                scene.m_mesh_actors.end(),
+                [](scene_t::MeshActor& actor) { return actor.m_render_pairs.empty(); }
+            ), scene.m_mesh_actors.end()
+        );
+    }
+
     // Modify
 
     void flip_uv_vertically(SceneIntermediate& scene) {
@@ -542,6 +573,17 @@ namespace dal::parser {
                 vertex.uv_coord.y = 1.f - vertex.uv_coord.y;
             }
         }
+    }
+
+    void clear_collection_info(SceneIntermediate& scene) {
+        for (auto& actor : scene.m_mesh_actors)
+            actor.m_collections.clear();
+        for (auto& actor : scene.m_dlights)
+            actor.m_collections.clear();
+        for (auto& actor : scene.m_plights)
+            actor.m_collections.clear();
+        for (auto& actor : scene.m_slights)
+            actor.m_collections.clear();
     }
 
     // Convert

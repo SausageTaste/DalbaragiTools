@@ -30,16 +30,21 @@ namespace dal::parser {
 
     void reduce_joints(SceneIntermediate& scene);
 
+    void merge_redundant_mesh_actors(SceneIntermediate& scene);
+
     inline void optimize_scene(SceneIntermediate& scene) {
         reduce_indexed_vertices(scene);
         remove_duplicate_materials(scene);
         apply_root_transform(scene);
         reduce_joints(scene);
+        merge_redundant_mesh_actors(scene);
     }
 
     // Modify
 
     void flip_uv_vertically(SceneIntermediate& scene);
+
+    void clear_collection_info(SceneIntermediate& scene);
 
     // Convert
 
