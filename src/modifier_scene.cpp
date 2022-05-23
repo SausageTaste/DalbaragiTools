@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <unordered_map>
+#include <unordered_set>
 
 
 namespace {
@@ -139,6 +140,296 @@ namespace {
 }
 
 
+// reduce_joints
+namespace {
+
+    using str_set_t = std::unordered_set<std::string>;
+
+    ::str_set_t make_set_union(const ::str_set_t& a, const ::str_set_t& b) {
+        ::str_set_t output;
+        output.insert(a.begin(), a.end());
+        output.insert(b.begin(), b.end());
+        return output;
+    }
+
+    ::str_set_t make_set_intersection(const ::str_set_t& a, const ::str_set_t& b) {
+        ::str_set_t output;
+
+        auto& smaller_set = a.size() < b.size() ? a : b;
+        auto& larger_set = a.size() < b.size() ? b : a;
+
+        for (auto iter = smaller_set.begin(); iter != smaller_set.end(); ++iter) {
+            if (larger_set.end() != larger_set.find(*iter)) {
+                output.insert(*iter);
+            }
+        }
+
+        return output;
+    }
+
+    ::str_set_t make_set_difference(const ::str_set_t& a, const ::str_set_t& b) {
+        ::str_set_t output;
+
+        for (auto iter = a.begin(); iter != a.end(); ++iter) {
+            if (b.end() == b.find(*iter)) {
+                output.insert(*iter);
+            }
+        }
+
+        return output;
+    }
+
+
+    class JointParentNameManager {
+
+    private:
+        struct JointParentName {
+            std::string m_name, m_parent_name;
+        };
+
+    public:
+        const std::string NO_PARENT_NAME = "{%{%-1%}%}";
+
+    private:
+        std::vector<JointParentName> m_data;
+        std::unordered_map<std::string, std::string> m_replace_map;
+
+    public:
+        void fill_joints(const scene_t::Skeleton& skeleton) {
+            this->m_data.resize(skeleton.m_joints.size());
+
+            for (size_t i = 0; i < skeleton.m_joints.size(); ++i) {
+                auto& joint = skeleton.m_joints[i];
+
+                this->m_data[i].m_name = joint.m_name;
+                if (joint.has_parent())
+                    this->m_data[i].m_parent_name = joint.m_parent_name;
+                else
+                    this->m_data[i].m_parent_name = this->NO_PARENT_NAME;
+
+                this->m_replace_map[joint.m_name] = joint.m_name;
+            }
+        }
+
+        void remove_joint(const std::string& name) {
+            const auto found_index = this->find_by_name(name);
+            if (-1 == found_index)
+                return;
+
+            const auto parent_of_victim = this->m_data[found_index].m_parent_name;
+            this->m_data.erase(this->m_data.begin() + found_index);
+
+            for (auto& joint : this->m_data) {
+                if (joint.m_parent_name == name) {
+                    joint.m_parent_name = parent_of_victim;
+                }
+            }
+
+            for (auto& iter : this->m_replace_map) {
+                if (iter.second == name) {
+                    iter.second = parent_of_victim;
+                }
+            }
+        }
+
+        void remove_except(const ::str_set_t& survivor_names) {
+            const auto names_to_remove = ::make_set_difference(this->make_names_set(), survivor_names);
+
+            for (auto& name : names_to_remove) {
+                this->remove_joint(name);
+            }
+        }
+
+        ::str_set_t make_names_set() const {
+            ::str_set_t output;
+
+            for (auto& joint : this->m_data) {
+                output.insert(joint.m_name);
+            }
+
+            return output;
+        }
+
+        const std::string& get_replaced_name(const std::string& name) const {
+            if (name == this->NO_PARENT_NAME) {
+                return this->NO_PARENT_NAME;
+            }
+            else {
+                return this->m_replace_map.find(name)->second;
+            }
+        }
+
+    private:
+        dalp::jointID_t find_by_name(const std::string& name) {
+            if (this->NO_PARENT_NAME == name)
+                return -1;
+
+            for (dalp::jointID_t i = 0; i < this->m_data.size(); ++i) {
+                if (this->m_data[i].m_name == name) {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+    };
+
+
+    bool are_skel_anim_compatible(const scene_t::Skeleton& skeleton, const scene_t::Animation& anim) {
+        for (auto& joint : skeleton.m_joints) {
+            if (dal::parser::NULL_JID != anim.find_index_by_name(joint.m_name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    std::vector<const scene_t::Animation*> make_compatible_anim_list(const scene_t::Skeleton& skeleton, const std::vector<scene_t::Animation>& animations) {
+        std::vector<const scene_t::Animation*> output;
+        for (auto& anim : animations) {
+            if (::are_skel_anim_compatible(skeleton, anim)) {
+                output.push_back(&anim);
+            }
+        }
+        return output;
+    }
+
+    ::str_set_t get_vital_joint_names(const scene_t::Skeleton& skeleton) {
+        // Super parents' children are all vital
+        ::str_set_t output, super_parents;
+
+        for (auto& joint : skeleton.m_joints) {
+            if (joint.is_root()) {
+                output.insert(joint.m_name);
+            }
+            else if (dal::parser::JointType::hair_root == joint.m_joint_type || dal::parser::JointType::skirt_root == joint.m_joint_type) {
+                super_parents.insert(joint.m_name);
+                output.insert(joint.m_name);
+            }
+            else {
+                if (super_parents.end() != super_parents.find(joint.m_parent_name)) {
+                    super_parents.insert(joint.m_name);
+                    output.insert(joint.m_name);
+                }
+            }
+        }
+
+        return output;
+    }
+
+    ::str_set_t get_joint_names_with_non_identity_transform(const scene_t::Skeleton& skeleton, const std::vector<scene_t::Animation>& animations) {
+        ::str_set_t output;
+
+        if (skeleton.m_joints.empty())
+            return output;
+
+        // Root nodes
+        for (auto& joint : skeleton.m_joints) {
+            if (joint.is_root()) {
+                output.insert(joint.m_name);
+            }
+        }
+
+        // Nodes with keyframes
+        for (auto& anim : animations) {
+            for (auto& joint : anim.m_joints) {
+                if (!joint.are_keyframes_empty()) {
+                    output.insert(joint.m_name);
+                }
+            }
+        }
+
+        return output;
+    }
+
+    scene_t::Skeleton make_new_skeleton(const scene_t::Skeleton& src_skeleton, const ::JointParentNameManager& jname_manager) {
+        scene_t::Skeleton output;
+        output.m_name = src_skeleton.m_name;
+        const auto survivor_joints = jname_manager.make_names_set();
+
+        for (auto& src_joint : src_skeleton.m_joints) {
+            if (survivor_joints.end() == survivor_joints.find(src_joint.m_name))
+                continue;
+
+            const std::string& parent_name = src_joint.has_parent() ? src_joint.m_parent_name : jname_manager.NO_PARENT_NAME;
+            const auto& parent_replace_name = jname_manager.get_replaced_name(parent_name);
+            output.m_joints.push_back(src_joint);
+        }
+
+        for (auto& joint : output.m_joints) {
+            if (joint.is_root())
+                continue;
+
+            const auto& original_parent_name = joint.m_parent_name;
+            const auto& new_parent_name = jname_manager.get_replaced_name(original_parent_name);
+            if (jname_manager.NO_PARENT_NAME != new_parent_name) {
+                joint.m_parent_name = new_parent_name;
+            }
+            else {
+                joint.m_parent_name.clear();
+            }
+        }
+
+        return output;
+    }
+
+    std::unordered_map<dalp::jointID_t, dalp::jointID_t> make_index_replace_map(
+        const scene_t::Skeleton& from_skeleton,
+        const scene_t::Skeleton& to_skeleton,
+        const JointParentNameManager& jname_manager
+    ) {
+        std::unordered_map<dalp::jointID_t, dalp::jointID_t> output;
+        output[-1] = -1;
+
+        for (size_t i = 0; i < from_skeleton.m_joints.size(); ++i) {
+            const auto& from_name = from_skeleton.m_joints[i].m_name;
+            const auto& to_name = jname_manager.get_replaced_name(from_name);
+            const auto to_index = to_skeleton.find_index_by_name(to_name);
+            assert(dalp::NULL_JID != to_index);
+            output[i] = to_index;
+        }
+
+        return output;
+    }
+
+    std::optional<scene_t::Skeleton> reduce_joints(
+        const scene_t::Skeleton& skeleton,
+        const std::vector<scene_t::Animation>& animations,
+        std::vector<scene_t::Mesh>& meshes
+    ) {
+        const auto compatible_animations = ::make_compatible_anim_list(skeleton, animations);
+        if (compatible_animations.empty())
+            return std::nullopt;
+
+        const auto needed_joint_names = ::make_set_union(
+            ::get_joint_names_with_non_identity_transform(skeleton, animations),
+            ::get_vital_joint_names(skeleton)
+        );
+
+        ::JointParentNameManager joint_parent_names;
+        joint_parent_names.fill_joints(skeleton);
+        joint_parent_names.remove_except(needed_joint_names);
+
+        const auto new_skeleton = ::make_new_skeleton(skeleton, joint_parent_names);
+        const auto index_replace_map = ::make_index_replace_map(skeleton, new_skeleton, joint_parent_names);
+
+        for (auto& mesh : meshes) {
+            for (auto& vertex : mesh.m_vertices) {
+                for (auto& joint : vertex.m_joints) {
+                    const auto new_index = index_replace_map.find(joint.m_index)->second;
+                    assert(-1 <= new_index && new_index < static_cast<int64_t>(new_skeleton.m_joints.size()));
+                    joint.m_index = new_index;
+                }
+            }
+        }
+
+        return new_skeleton;
+    }
+
+}
+
+
 namespace dal::parser {
 
     // Optimize
@@ -230,6 +521,15 @@ namespace dal::parser {
         for (auto& mesh_actor : scene.m_mesh_actors) {
             for (auto& render_pair : mesh_actor.m_render_pairs) {
                 render_pair.m_material_name = replace_map.get(render_pair.m_material_name);
+            }
+        }
+    }
+
+    void reduce_joints(SceneIntermediate& scene) {
+        for (auto& skel : scene.m_skeletons) {
+            const auto result = ::reduce_joints(skel, scene.m_animations, scene.m_meshes);
+            if (result.has_value()) {
+                skel = result.value();
             }
         }
     }

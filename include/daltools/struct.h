@@ -271,16 +271,34 @@ namespace dal::parser {
 
 
         struct SkelJoint {
+
+        public:
             std::string m_name;
             std::string m_parent_name;
             JointType m_joint_type = JointType::basic;
             glm::mat4 m_offset_mat{ 1 };
+
+        public:
+            bool has_parent() const {
+                return !this->m_parent_name.empty();
+            }
+
+            bool is_root() const {
+                return this->m_parent_name.empty();
+            }
+
         };
 
 
         struct Skeleton {
+
+        public:
             std::string m_name;
             std::vector<SkelJoint> m_joints;
+
+        public:
+            jointID_t find_index_by_name(const std::string& name) const;
+
         };
 
 
@@ -301,15 +319,23 @@ namespace dal::parser {
 
             float get_max_time_point() const;
 
+            bool are_keyframes_empty() const;
+
         };
 
 
         struct Animation {
+
+        public:
             std::string m_name;
             std::vector<AnimJoint> m_joints;
             float m_ticks_per_sec = 1;
 
+        public:
             float calc_duration_in_ticks() const;
+
+            jointID_t find_index_by_name(const std::string& name) const;
+
         };
 
 

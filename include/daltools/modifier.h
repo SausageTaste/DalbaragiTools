@@ -28,10 +28,13 @@ namespace dal::parser {
 
     void remove_duplicate_materials(SceneIntermediate& scene);
 
+    void reduce_joints(SceneIntermediate& scene);
+
     inline void optimize_scene(SceneIntermediate& scene) {
         reduce_indexed_vertices(scene);
         remove_duplicate_materials(scene);
         apply_root_transform(scene);
+        reduce_joints(scene);
     }
 
     // Modify

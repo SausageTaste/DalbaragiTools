@@ -188,6 +188,16 @@ namespace dal::parser {
     }
 
 
+    jointID_t scene_t::Skeleton::find_index_by_name(const std::string& name) const {
+        for (jointID_t i = 0; i < this->m_joints.size(); ++i) {
+            if (this->m_joints[i].m_name == name) {
+                return i;
+            }
+        }
+        return NULL_JID;
+    }
+
+
     void scene_t::AnimJoint::add_position(float time, float x, float y, float z) {
         auto& added = this->m_positions.emplace_back();
 
@@ -222,6 +232,18 @@ namespace dal::parser {
         return max_value;
     }
 
+    bool scene_t::AnimJoint::are_keyframes_empty() const {
+        if (!this->m_positions.empty())
+            return false;
+        if (!this->m_rotations.empty())
+            return false;
+        if (!this->m_scales.empty())
+            return false;
+
+        return true;
+    }
+
+
     float scene_t::Animation::calc_duration_in_ticks() const {
         float max_value = 0.f;
 
@@ -229,6 +251,15 @@ namespace dal::parser {
             max_value = std::max(max_value, joint.get_max_time_point());
 
         return 0.f != max_value ? max_value : 1.f;
+    }
+
+    jointID_t scene_t::Animation::find_index_by_name(const std::string& name) const {
+        for (jointID_t i = 0; i < this->m_joints.size(); ++i) {
+            if (this->m_joints[i].m_name == name) {
+                return i;
+            }
+        }
+        return NULL_JID;
     }
 
 }
