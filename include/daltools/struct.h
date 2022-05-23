@@ -221,18 +221,32 @@ namespace dal::parser {
 
 
         struct Vertex {
+
+        public:
             glm::vec3 m_pos;
             glm::vec2 uv_coord;
             glm::vec3 m_normal;
             std::vector<VertexJointPair> m_joints;
+
+        public:
+            bool are_same(const Vertex& other);
+
         };
 
 
         struct Mesh {
+
+        public:
             std::string m_name;
             std::string m_skeleton_name;
             std::vector<Vertex> m_vertices;
             std::vector<size_t> m_indices;
+
+        public:
+            void add_vertex(const Vertex& vertex);
+
+            void concat(const Mesh& other);
+
         };
 
 
@@ -349,9 +363,11 @@ namespace dal::parser {
         std::vector<Spotlight> m_slights;
 
     public:
-        std::optional<Mesh> find_mesh_by_name(const std::string& name) const;
+        Mesh* find_mesh_by_name(const std::string& name);
 
-        std::optional<Material> find_material_by_name(const std::string& name) const;
+        const Mesh* find_mesh_by_name(const std::string& name) const;
+
+        const Material* find_material_by_name(const std::string& name) const;
 
     };
 

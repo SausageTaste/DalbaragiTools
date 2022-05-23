@@ -26,6 +26,8 @@ namespace dal::parser {
 
     void remove_duplicate_materials(SceneIntermediate& scene);
 
+    void merge_by_material(SceneIntermediate& scene);
+
 
     Model convert_to_model_dmd(const SceneIntermediate& scene);
 

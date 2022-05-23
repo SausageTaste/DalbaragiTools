@@ -9,6 +9,55 @@ namespace {
     namespace dalp = dal::parser;
     using scene_t = dalp::SceneIntermediate;
 
+
+    template <typename T>
+    class EasyMap {
+
+    private:
+        std::unordered_map<T, T> m_map;
+
+    public:
+        void add(const T& key, const T& value) {
+            if (this->m_map.end() != this->m_map.find(key)) {
+                throw std::runtime_error{"Trying to add a 'key' which already exists"};
+            }
+
+            this->m_map[key] = value;
+        }
+
+        auto& get(const std::string& key) const {
+            const auto found = this->m_map.find(key);
+            if (this->m_map.end() != found) {
+                return found->second;
+            }
+            else {
+                return key;
+            }
+        }
+
+    };
+
+
+    class StringReplaceMap {
+
+    private:
+        ::EasyMap<std::string> m_map;
+
+    public:
+        void add(const std::string& from_name, const std::string& to_name) {
+            if (from_name == to_name) {
+                throw std::runtime_error{"from_name and to_name are identical, maybe ill-formed data"};
+            }
+
+            this->m_map.add(from_name, to_name);
+        }
+
+        auto& get(const std::string& from_name) const {
+            return this->m_map.get(from_name);
+        }
+
+    };
+
 }
 
 
@@ -29,51 +78,6 @@ namespace {
         auto& quat_rotation_part = *reinterpret_cast<glm::vec3*>(&q.x);
         quat_rotation_part = m * quat_rotation_part;
     }
-
-}
-
-
-// reduce_indexed_vertices
-namespace {
-
-    bool are_vertices_same(const scene_t::Vertex& one, const scene_t::Vertex& two) {
-        if (one.m_pos != two.m_pos)
-            return false;
-        if (one.m_normal != two.m_normal)
-            return false;
-        if (one.uv_coord != two.uv_coord)
-            return false;
-
-        return true;
-    }
-
-    class IndexedMeshBuilder {
-
-    public:
-        std::vector<scene_t::Vertex> m_vertices;
-        std::vector<size_t> m_indices;
-
-    public:
-        void add(const scene_t::Vertex& vertex) {
-            const auto vert_size = this->m_vertices.size();
-
-            for (size_t i = 0; i < vert_size; ++i) {
-                if (::are_vertices_same(vertex, this->m_vertices[i])) {
-                    this->m_indices.push_back(i);
-                    return;
-                }
-            }
-
-            this->m_indices.push_back(this->m_vertices.size());
-            this->m_vertices.push_back(vertex);
-        }
-
-        void swap(scene_t::Mesh& mesh) {
-            std::swap(mesh.m_vertices, this->m_vertices);
-            std::swap(mesh.m_indices, this->m_indices);
-        }
-
-    };
 
 }
 
@@ -122,37 +126,6 @@ namespace {
 
 // remove_duplicate_materials
 namespace {
-
-    class MaterialReplaceMap {
-
-    private:
-        std::unordered_map<std::string, std::string> m_map;
-
-    public:
-        void add(const std::string& from_name, const std::string& to_name) {
-            if (from_name == to_name) {
-                throw std::runtime_error{"from_name and to_name are identical, maybe ill-formed scene data"};
-            }
-
-            if (this->m_map.end() != this->m_map.find(from_name)) {
-                throw std::runtime_error{"Trying to add a from_name which already exists"};
-            }
-
-            this->m_map[from_name] = to_name;
-        }
-
-        auto& get(const std::string& from_name) const {
-            const auto found = this->m_map.find(from_name);
-            if (this->m_map.end() != found) {
-                return found->second;
-            }
-            else {
-                return from_name;
-            }
-        }
-
-    };
-
 
     const scene_t::Material* find_material_with_same_physical_properties(const scene_t::Material& material, const std::vector<scene_t::Material>& list) {
         for (auto& x : list) {
@@ -223,16 +196,17 @@ namespace dal::parser {
 
     void reduce_indexed_vertices(SceneIntermediate& scene) {
         for (auto& mesh : scene.m_meshes) {
-            IndexedMeshBuilder builder;
-            for (auto& index : mesh.m_indices) {
-                builder.add(mesh.m_vertices[index]);
-            }
-            builder.swap(mesh);
+            scene_t::Mesh builder;
+            for (auto& index : mesh.m_indices)
+                builder.add_vertex(mesh.m_vertices[index]);
+
+            std::swap(mesh.m_vertices, builder.m_vertices);
+            std::swap(mesh.m_indices, builder.m_indices);
         }
     }
 
     void remove_duplicate_materials(SceneIntermediate& scene) {
-        ::MaterialReplaceMap replace_map;
+        ::StringReplaceMap replace_map;
 
         {
             std::vector<::scene_t::Material> new_materials;
@@ -264,7 +238,10 @@ namespace dal::parser {
 
         for (auto& src_mesh_actor : scene.m_mesh_actors) {
             for (auto& pair : src_mesh_actor.m_render_pairs) {
-                auto& src_mesh = scene.find_mesh_by_name(pair.m_mesh_name);
+                const auto src_mesh = scene.find_mesh_by_name(pair.m_mesh_name);
+                if (nullptr == src_mesh) {
+                    continue;
+                }
 
                 if (src_mesh->m_skeleton_name.empty()) {
                     auto& dst_pair = output.m_units_indexed.emplace_back();
@@ -281,8 +258,8 @@ namespace dal::parser {
                         dst_pair.m_mesh.m_indices.push_back(src_index);
                     }
 
-                    auto& src_material = scene.find_material_by_name(pair.m_material_name);
-                    if (src_material.has_value())
+                    const auto src_material = scene.find_material_by_name(pair.m_material_name);
+                    if (nullptr != src_material)
                         ::convert_material(dst_pair.m_material, *src_material);
                 }
                 else {
@@ -309,8 +286,8 @@ namespace dal::parser {
                         dst_pair.m_mesh.m_indices.push_back(src_index);
                     }
 
-                    auto& src_material = scene.find_material_by_name(pair.m_material_name);
-                    if (src_material.has_value())
+                    const auto src_material = scene.find_material_by_name(pair.m_material_name);
+                    if (nullptr != src_material)
                         ::convert_material(dst_pair.m_material, *src_material);
                 }
             }

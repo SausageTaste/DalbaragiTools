@@ -1,5 +1,7 @@
 #include "daltools/struct.h"
 
+#include <stdexcept>
+
 
 namespace dal::parser {
 
@@ -116,6 +118,55 @@ namespace dal::parser {
     using scene_t = dal::parser::SceneIntermediate;
 
 
+    bool scene_t::Vertex::are_same(const scene_t::Vertex& other) {
+        if (this->m_pos != other.m_pos)
+            return false;
+        if (this->m_normal != other.m_normal)
+            return false;
+        if (this->uv_coord != other.uv_coord)
+            return false;
+
+        if (this->m_joints.size() != other.m_joints.size())
+            return false;
+
+        const auto joint_count = this->m_joints.size();
+        for (size_t i = 0; i < joint_count; ++i) {
+            auto& j0 = this->m_joints[i];
+            auto& j1 = other.m_joints[i];
+
+            if (j0.m_index != j1.m_index)
+                return false;
+            if (j0.m_weight != j1.m_weight)
+                return false;
+        }
+
+        return true;
+     }
+
+
+    void scene_t::Mesh::add_vertex(const scene_t::Vertex& vertex) {
+        const auto vert_size = this->m_vertices.size();
+        for (size_t i = 0; i < vert_size; ++i) {
+            if (this->m_vertices[i].are_same(vertex)) {
+                this->m_indices.push_back(i);
+                return;
+            }
+        }
+
+        this->m_indices.push_back(this->m_vertices.size());
+        this->m_vertices.push_back(vertex);
+    }
+
+    void scene_t::Mesh::concat(const scene_t::Mesh& other) {
+        if (this->m_skeleton_name != other.m_skeleton_name)
+            throw std::runtime_error{"Cannot concatenate meshes with different skeletons"};
+
+        for (const auto index : other.m_indices) {
+            this->add_vertex(other.m_vertices[index]);
+        }
+    }
+
+
     bool scene_t::Material::is_physically_same(const scene_t::Material& other) const {
         if (this->m_roughness != other.m_roughness)
             return false;
@@ -186,24 +237,34 @@ namespace dal::parser {
 // SceneIntermediate
 namespace dal::parser {
 
-    std::optional<SceneIntermediate::Mesh> SceneIntermediate::find_mesh_by_name(const std::string& name) const {
+    scene_t::Mesh* scene_t::find_mesh_by_name(const std::string& name) {
         for (auto& mesh : this->m_meshes) {
             if (mesh.m_name == name) {
-                return mesh;
+                return &mesh;
             }
         }
 
-        return std::nullopt;
+        return nullptr;
     }
 
-    std::optional<SceneIntermediate::Material> SceneIntermediate::find_material_by_name(const std::string& name) const {
-        for (auto& x : this->m_materials) {
-            if (x.m_name == name) {
-                return x;
+    const scene_t::Mesh* scene_t::find_mesh_by_name(const std::string& name) const {
+        for (auto& mesh : this->m_meshes) {
+            if (mesh.m_name == name) {
+                return &mesh;
             }
         }
 
-        return std::nullopt;
+        return nullptr;
+    }
+
+    const scene_t::Material* scene_t::find_material_by_name(const std::string& name) const {
+        for (auto& x : this->m_materials) {
+            if (x.m_name == name) {
+                return &x;
+            }
+        }
+
+        return nullptr;
     }
 
 }
