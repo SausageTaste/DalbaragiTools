@@ -1,6 +1,7 @@
 #include "daltools/modifier.h"
 
 #include <stdexcept>
+#include <unordered_map>
 
 
 namespace {
@@ -119,6 +120,52 @@ namespace {
 }
 
 
+// remove_duplicate_materials
+namespace {
+
+    class MaterialReplaceMap {
+
+    private:
+        std::unordered_map<std::string, std::string> m_map;
+
+    public:
+        void add(const std::string& from_name, const std::string& to_name) {
+            if (from_name == to_name) {
+                throw std::runtime_error{"from_name and to_name are identical, maybe ill-formed scene data"};
+            }
+
+            if (this->m_map.end() != this->m_map.find(from_name)) {
+                throw std::runtime_error{"Trying to add a from_name which already exists"};
+            }
+
+            this->m_map[from_name] = to_name;
+        }
+
+        auto& get(const std::string& from_name) const {
+            const auto found = this->m_map.find(from_name);
+            if (this->m_map.end() != found) {
+                return found->second;
+            }
+            else {
+                return from_name;
+            }
+        }
+
+    };
+
+
+    const scene_t::Material* find_material_with_same_physical_properties(const scene_t::Material& material, const std::vector<scene_t::Material>& list) {
+        for (auto& x : list) {
+            if (x.is_physically_same(material)) {
+                return &x;
+            }
+        }
+        return nullptr;
+    }
+
+}
+
+
 namespace dal::parser {
 
     void apply_root_transform(SceneIntermediate& scene) {
@@ -181,6 +228,33 @@ namespace dal::parser {
                 builder.add(mesh.m_vertices[index]);
             }
             builder.swap(mesh);
+        }
+    }
+
+    void remove_duplicate_materials(SceneIntermediate& scene) {
+        ::MaterialReplaceMap replace_map;
+
+        {
+            std::vector<::scene_t::Material> new_materials;
+
+            for (auto& mat : scene.m_materials) {
+                const auto found = ::find_material_with_same_physical_properties(mat, new_materials);
+                if (nullptr != found) {
+                    assert(mat.m_name != found->m_name);
+                    replace_map.add(mat.m_name, found->m_name);
+                }
+                else {
+                    new_materials.push_back(mat);
+                }
+            }
+
+            std::swap(scene.m_materials, new_materials);
+        }
+
+        for (auto& mesh_actor : scene.m_mesh_actors) {
+            for (auto& render_pair : mesh_actor.m_render_pairs) {
+                render_pair.m_material_name = replace_map.get(render_pair.m_material_name);
+            }
         }
     }
 

@@ -113,28 +113,52 @@ namespace dal::parser {
 //
 namespace dal::parser {
 
-    void SceneIntermediate::AnimJoint::add_position(float time, float x, float y, float z) {
+    using scene_t = dal::parser::SceneIntermediate;
+
+
+    bool scene_t::Material::is_physically_same(const scene_t::Material& other) const {
+        if (this->m_roughness != other.m_roughness)
+            return false;
+        if (this->m_metallic != other.m_metallic)
+            return false;
+        if (this->m_transparency != other.m_transparency)
+            return false;
+
+        if (this->m_albedo_map != other.m_albedo_map)
+            return false;
+        if (this->m_roughness_map != other.m_roughness_map)
+            return false;
+        if (this->m_metallic_map != other.m_metallic_map)
+            return false;
+        if (this->m_normal_map != other.m_normal_map)
+            return false;
+
+        return true;
+    }
+
+
+    void scene_t::AnimJoint::add_position(float time, float x, float y, float z) {
         auto& added = this->m_positions.emplace_back();
 
         added.first = time;
         added.second = glm::vec3{ x, y, z };
     }
 
-    void SceneIntermediate::AnimJoint::add_rotation(float time, float w, float x, float y, float z) {
+    void scene_t::AnimJoint::add_rotation(float time, float w, float x, float y, float z) {
         auto& added = this->m_rotations.emplace_back();
 
         added.first = time;
         added.second = glm::quat{ w, x, y, z };
     }
 
-    void SceneIntermediate::AnimJoint::add_scale(float time, float x) {
+    void scene_t::AnimJoint::add_scale(float time, float x) {
         auto& added = this->m_scales.emplace_back();
 
         added.first = time;
         added.second = x;
     }
 
-    float SceneIntermediate::AnimJoint::get_max_time_point() const {
+    float scene_t::AnimJoint::get_max_time_point() const {
         float max_value = 0;
 
         for (auto& x : this->m_positions)
@@ -147,7 +171,7 @@ namespace dal::parser {
         return max_value;
     }
 
-    float SceneIntermediate::Animation::calc_duration_in_ticks() const {
+    float scene_t::Animation::calc_duration_in_ticks() const {
         float max_value = 0.f;
 
         for (auto& joint : this->m_joints)

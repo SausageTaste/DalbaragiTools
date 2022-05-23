@@ -237,6 +237,8 @@ namespace dal::parser {
 
 
         struct Material {
+
+        public:
             std::string m_name;
 
             float m_roughness = 0.5;
@@ -247,6 +249,10 @@ namespace dal::parser {
             std::string m_roughness_map;
             std::string m_metallic_map;
             std::string m_normal_map;
+
+        public:
+            bool is_physically_same(const Material& other) const;
+
         };
 
 

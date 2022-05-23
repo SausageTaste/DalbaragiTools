@@ -24,6 +24,8 @@ namespace dal::parser {
 
     void reduce_indexed_vertices(SceneIntermediate& scene);
 
+    void remove_duplicate_materials(SceneIntermediate& scene);
+
 
     Model convert_to_model_dmd(const SceneIntermediate& scene);
 
