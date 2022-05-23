@@ -1,7 +1,5 @@
 #include "daltools/modifier.h"
 
-#include <stdexcept>
-
 #include <unordered_set>
 #include <unordered_map>
 
