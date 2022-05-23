@@ -72,6 +72,7 @@ add_library(libdaltools
     ${source_dir}/compression.cpp
     ${source_dir}/util.cpp
     ${source_dir}/json_parser.cpp
+    ${source_dir}/modifier_scene.cpp
 )
 
 target_include_directories(libdaltools PUBLIC ./include
