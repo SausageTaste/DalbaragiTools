@@ -72,9 +72,7 @@ namespace {
         std::vector<dal::parser::SceneIntermediate> scenes;
         const auto result = dal::parser::parse_json(scenes, file_content.data(), file_content.size());
         for (auto& scene : scenes) {
-            dal::parser::apply_root_transform(scene);
-            dal::parser::reduce_indexed_vertices(scene);
-            dal::parser::remove_duplicate_materials(scene);
+            dal::parser::optimize_scene(scene);
             dal::parser::flip_uv_vertically(scene);
         }
 
