@@ -35,9 +35,9 @@ namespace dal::parser {
     inline void optimize_scene(SceneIntermediate& scene) {
         reduce_indexed_vertices(scene);
         remove_duplicate_materials(scene);
-        apply_root_transform(scene);
-        reduce_joints(scene);
         merge_redundant_mesh_actors(scene);
+        reduce_joints(scene);
+        apply_root_transform(scene);
     }
 
     // Modify
