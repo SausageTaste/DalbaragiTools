@@ -610,7 +610,8 @@ namespace dal::parser {
                     }
 
                     for (auto src_index : src_mesh->m_indices) {
-                        dst_pair.m_mesh.m_indices.push_back(src_index);
+                        assert(src_index < std::numeric_limits<int32_t>::max());
+                        dst_pair.m_mesh.m_indices.push_back(static_cast<int32_t>(src_index));
                     }
 
                     const auto src_material = scene.find_material_by_name(pair.m_material_name);
@@ -638,7 +639,8 @@ namespace dal::parser {
                     }
 
                     for (auto src_index : src_mesh->m_indices) {
-                        dst_pair.m_mesh.m_indices.push_back(src_index);
+                        assert(src_index < std::numeric_limits<int32_t>::max());
+                        dst_pair.m_mesh.m_indices.push_back(static_cast<int32_t>(src_index));
                     }
 
                     const auto src_material = scene.find_material_by_name(pair.m_material_name);
