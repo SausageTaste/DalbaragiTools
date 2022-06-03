@@ -340,8 +340,8 @@ namespace {
                 timer.check();
 
                 const auto output_path = select_output_file_path(
-                    src_path, 
-                    parser.present("--subfolder"), 
+                    src_path,
+                    parser.present("--subfolder"),
                     parser.present("--suffix")
                 );
 
@@ -428,10 +428,17 @@ namespace {
         const auto files = parser.get<std::vector<std::string>>("files");
 
         for (const auto& src_path : files) {
-            const auto file_content = ::read_file<std::vector<uint8_t>>(src_path.c_str()); 
+            const auto file_content = ::read_file<std::vector<uint8_t>>(src_path.c_str());
             std::vector<dal::parser::SceneIntermediate> scenes;
             const auto result = dal::parser::parse_json(scenes, file_content.data(), file_content.size());
-            const auto model = dal::parser::convert_to_model_dmd(scenes[0]);
+
+            for (auto& scene : scenes) {
+                dal::parser::flip_uv_vertically(scene);
+                dal::parser::clear_collection_info(scene);
+                dal::parser::optimize_scene(scene);
+            }
+
+            const auto model = dal::parser::convert_to_model_dmd(scenes.at(0));
             const auto binary_built = dal::parser::build_binary_model(model, nullptr, nullptr);
 
             std::filesystem::path output_path = src_path;
