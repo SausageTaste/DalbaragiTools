@@ -297,13 +297,7 @@ namespace dal::parser {
     constexpr int NUM_JOINTS_PER_VERTEX = sizeof(VertexJoint::m_joint_indices) / sizeof(float);
 
 
-    struct Material : public SceneIntermediate::Material {
-
-    public:
-        using SceneIntermediate::Material::Material;
-        using SceneIntermediate::Material::operator=;
-
-    };
+    using Material = SceneIntermediate::Material;
 
 
     struct Mesh_Straight {
