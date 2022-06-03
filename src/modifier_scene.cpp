@@ -86,6 +86,74 @@ namespace {
 // convert_to_model_dmd
 namespace {
 
+    template <typename T>
+    dalp::RenderUnit<T>& find_or_create_render_unit_by_material(std::vector<dalp::RenderUnit<T>>& units, const scene_t::Material& criterion) {
+        for (auto& unit : units) {
+            if (unit.m_material.is_physically_same(criterion)) {
+                return unit;
+            }
+        }
+        return units.emplace_back();
+    }
+
+    void convert_meshes(dalp::Model& output, const dalp::SceneIntermediate& scene) {
+        for (auto& src_mesh_actor : scene.m_mesh_actors) {
+            for (auto& pair : src_mesh_actor.m_render_pairs) {
+                const auto src_mesh = scene.find_mesh_by_name(pair.m_mesh_name);
+                if (nullptr == src_mesh) {
+                    throw std::runtime_error{""};
+                }
+                const auto src_material = scene.find_material_by_name(pair.m_material_name);
+                if (nullptr == src_material) {
+                    throw std::runtime_error{""};
+                }
+
+                if (src_mesh->m_skeleton_name.empty()) {
+                    auto& dst_pair = ::find_or_create_render_unit_by_material(output.m_units_indexed, *src_material);
+
+                    dst_pair.m_name = src_mesh->m_name;
+                    dst_pair.m_material = *src_material;
+
+                    for (auto src_index : src_mesh->m_indices) {
+                        auto& src_vert = src_mesh->m_vertices[src_index];
+
+                        dalp::Vertex vertex;
+                        vertex.m_position = src_vert.m_pos;
+                        vertex.m_uv_coords = src_vert.uv_coord;
+                        vertex.m_normal = src_vert.m_normal;
+                        dst_pair.m_mesh.add_vertex(vertex);
+                    }
+                }
+                else {
+                    auto& dst_pair = ::find_or_create_render_unit_by_material(output.m_units_indexed_joint, *src_material);
+
+                    dst_pair.m_name = src_mesh->m_name;
+                    dst_pair.m_material = *src_material;
+
+                    for (auto src_index : src_mesh->m_indices) {
+                        auto& src_vert = src_mesh->m_vertices[src_index];
+
+                        dalp::VertexJoint vertex;
+                        vertex.m_position = src_vert.m_pos;
+                        vertex.m_uv_coords = src_vert.uv_coord;
+                        vertex.m_normal = src_vert.m_normal;
+
+                        const int valid_joint_count = std::min<int>(4, src_vert.m_joints.size());
+                        for (int i = 0; i < valid_joint_count; ++i) {
+                            vertex.m_joint_indices[i] = src_vert.m_joints[i].m_index;
+                            vertex.m_joint_weights[i] = src_vert.m_joints[i].m_weight;
+                        }
+                        for (int i = valid_joint_count; i < 4; ++i) {
+                            vertex.m_joint_indices[i] = -1;
+                        }
+
+                        dst_pair.m_mesh.add_vertex(vertex);
+                    }
+                }
+            }
+        }
+    }
+
     void convert_skeleton(dalp::Skeleton& dst, const dalp::SceneIntermediate::Skeleton& src) {
         for (auto& src_joint : src.m_joints) {
             auto& dst_joint = dst.m_joints.emplace_back();
@@ -581,64 +649,7 @@ namespace dal::parser {
     Model convert_to_model_dmd(const SceneIntermediate& scene) {
         Model output;
 
-        for (auto& src_mesh_actor : scene.m_mesh_actors) {
-            for (auto& pair : src_mesh_actor.m_render_pairs) {
-                const auto src_mesh = scene.find_mesh_by_name(pair.m_mesh_name);
-                if (nullptr == src_mesh) {
-                    continue;
-                }
-
-                if (src_mesh->m_skeleton_name.empty()) {
-                    auto& dst_pair = output.m_units_indexed.emplace_back();
-                    dst_pair.m_name = src_mesh->m_name;
-
-                    for (auto& src_vert : src_mesh->m_vertices) {
-                        auto& dst_vert = dst_pair.m_mesh.m_vertices.emplace_back();
-                        dst_vert.m_position = src_vert.m_pos;
-                        dst_vert.m_uv_coords = src_vert.uv_coord;
-                        dst_vert.m_normal = src_vert.m_normal;
-                    }
-
-                    for (auto src_index : src_mesh->m_indices) {
-                        assert(src_index < std::numeric_limits<int32_t>::max());
-                        dst_pair.m_mesh.m_indices.push_back(static_cast<int32_t>(src_index));
-                    }
-
-                    const auto src_material = scene.find_material_by_name(pair.m_material_name);
-                    if (nullptr != src_material)
-                        dst_pair.m_material = *src_material;
-                }
-                else {
-                    auto& dst_pair = output.m_units_indexed_joint.emplace_back();
-                    dst_pair.m_name = src_mesh->m_name;
-
-                    for (auto& src_vert : src_mesh->m_vertices) {
-                        auto& dst_vert = dst_pair.m_mesh.m_vertices.emplace_back();
-                        dst_vert.m_position = src_vert.m_pos;
-                        dst_vert.m_uv_coords = src_vert.uv_coord;
-                        dst_vert.m_normal = src_vert.m_normal;
-
-                        const int valid_joint_count = std::min<int>(4, src_vert.m_joints.size());
-                        for (int i = 0; i < valid_joint_count; ++i) {
-                            dst_vert.m_joint_indices[i] = src_vert.m_joints[i].m_index;
-                            dst_vert.m_joint_weights[i] = src_vert.m_joints[i].m_weight;
-                        }
-                        for (int i = valid_joint_count; i < 4; ++i) {
-                            dst_vert.m_joint_indices[i] = -1;
-                        }
-                    }
-
-                    for (auto src_index : src_mesh->m_indices) {
-                        assert(src_index < std::numeric_limits<int32_t>::max());
-                        dst_pair.m_mesh.m_indices.push_back(static_cast<int32_t>(src_index));
-                    }
-
-                    const auto src_material = scene.find_material_by_name(pair.m_material_name);
-                    if (nullptr != src_material)
-                        dst_pair.m_material = *src_material;
-                }
-            }
-        }
+        ::convert_meshes(output, scene);
 
         if (scene.m_skeletons.size() > 1) {
             throw std::runtime_error{"Multiple skeletons are not supported"};
