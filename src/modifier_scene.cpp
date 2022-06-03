@@ -144,7 +144,7 @@ namespace {
                             vertex.m_joint_weights[i] = src_vert.m_joints[i].m_weight;
                         }
                         for (int i = valid_joint_count; i < dalp::NUM_JOINTS_PER_VERTEX; ++i) {
-                            vertex.m_joint_indices[i] = -1;
+                            vertex.m_joint_indices[i] = dalp::NULL_JID;
                         }
 
                         dst_pair.m_mesh.add_vertex(vertex);
