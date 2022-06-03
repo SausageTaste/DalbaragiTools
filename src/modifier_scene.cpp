@@ -143,7 +143,7 @@ namespace {
                             vertex.m_joint_indices[i] = src_vert.m_joints[i].m_index;
                             vertex.m_joint_weights[i] = src_vert.m_joints[i].m_weight;
                         }
-                        for (int i = valid_joint_count; i < 4; ++i) {
+                        for (int i = valid_joint_count; i < dalp::NUM_JOINTS_PER_VERTEX; ++i) {
                             vertex.m_joint_indices[i] = -1;
                         }
 
