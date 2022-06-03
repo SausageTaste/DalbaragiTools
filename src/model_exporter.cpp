@@ -264,7 +264,7 @@ namespace {
 
         output.append_float32(material.m_roughness);
         output.append_float32(material.m_metallic);
-        output.append_bool8(material.alpha_blend);
+        output.append_bool8(material.m_transparency);
         output.append_str(material.m_albedo_map);
         output.append_str(material.m_roughness_map);
         output.append_str(material.m_metallic_map);

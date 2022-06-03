@@ -23,18 +23,6 @@ namespace dal::parser {
         );
     }
 
-    bool Material::operator==(const Material& other) const {
-        return (
-            this->m_albedo_map    == other.m_albedo_map &&
-            this->m_roughness_map == other.m_roughness_map &&
-            this->m_metallic_map  == other.m_metallic_map &&
-            this->m_normal_map    == other.m_normal_map &&
-            this->m_emision_map   == other.m_emision_map &&
-            this->m_roughness     == other.m_roughness &&
-            this->m_metallic      == other.m_metallic
-        );
-    }
-
 
     void Mesh_Straight::concat(const Mesh_Straight& other) {
         this->m_vertices.insert(m_vertices.end(), other.m_vertices.begin(), other.m_vertices.end());
@@ -166,6 +154,15 @@ namespace dal::parser {
         }
     }
 
+
+    bool scene_t::Material::operator==(const scene_t::Material& rhs) const {
+        if (!this->is_physically_same(rhs))
+            return false;
+        if (this->m_name != rhs.m_name)
+            return false;
+
+        return true;
+    }
 
     bool scene_t::Material::is_physically_same(const scene_t::Material& other) const {
         if (this->m_roughness != other.m_roughness)

@@ -86,16 +86,6 @@ namespace {
 // convert_to_model_dmd
 namespace {
 
-    void convert_material(dalp::Material& dst, const dalp::SceneIntermediate::Material& src) {
-        dst.m_roughness = src.m_roughness;
-        dst.m_metallic = src.m_metallic;
-        dst.alpha_blend = src.m_transparency;
-        dst.m_albedo_map = src.m_albedo_map;
-        dst.m_roughness_map = src.m_roughness_map;
-        dst.m_metallic_map = src.m_metallic_map;
-        dst.m_normal_map = src.m_normal_map;
-    }
-
     void convert_skeleton(dalp::Skeleton& dst, const dalp::SceneIntermediate::Skeleton& src) {
         for (auto& src_joint : src.m_joints) {
             auto& dst_joint = dst.m_joints.emplace_back();
@@ -616,7 +606,7 @@ namespace dal::parser {
 
                     const auto src_material = scene.find_material_by_name(pair.m_material_name);
                     if (nullptr != src_material)
-                        ::convert_material(dst_pair.m_material, *src_material);
+                        dst_pair.m_material = *src_material;
                 }
                 else {
                     auto& dst_pair = output.m_units_indexed_joint.emplace_back();
@@ -645,7 +635,7 @@ namespace dal::parser {
 
                     const auto src_material = scene.find_material_by_name(pair.m_material_name);
                     if (nullptr != src_material)
-                        ::convert_material(dst_pair.m_material, *src_material);
+                        dst_pair.m_material = *src_material;
                 }
             }
         }

@@ -169,7 +169,7 @@ namespace {
     const uint8_t* parse_material(const uint8_t* header, const uint8_t* const end, dalp::Material& material) {
         material.m_roughness = dalp::make_float32(header); header += 4;
         material.m_metallic = dalp::make_float32(header); header += 4;
-        material.alpha_blend = dalp::make_bool8(header); header += 1;
+        material.m_transparency = dalp::make_bool8(header); header += 1;
 
         material.m_albedo_map = reinterpret_cast<const char*>(header);
         header += material.m_albedo_map.size() + 1;

@@ -125,6 +125,8 @@ namespace dal::parser {
             std::string m_normal_map;
 
         public:
+            bool operator==(const Material& rhs) const;
+
             bool is_physically_same(const Material& other) const;
 
         };
@@ -295,17 +297,12 @@ namespace dal::parser {
     constexpr int NUM_JOINTS_PER_VERTEX = sizeof(VertexJoint::m_joint_indices) / sizeof(float);
 
 
-    struct Material {
-        std::string m_albedo_map;
-        std::string m_roughness_map;
-        std::string m_metallic_map;
-        std::string m_normal_map;
-        std::string m_emision_map;
-        float m_roughness = 0.5;
-        float m_metallic = 1;
-        bool alpha_blend = false;
+    struct Material : public SceneIntermediate::Material {
 
-        bool operator==(const Material& other) const;
+    public:
+        using SceneIntermediate::Material::Material;
+        using SceneIntermediate::Material::operator=;
+
     };
 
 
