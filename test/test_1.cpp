@@ -100,14 +100,13 @@ namespace {
         CHECK_TRUTH(one.m_animations.size() == two.m_animations.size());
         for (size_t i = 0; i < std::min(one.m_animations.size(), two.m_animations.size()); ++i) {
             CHECK_TRUTH(one.m_animations[i].m_name == two.m_animations[i].m_name);
-            CHECK_TRUTH(one.m_animations[i].m_duration_tick == two.m_animations[i].m_duration_tick);
-            CHECK_TRUTH(one.m_animations[i].m_ticks_par_sec == two.m_animations[i].m_ticks_par_sec);
+            CHECK_TRUTH(one.m_animations[i].calc_duration_in_ticks() == two.m_animations[i].calc_duration_in_ticks());
+            CHECK_TRUTH(one.m_animations[i].m_ticks_per_sec == two.m_animations[i].m_ticks_per_sec);
 
             CHECK_TRUTH(one.m_animations[i].m_joints.size() == two.m_animations[i].m_joints.size());
             for (size_t j = 0; j < std::min(one.m_animations[i].m_joints.size(), two.m_animations[i].m_joints.size()); ++j) {
                 CHECK_TRUTH(one.m_animations[i].m_joints[j].m_name == two.m_animations[i].m_joints[j].m_name);
-                CHECK_TRUTH(one.m_animations[i].m_joints[j].m_transform == two.m_animations[i].m_joints[j].m_transform);
-                CHECK_TRUTH(one.m_animations[i].m_joints[j].m_translates == two.m_animations[i].m_joints[j].m_translates);
+                CHECK_TRUTH(one.m_animations[i].m_joints[j].m_positions == two.m_animations[i].m_joints[j].m_positions);
                 CHECK_TRUTH(one.m_animations[i].m_joints[j].m_rotations == two.m_animations[i].m_joints[j].m_rotations);
                 CHECK_TRUTH(one.m_animations[i].m_joints[j].m_scales == two.m_animations[i].m_joints[j].m_scales);
             }

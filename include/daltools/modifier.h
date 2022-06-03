@@ -19,4 +19,35 @@ namespace dal::parser {
 
     JointReductionResult reduce_joints(dal::parser::Model& model);
 
+
+    // Optimize
+
+    void apply_root_transform(SceneIntermediate& scene);
+
+    void reduce_indexed_vertices(SceneIntermediate& scene);
+
+    void remove_duplicate_materials(SceneIntermediate& scene);
+
+    void reduce_joints(SceneIntermediate& scene);
+
+    void merge_redundant_mesh_actors(SceneIntermediate& scene);
+
+    inline void optimize_scene(SceneIntermediate& scene) {
+        reduce_indexed_vertices(scene);
+        remove_duplicate_materials(scene);
+        merge_redundant_mesh_actors(scene);
+        reduce_joints(scene);
+        apply_root_transform(scene);
+    }
+
+    // Modify
+
+    void flip_uv_vertically(SceneIntermediate& scene);
+
+    void clear_collection_info(SceneIntermediate& scene);
+
+    // Convert
+
+    Model convert_to_model_dmd(const SceneIntermediate& scene);
+
 }

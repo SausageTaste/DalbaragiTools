@@ -203,10 +203,10 @@ namespace {
         ::BinaryBuildBuffer output;
 
         output.append_str(joint.m_name);
-        output.append_mat4(joint.m_transform);
+        output.append_mat4(glm::mat4{1});
 
-        output.append_int32(joint.m_translates.size());
-        for (auto& trans : joint.m_translates) {
+        output.append_int32(joint.m_positions.size());
+        for (auto& trans : joint.m_positions) {
             output.append_float32(trans.first);
             output.append_float32(trans.second.x);
             output.append_float32(trans.second.y);
@@ -240,8 +240,8 @@ namespace {
             auto& anim = animations[i];
 
             output.append_str(anim.m_name);
-            output.append_float32(anim.m_duration_tick);
-            output.append_float32(anim.m_ticks_par_sec);
+            output.append_float32(anim.calc_duration_in_ticks());
+            output.append_float32(anim.m_ticks_per_sec);
 
             output.append_int32(anim.m_joints.size());
 
@@ -264,7 +264,7 @@ namespace {
 
         output.append_float32(material.m_roughness);
         output.append_float32(material.m_metallic);
-        output.append_bool8(material.alpha_blend);
+        output.append_bool8(material.m_transparency);
         output.append_str(material.m_albedo_map);
         output.append_str(material.m_roughness_map);
         output.append_str(material.m_metallic_map);

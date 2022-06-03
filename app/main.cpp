@@ -68,6 +68,30 @@ namespace {
         return path;
     }
 
+    std::filesystem::path select_output_file_path(const std::string src_path, const std::optional<std::string> subfolder, const std::optional<std::string> suffix) {
+        std::filesystem::path output_path;
+
+        if (!suffix && !subfolder) {
+            output_path = ::insert_suffix(src_path, "_");
+        }
+        else if (suffix && !subfolder) {
+            output_path = ::insert_suffix(src_path, *suffix);
+        }
+        else if (!suffix && subfolder) {
+            output_path = ::insert_subfolder_suffix(src_path, *subfolder, "");
+            ::create_folders_of_path(output_path, 1);
+        }
+        else if (suffix && subfolder) {
+            output_path = ::insert_subfolder_suffix(src_path, *subfolder, *suffix);
+            ::create_folders_of_path(output_path, 1);
+        }
+        else {
+            throw std::runtime_error{ "This shouldn't happen" };
+        }
+
+        return output_path;
+    }
+
 
     template <typename T>
     T read_file(const char* const path) {
@@ -315,29 +339,11 @@ namespace {
                 std::cout << "    Exporting";
                 timer.check();
 
-                std::filesystem::path output_path;
-                {
-                    const auto subfolder = parser.present("--subfolder");
-                    const auto suffix = parser.present("--suffix");
-
-                    if (!suffix && !subfolder) {
-                        output_path = ::insert_suffix(src_path, "_");
-                    }
-                    else if (suffix && !subfolder) {
-                        output_path = ::insert_suffix(src_path, *suffix);
-                    }
-                    else if (!suffix && subfolder) {
-                        output_path = ::insert_subfolder_suffix(src_path, *subfolder, "");
-                        ::create_folders_of_path(output_path, 1);
-                    }
-                    else if (suffix && subfolder) {
-                        output_path = ::insert_subfolder_suffix(src_path, *subfolder, *suffix);
-                        ::create_folders_of_path(output_path, 1);
-                    }
-                    else {
-                        throw std::runtime_error{ "This shouldn't happen" };
-                    }
-                }
+                const auto output_path = select_output_file_path(
+                    src_path,
+                    parser.present("--subfolder"),
+                    parser.present("--suffix")
+                );
 
                 if (key_path.has_value()) {
                     const auto key_hex = ::read_file<std::string>(key_path->c_str());
@@ -408,6 +414,42 @@ namespace {
         }
     }
 
+    void work_compile(int argc, char* argv[]) {
+        argparse::ArgumentParser parser{ "daltools" };
+
+        parser.add_argument("operation")
+            .help("Operation name");
+        parser.add_argument("files")
+            .help("Input model file paths")
+            .remaining();
+
+        parser.parse_args(argc, argv);
+
+        const auto files = parser.get<std::vector<std::string>>("files");
+
+        for (const auto& src_path : files) {
+            const auto file_content = ::read_file<std::vector<uint8_t>>(src_path.c_str());
+            std::vector<dal::parser::SceneIntermediate> scenes;
+            const auto result = dal::parser::parse_json(scenes, file_content.data(), file_content.size());
+
+            for (auto& scene : scenes) {
+                dal::parser::flip_uv_vertically(scene);
+                dal::parser::clear_collection_info(scene);
+                dal::parser::optimize_scene(scene);
+            }
+
+            const auto model = dal::parser::convert_to_model_dmd(scenes.at(0));
+            const auto binary_built = dal::parser::build_binary_model(model, nullptr, nullptr);
+
+            std::filesystem::path output_path = src_path;
+            output_path.replace_extension("dmd");
+
+            std::ofstream file(output_path.u8string().c_str(), std::ios::binary);
+            file.write(reinterpret_cast<const char*>(binary_built->data()), binary_built->size());
+            file.close();
+        }
+    }
+
 }
 
 
@@ -421,6 +463,8 @@ int main(int argc, char* argv[]) try {
         ::work_model_mod(argc, argv);
     else if ("keygen"s == argv[1])
         ::work_keygen(argc, argv);
+    else if ("compile"s == argv[1])
+        ::work_compile(argc, argv);
     else
         throw std::runtime_error{ "unkown operation ("s + argv[1] + "). It must be one of { model, keygen }" };
 }

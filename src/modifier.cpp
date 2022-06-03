@@ -82,7 +82,7 @@ namespace {
     template <typename _Mesh>
     dal::parser::RenderUnit<_Mesh>* find_same_material(const dal::parser::RenderUnit<_Mesh>& criteria, std::vector<dal::parser::RenderUnit<_Mesh>>& units) {
         for (auto& x : units)
-            if (x.m_material == criteria.m_material)
+            if (x.m_material.is_physically_same(criteria.m_material))
                 return &x;
 
         return nullptr;
@@ -99,7 +99,7 @@ namespace {
         for (size_t i = 1; i < units.size(); ++i) {
             const auto& this_unit = units[i];
 
-            if (this_unit.m_material.alpha_blend) {
+            if (this_unit.m_material.m_transparency) {
                 output.push_back(this_unit);
                 continue;
             }
@@ -162,7 +162,7 @@ namespace {
 
 
     bool is_joint_useless(const dal::parser::AnimJoint& joint) {
-        if (!joint.m_translates.empty())
+        if (!joint.m_positions.empty())
             return false;
         else if (!joint.m_rotations.empty())
             return false;

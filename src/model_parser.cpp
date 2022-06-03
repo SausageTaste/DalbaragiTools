@@ -103,7 +103,8 @@ namespace {
     const uint8_t* parse_animJoint(const uint8_t* header, const uint8_t* const end, dalp::AnimJoint& output) {
         {
             output.m_name = reinterpret_cast<const char*>(header); header += output.m_name.size() + 1;
-            header = parse_mat4(header, end, output.m_transform);
+            glm::mat4 _;
+            header = parse_mat4(header, end, _);
         }
 
         {
@@ -111,7 +112,7 @@ namespace {
             for ( int i = 0; i < num; ++i ) {
                 float fbuf[4];
                 header = dalp::assemble_4_bytes_array<float>(header, fbuf, 4);
-                output.add_translate(fbuf[0], fbuf[1], fbuf[2], fbuf[3]);
+                output.add_position(fbuf[0], fbuf[1], fbuf[2], fbuf[3]);
             }
         }
 
@@ -146,8 +147,8 @@ namespace {
             anim.m_name = reinterpret_cast<const char*>(header);
             header += anim.m_name.size() + 1;
 
-            anim.m_duration_tick = dalp::make_float32(header); header += 4;
-            anim.m_ticks_par_sec = dalp::make_float32(header); header += 4;
+            const auto duration_tick = dalp::make_float32(header); header += 4;
+            anim.m_ticks_per_sec = dalp::make_float32(header); header += 4;
 
             const auto joint_count = dalp::make_int32(header); header += 4;
             anim.m_joints.resize(joint_count);
@@ -169,7 +170,7 @@ namespace {
     const uint8_t* parse_material(const uint8_t* header, const uint8_t* const end, dalp::Material& material) {
         material.m_roughness = dalp::make_float32(header); header += 4;
         material.m_metallic = dalp::make_float32(header); header += 4;
-        material.alpha_blend = dalp::make_bool8(header); header += 1;
+        material.m_transparency = dalp::make_bool8(header); header += 1;
 
         material.m_albedo_map = reinterpret_cast<const char*>(header);
         header += material.m_albedo_map.size() + 1;
