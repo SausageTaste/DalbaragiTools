@@ -370,37 +370,8 @@ namespace dal::parser {
     };
 
 
-    struct AnimJoint {
-        std::string m_name;
-        glm::mat4 m_transform{1};  // i dont remember what this was...
-        std::vector<std::pair<float, glm::vec3>> m_translates;
-        std::vector<std::pair<float, glm::quat>> m_rotations;
-        std::vector<std::pair<float, float>> m_scales;
-
-        void add_translate(float time, float x, float y, float z);
-        void add_rotation(float time, float w, float x, float y, float z);
-        void add_scale(float time, float x);
-
-        bool is_identity_transform() const;
-    };
-
-
-    class Animation {
-
-    public:
-        std::string m_name;
-        std::vector<AnimJoint> m_joints;
-        float m_duration_tick;
-        float m_ticks_par_sec;
-
-    public:
-        std::optional<size_t> find_by_name(const char* const name) const;
-
-        std::optional<size_t> find_by_name(const std::string& name) const {
-            return this->find_by_name(name.c_str());
-        }
-
-    };
+    using AnimJoint = SceneIntermediate::AnimJoint;
+    using Animation = SceneIntermediate::Animation;
 
 
     struct Model {

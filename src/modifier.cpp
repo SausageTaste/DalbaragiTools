@@ -162,7 +162,7 @@ namespace {
 
 
     bool is_joint_useless(const dal::parser::AnimJoint& joint) {
-        if (!joint.m_translates.empty())
+        if (!joint.m_positions.empty())
             return false;
         else if (!joint.m_rotations.empty())
             return false;

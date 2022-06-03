@@ -165,21 +165,6 @@ namespace {
         }
     }
 
-    void convert_animation(dalp::Animation& dst, const dalp::SceneIntermediate::Animation& src) {
-        dst.m_name = src.m_name;
-        dst.m_ticks_par_sec = src.m_ticks_per_sec;
-        dst.m_duration_tick = src.calc_duration_in_ticks();
-
-        for (auto& src_joint : src.m_joints) {
-            auto& dst_joint = dst.m_joints.emplace_back();
-            dst_joint.m_name = src_joint.m_name;
-            dst_joint.m_translates = src_joint.m_positions;
-            dst_joint.m_rotations = src_joint.m_rotations;
-            dst_joint.m_scales = src_joint.m_scales;
-            dst_joint.m_transform = glm::mat4{1};
-        }
-    }
-
 }
 
 
@@ -659,7 +644,7 @@ namespace dal::parser {
         }
 
         for (auto& src_anim : scene.m_animations) {
-            ::convert_animation(output.m_animations.emplace_back(), src_anim);
+            output.m_animations.push_back(src_anim);
         }
 
         return output;

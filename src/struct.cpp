@@ -48,55 +48,6 @@ namespace dal::parser {
         return -1;
     }
 
-
-    void AnimJoint::add_translate(float time, float x, float y, float z) {
-        auto& added = this->m_translates.emplace_back();
-
-        added.first = time;
-        added.second = glm::vec3{ x, y, z };
-    }
-
-    void AnimJoint::add_rotation(float time, float w, float x, float y, float z) {
-        auto& added = this->m_rotations.emplace_back();
-
-        added.first = time;
-        added.second = glm::quat{ w, x, y, z };
-    }
-
-    void AnimJoint::add_scale(float time, float x) {
-        auto& added = this->m_scales.emplace_back();
-
-        added.first = time;
-        added.second = x;
-    }
-
-    bool AnimJoint::is_identity_transform() const {
-        if (!this->m_translates.empty())
-            return false;
-        else if (!this->m_rotations.empty())
-            return false;
-        else if (!this->m_scales.empty())
-            return false;
-        else
-            return true;
-    }
-
-}
-
-
-// Animation
-namespace dal::parser {
-
-    std::optional<size_t> Animation::find_by_name(const char* const name) const {
-        for (size_t i = 0; i < this->m_joints.size(); ++i) {
-            if (this->m_joints[i].m_name == name) {
-                return i;
-            }
-        }
-
-        return std::nullopt;
-    }
-
 }
 
 
