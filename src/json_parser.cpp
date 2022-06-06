@@ -101,10 +101,10 @@ namespace {
         return output;
     }
 
-    void parse_transform(const json_t& json_data, dal::parser::Transform& output) {
+    void parse_transform(const json_t& json_data, scene_t::Transform& output) {
         ::parse_vec3(json_data["translation"], output.m_pos);
         ::parse_quat(json_data["rotation"], output.m_quat);
-        output.m_scale = json_data["scale"];
+        ::parse_vec3(json_data["scale"], output.m_scale);
     }
 
     template <typename T>

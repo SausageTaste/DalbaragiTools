@@ -80,6 +80,43 @@ namespace {
         quat_rotation_part = m * quat_rotation_part;
     }
 
+    template <typename T>
+    T combine_abs_value_and_sign(const T only_abs_value, const T only_sign) {
+        const auto ZERO = static_cast<T>(0);
+
+        if (only_abs_value < ZERO) {
+            if (only_sign < ZERO) {
+                return only_abs_value;
+            }
+            else {
+                return -only_abs_value;
+            }
+        }
+        else {
+            if (only_sign < ZERO) {
+                return -only_abs_value;
+            }
+            else {
+                return only_abs_value;
+            }
+        }
+    }
+
+    void rotate_scale_factors(const glm::mat3& m, glm::vec3& scales) {
+        const auto rotated = m * scales;
+        scales = glm::vec3{
+            ::combine_abs_value_and_sign(rotated[0], scales[0]),
+            ::combine_abs_value_and_sign(rotated[1], scales[1]),
+            ::combine_abs_value_and_sign(rotated[2], scales[2])
+        };
+    }
+
+    void apply_transform(const glm::mat4& m4, const glm::mat3& m3, scene_t::Transform& t) {
+        ::apply_transform(m4, t.m_pos);
+        ::apply_transform(m3, t.m_quat);
+        ::rotate_scale_factors(m3, t.m_scale);
+    }
+
 }
 
 
@@ -98,6 +135,9 @@ namespace {
 
     void convert_meshes(dalp::Model& output, const dalp::SceneIntermediate& scene) {
         for (auto& src_mesh_actor : scene.m_mesh_actors) {
+            const auto actor_mat4 = scene.make_hierarchy_transform(src_mesh_actor);
+            const auto actor_mat3 = glm::mat3{actor_mat4};
+
             for (auto& pair : src_mesh_actor.m_render_pairs) {
                 const auto src_mesh = scene.find_mesh_by_name(pair.m_mesh_name);
                 if (nullptr == src_mesh) {
@@ -118,9 +158,9 @@ namespace {
                         auto& src_vert = src_mesh->m_vertices[src_index];
 
                         dalp::Vertex vertex;
-                        vertex.m_position = src_vert.m_pos;
+                        vertex.m_position = actor_mat4 * glm::vec4{src_vert.m_pos, 1};
                         vertex.m_uv_coords = src_vert.uv_coord;
-                        vertex.m_normal = src_vert.m_normal;
+                        vertex.m_normal = actor_mat3 * src_vert.m_normal;
                         dst_pair.m_mesh.add_vertex(vertex);
                     }
                 }
@@ -134,9 +174,9 @@ namespace {
                         auto& src_vert = src_mesh->m_vertices[src_index];
 
                         dalp::VertexJoint vertex;
-                        vertex.m_position = src_vert.m_pos;
+                        vertex.m_position = actor_mat4 * glm::vec4{src_vert.m_pos, 1};
                         vertex.m_uv_coords = src_vert.uv_coord;
-                        vertex.m_normal = src_vert.m_normal;
+                        vertex.m_normal = actor_mat3 * src_vert.m_normal;
 
                         const int valid_joint_count = std::min<int>(4, src_vert.m_joints.size());
                         for (int i = 0; i < valid_joint_count; ++i) {
@@ -508,23 +548,19 @@ namespace dal::parser {
         }
 
         for (auto& mesh_actor : scene.m_mesh_actors) {
-            ::apply_transform(root_m4, mesh_actor.m_transform.m_pos);
-            ::apply_transform(root_m3, mesh_actor.m_transform.m_quat);
+            ::apply_transform(root_m4, root_m3, mesh_actor.m_transform);
         }
 
         for (auto& light : scene.m_dlights) {
-            ::apply_transform(root_m4, light.m_transform.m_pos);
-            ::apply_transform(root_m3, light.m_transform.m_quat);
+            ::apply_transform(root_m4, root_m3, light.m_transform);
         }
 
         for (auto& light : scene.m_plights) {
-            ::apply_transform(root_m4, light.m_transform.m_pos);
-            ::apply_transform(root_m3, light.m_transform.m_quat);
+            ::apply_transform(root_m4, root_m3, light.m_transform);
         }
 
         for (auto& light : scene.m_slights) {
-            ::apply_transform(root_m4, light.m_transform.m_pos);
-            ::apply_transform(root_m3, light.m_transform.m_quat);
+            ::apply_transform(root_m4, root_m3, light.m_transform);
         }
 
         scene.m_root_transform = glm::mat4{1};

@@ -260,4 +260,40 @@ namespace dal::parser {
         return nullptr;
     }
 
+    const scene_t::IActor* scene_t::find_actor_by_name(const std::string& name) const {
+        for (auto& x : this->m_mesh_actors)
+            if (x.m_name == name)
+                return &x;
+
+        for (auto& x : this->m_dlights)
+            if (x.m_name == name)
+                return &x;
+
+        for (auto& x : this->m_plights)
+            if (x.m_name == name)
+                return &x;
+
+        for (auto& x : this->m_slights)
+            if (x.m_name == name)
+                return &x;
+
+        return nullptr;
+    }
+
+    glm::mat4 scene_t::make_hierarchy_transform(const scene_t::IActor& actor) const {
+        glm::mat4 output = actor.m_transform.make_mat4();
+        const IActor* cur_actor = &actor;
+
+        while (!cur_actor->m_parent_name.empty()) {
+            const auto& parent_name = cur_actor->m_parent_name;
+            cur_actor = this->find_actor_by_name(parent_name);
+            if (nullptr == cur_actor)
+                throw std::runtime_error{"Failed to find a parent actor \"" + parent_name + '"'};
+
+            output = cur_actor->m_transform.make_mat4() * output;
+        }
+
+        return output;
+    }
+
 }
