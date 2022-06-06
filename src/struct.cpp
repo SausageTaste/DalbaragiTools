@@ -57,6 +57,25 @@ namespace dal::parser {
     using scene_t = dal::parser::SceneIntermediate;
 
 
+    bool scene_t::Transform::operator==(const scene_t::Transform& other) const {
+        if (this->m_pos != other.m_pos)
+            return false;
+        if (this->m_quat != other.m_quat)
+            return false;
+        if (this->m_scale != other.m_scale)
+            return false;
+
+        return true;
+    }
+
+    glm::mat4 scene_t::Transform::make_mat4() const {
+        const auto scale = glm::scale(glm::mat4{1}, this->m_scale);
+        const auto rotation = glm::mat4_cast(this->m_quat);
+        const auto translation = glm::translate(glm::mat4{1}, this->m_pos);
+        return translation * rotation * scale;
+    }
+
+
     bool scene_t::Vertex::are_same(const scene_t::Vertex& other) {
         if (this->m_pos != other.m_pos)
             return false;
