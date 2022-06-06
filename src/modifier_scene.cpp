@@ -598,14 +598,6 @@ namespace dal::parser {
                 }
             }
         }
-
-        scene.m_mesh_actors.erase(
-            std::remove_if(
-                scene.m_mesh_actors.begin(),
-                scene.m_mesh_actors.end(),
-                [](scene_t::MeshActor& actor) { return actor.m_render_pairs.empty(); }
-            ), scene.m_mesh_actors.end()
-        );
     }
 
     // Modify
