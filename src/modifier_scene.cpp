@@ -1,5 +1,6 @@
 #include "daltools/modifier.h"
 
+#include <iostream>
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
@@ -145,7 +146,8 @@ namespace {
                 }
                 const auto src_material = scene.find_material_by_name(pair.m_material_name);
                 if (nullptr == src_material) {
-                    throw std::runtime_error{""};
+                    std::cout << "Failed to find a material: " << pair.m_material_name << '\n';
+                    continue;
                 }
 
                 if (src_mesh->m_skeleton_name.empty()) {
@@ -195,6 +197,8 @@ namespace {
     }
 
     void convert_skeleton(dalp::Skeleton& dst, const dalp::SceneIntermediate::Skeleton& src) {
+        const auto root_mat = src.m_root_transform.make_mat4();
+
         for (auto& src_joint : src.m_joints) {
             auto& dst_joint = dst.m_joints.emplace_back();
 
