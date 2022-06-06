@@ -279,6 +279,16 @@ namespace dal::parser {
         return nullptr;
     }
 
+    const scene_t::Skeleton* scene_t::find_skeleton_by_name(const std::string& name) const {
+        for (auto& x : this->m_skeletons) {
+            if (x.m_name == name) {
+                return &x;
+            }
+        }
+
+        return nullptr;
+    }
+
     const scene_t::IActor* scene_t::find_actor_by_name(const std::string& name) const {
         for (auto& x : this->m_mesh_actors)
             if (x.m_name == name)
@@ -306,8 +316,14 @@ namespace dal::parser {
         while (!cur_actor->m_parent_name.empty()) {
             const auto& parent_name = cur_actor->m_parent_name;
             cur_actor = this->find_actor_by_name(parent_name);
-            if (nullptr == cur_actor)
-                throw std::runtime_error{"Failed to find a parent actor \"" + parent_name + '"'};
+            if (nullptr == cur_actor) {
+                if (nullptr != this->find_skeleton_by_name(parent_name)) {
+                    break;
+                }
+                else {
+                    throw std::runtime_error{"Failed to find a parent actor \"" + parent_name + '"'};
+                }
+            }
 
             output = cur_actor->m_transform.make_mat4() * output;
         }

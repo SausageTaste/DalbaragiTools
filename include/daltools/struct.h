@@ -282,6 +282,8 @@ namespace dal::parser {
 
         const Material* find_material_by_name(const std::string& name) const;
 
+        const Skeleton* find_skeleton_by_name(const std::string& name) const;
+
         const IActor* find_actor_by_name(const std::string& name) const;
 
         glm::mat4 make_hierarchy_transform(const IActor& actor) const;
