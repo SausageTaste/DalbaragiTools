@@ -11,10 +11,9 @@ namespace dal::crypto {
 
     class KeyAttrib {
 
-    private:
+    public:
         // Use system clock since it's epoch is (de facto) defined to be consistent as Unix time
         std::chrono::system_clock::time_point m_created_time = std::chrono::system_clock::now();
-    public:
         std::string m_owner_name;
         std::string m_email;
         std::string m_description;

@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <filesystem>
 
+#include <fmt/format.h>
+#include <fmt/chrono.h>
 #include <argparse/argparse.hpp>
 
 #include "daltools/model_parser.h"
@@ -392,9 +394,12 @@ namespace {
 
         if (parser["--print"] == true) {
             std::cout << "===================================\n";
-            std::cout << "Owner: " << attrib.m_owner_name << '\n';
-            std::cout << "E-mail: " << attrib.m_email << '\n';
-            std::cout << "Description: " << attrib.m_description << '\n';
+            fmt::print("Owner: {}\n", attrib.m_owner_name);
+            fmt::print("E-mail: {}\n", attrib.m_email);
+            fmt::print("Description: {}\n", attrib.m_description);
+
+            const auto a = std::chrono::system_clock::to_time_t(attrib.m_created_time);
+            fmt::print("Created date: {:%F %T %z}\n", fmt::localtime(a));
         }
     }
 
