@@ -10,52 +10,15 @@ namespace dalp = dal::parser;
 
 namespace {
 
-    class BinaryBuildBuffer {
-
-    private:
-        dalp::binary_buffer_t m_data;
+    class BinaryBuildBuffer : public dalp::BinaryDataArray {
 
     public:
-        BinaryBuildBuffer& operator+=(const BinaryBuildBuffer& other) {
-            this->m_data.insert(this->m_data.end(), other.m_data.begin(), other.m_data.end());
-            return *this;
-        }
-
-        void append_bool8(const bool v) {
-            this->m_data.push_back(v ? 1 : 0);
-        }
-
-        void append_int32(const int32_t v) {
-            this->append_4_bytes(v);
-        }
-
-        void append_int32_array(const int32_t* const arr, const size_t arr_size) {
-            this->append_4_bytes_array(arr, arr_size);
-        }
-
-        void append_float32(const float v) {
-            this->append_4_bytes(v);
-        }
-
-        void append_float32_array(const float* const arr, const size_t arr_size) {
-            this->append_4_bytes_array(arr, arr_size);
-        }
-
         void append_float32_vector(const std::vector<float>& v) {
-            this->append_4_bytes_array(v.data(), v.size());
-        }
-
-        void append_char(const char c) {
-            this->m_data.push_back(c);
-        }
-
-        void append_str(const char* const str, const size_t str_size) {
-            this->m_data.insert(this->m_data.end(), str, str + str_size);
-            this->m_data.push_back(0);
+            this->append_float32_array(v.data(), v.size());
         }
 
         void append_str(const std::string& str) {
-            this->append_str(str.data(), str.size());
+            this->append_null_terminated_str(str.data(), str.size());
         }
 
         void append_mat4(const glm::mat4& mat) {
@@ -71,58 +34,7 @@ namespace {
         }
 
         void append_raw_array(const uint8_t* const arr, const size_t arr_size) {
-            this->m_data.insert(this->m_data.end(), arr, arr + arr_size);
-        }
-
-        //
-
-        auto data() const {
-            return this->m_data.data();
-        }
-
-        auto size() const {
-            return this->m_data.size();
-        }
-
-        void reserve(const size_t reserve_size) {
-            this->m_data.reserve(reserve_size);
-        }
-
-        auto&& move() {
-            return std::move(this->m_data);
-        }
-
-    private:
-        template <typename T>
-        void append_4_bytes(const T v) {
-            static_assert(4 == sizeof(T));
-
-            const auto src_loc = reinterpret_cast<const uint8_t*>(&v);
-
-            if (dalp::is_big_endian()) {
-                this->m_data.push_back(src_loc[3]);
-                this->m_data.push_back(src_loc[2]);
-                this->m_data.push_back(src_loc[1]);
-                this->m_data.push_back(src_loc[0]);
-            }
-            else {
-                this->m_data.insert(this->m_data.end(), src_loc, src_loc + 4);
-            }
-        }
-
-        template <typename T>
-        void append_4_bytes_array(const T* const arr, const size_t size) {
-            static_assert(4 == sizeof(T));
-
-            if (dalp::is_big_endian()) {
-                for (size_t i = 0; i < size; ++i) {
-                    this->append_4_bytes(arr[i]);
-                }
-            }
-            else {
-                const auto src_loc = reinterpret_cast<const uint8_t*>(arr);
-                this->m_data.insert(this->m_data.end(), src_loc, src_loc + 4 * size);
-            }
+            this->append_array(arr, arr_size);
         }
 
     };
@@ -177,7 +89,7 @@ namespace {
         for (size_t i = 0; i < skeleton.m_joints.size(); ++i) {
             const auto& joint = skeleton.m_joints[i];
 
-            output.append_str(joint.m_name.data(), joint.m_name.size());
+            output.append_str(joint.m_name);
             output.append_int32(joint.m_parent_index);
 
             switch (joint.m_joint_type) {

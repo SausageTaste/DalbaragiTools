@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <cstdint>
 #include <cstring>
 
@@ -76,5 +77,52 @@ namespace dal::parser {
     void to_int32(const int32_t v, uint8_t* const buffer);
 
     void to_float32(const float v, uint8_t* const buffer);
+
+
+    // Store data in little endian regardless of system endianness
+    // But member functions inputs and outputs data with system endiannnss
+    class BinaryDataArray {
+
+    private:
+        std::vector<uint8_t> m_vector;
+
+    public:
+        BinaryDataArray& operator+=(const BinaryDataArray& other);
+
+        const uint8_t* data() const;
+
+        size_t size() const;
+
+        void reserve(const size_t reserve_size);
+
+        void push_back(const uint8_t v);
+
+        template <typename T>
+        void append_array(const T* const array, const size_t size) {
+            if (is_big_endian()) {
+
+            }
+            else {
+                const auto begin = reinterpret_cast<const uint8_t*>(array);
+                const auto end = begin + (sizeof(T) * size);
+                this->m_vector.insert(this->m_vector.end(), begin, end);
+            }
+        }
+
+        void append_bool8(const bool v);
+
+        void append_int32(const int32_t v);
+
+        void append_int32_array(const int32_t* const arr, const size_t arr_size);
+
+        void append_float32(const float v);
+
+        void append_float32_array(const float* const arr, const size_t arr_size);
+
+        void append_char(const char c);
+
+        void append_null_terminated_str(const char* const str, const size_t str_size);
+
+    };
 
 }

@@ -95,3 +95,58 @@ namespace dal::parser {
     }
 
 }
+
+
+namespace dal::parser {
+
+    BinaryDataArray& BinaryDataArray::operator+=(const BinaryDataArray& other) {
+        this->m_vector.insert(this->m_vector.end(), other.m_vector.begin(), other.m_vector.end());
+        return *this;
+    }
+
+    const uint8_t* BinaryDataArray::data() const {
+        return this->m_vector.data();
+    }
+
+    size_t BinaryDataArray::size() const {
+        return this->m_vector.size();
+    }
+
+    void BinaryDataArray::reserve(const size_t reserve_size) {
+        this->m_vector.reserve(reserve_size);
+    }
+
+    void BinaryDataArray::push_back(const uint8_t v) {
+        this->m_vector.push_back(v);
+    }
+
+    void BinaryDataArray::append_bool8(const bool v) {
+        this->push_back(v ? 1 : 0);
+    }
+
+    void BinaryDataArray::append_int32(const int32_t v) {
+        this->append_array(&v, 1);
+    }
+
+    void BinaryDataArray::append_int32_array(const int32_t* const arr, const size_t arr_size) {
+        this->append_array(arr, arr_size);
+    }
+
+    void BinaryDataArray::append_float32(const float v) {
+        this->append_array(&v, 1);
+    }
+
+    void BinaryDataArray::append_float32_array(const float* const arr, const size_t arr_size) {
+        this->append_array(arr, arr_size);
+    }
+
+    void BinaryDataArray::append_char(const char c) {
+        this->push_back(c);
+    }
+
+    void BinaryDataArray::append_null_terminated_str(const char* const str, const size_t str_size) {
+        this->append_array(str, str_size);
+        this->push_back(0);
+    }
+
+}
