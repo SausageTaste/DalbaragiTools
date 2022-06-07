@@ -17,10 +17,6 @@ namespace {
             this->append_float32_array(v.data(), v.size());
         }
 
-        void append_str(const std::string& str) {
-            this->append_null_terminated_str(str.data(), str.size());
-        }
-
         void append_mat4(const glm::mat4& mat) {
             float fbuf[16];
 

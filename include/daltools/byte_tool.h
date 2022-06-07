@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 #include <cstdint>
 #include <cstring>
 
@@ -95,6 +96,10 @@ namespace dal::parser {
 
         void reserve(const size_t reserve_size);
 
+        auto&& release() {
+            return std::move(this->m_vector);
+        }
+
         void push_back(const uint8_t v);
 
         template <typename T>
@@ -115,6 +120,8 @@ namespace dal::parser {
 
         void append_int32_array(const int32_t* const arr, const size_t arr_size);
 
+        void append_int64(const int64_t v);
+
         void append_float32(const float v);
 
         void append_float32_array(const float* const arr, const size_t arr_size);
@@ -122,6 +129,58 @@ namespace dal::parser {
         void append_char(const char c);
 
         void append_null_terminated_str(const char* const str, const size_t str_size);
+
+        void append_str(const std::string& str);
+
+    };
+
+
+    class BinaryArrayParser {
+
+    private:
+        const uint8_t* m_array = nullptr;
+        size_t m_size = 0;
+        size_t m_pos = 0;
+
+    public:
+        BinaryArrayParser(const uint8_t* const array, const size_t size);
+
+        BinaryArrayParser(const std::vector<uint8_t>& vector);
+
+        template <typename T>
+        void parse_array(T* const dst_arr, const size_t element_count) {
+            if (is_big_endian()) {
+
+            }
+            else {
+                const auto parse_size = element_count * sizeof(T);
+                std::memcpy(dst_arr, this->m_array + this->m_pos, parse_size);
+                this->m_pos += parse_size;
+            }
+        }
+
+        template <typename T>
+        T parse_one() {
+            T output;
+            this->parse_array(&output, 1);
+            return output;
+        }
+
+        bool parse_bool8();
+
+        int32_t parse_int32();
+
+        void parse_int32_array(int32_t* const arr, const size_t arr_size);
+
+        int64_t parse_int64();
+
+        float parse_float32();
+
+        void parse_float32_array(float* const arr, const size_t arr_size);
+
+        char parse_char();
+
+        std::string parse_str();
 
     };
 

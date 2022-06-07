@@ -363,6 +363,41 @@ namespace {
         }
     }
 
+    void work_key(int argc, char* argv[]) {
+        dal::Timer timer;
+        argparse::ArgumentParser parser{ "daltools" };
+
+        parser.add_argument("operation")
+            .help("Operation name");
+
+        parser.add_argument("-p", "--print")
+            .help("Print attributes of a key")
+            .default_value(false)
+            .implicit_value(true);
+
+        parser.add_argument("-i", "--input")
+            .help("Key path")
+            .required();
+
+        parser.parse_args(argc, argv);
+
+        const auto key_path = parser.get<std::string>("--input");
+        const auto key_data = ::read_file<std::vector<uint8_t>>(key_path.c_str());
+        dal::crypto::IKey key;
+        dal::crypto::KeyAttrib attrib;
+        if (!dal::crypto::parse_key_store_output("", key_data, key, attrib)) {
+            std::cout << "Failed to open a key: " << key_path << '\n';
+            return;
+        }
+
+        if (parser["--print"] == true) {
+            std::cout << "===================================\n";
+            std::cout << "Owner: " << attrib.m_owner_name << '\n';
+            std::cout << "E-mail: " << attrib.m_email << '\n';
+            std::cout << "Description: " << attrib.m_description << '\n';
+        }
+    }
+
     void work_keygen(int argc, char* argv[]) {
         dal::Timer timer;
         argparse::ArgumentParser parser{ "daltools" };
@@ -379,6 +414,14 @@ namespace {
             .help("File path to save key files. Extension must be omitted")
             .required();
 
+        parser.add_argument("--owner")
+            .required();
+
+        parser.add_argument("--email")
+            .required();
+
+        parser.add_argument("--description");
+
         parser.parse_args(argc, argv);
 
         const auto output_prefix = parser.get<std::string>("--output");
@@ -390,21 +433,26 @@ namespace {
             dal::crypto::PublicKeySignature sign_mgr{ dal::crypto::CONTEXT_PARSER };
             const auto [pk, sk] = sign_mgr.gen_keys();
 
+            dal::crypto::KeyAttrib attrib;
+            attrib.m_owner_name = parser.get<std::string>("--owner");
+            attrib.m_email = parser.get<std::string>("--email");
+            attrib.m_description = parser.get<std::string>("--description");
+
             {
+                const auto data = dal::crypto::build_key_store_output("", sk, attrib);
                 const auto path = output_prefix + "-sign_sec.dky";
                 std::ofstream file(path, std::ios::binary);
-                const auto data = sk.make_hex_str();
-                file.write(data.data(), data.size());
+                file.write(reinterpret_cast<const char*>(data.data()), data.size());
                 file.close();
 
                 std::cout << "    Secret key: " << path << '\n';
             }
 
             {
+                const auto data = dal::crypto::build_key_store_output("", pk, attrib);
                 const auto path = output_prefix + "-sign_pub.dky";
                 std::ofstream file(path, std::ios::binary);
-                const auto data = pk.make_hex_str();
-                file.write(data.data(), data.size());
+                file.write(reinterpret_cast<const char*>(data.data()), data.size());
                 file.close();
 
                 std::cout << "    Public key: " << path << '\n';
@@ -461,6 +509,8 @@ int main(int argc, char* argv[]) try {
 
     if ("model"s == argv[1])
         ::work_model_mod(argc, argv);
+    else if ("key"s == argv[1])
+        ::work_key(argc, argv);
     else if ("keygen"s == argv[1])
         ::work_keygen(argc, argv);
     else if ("compile"s == argv[1])

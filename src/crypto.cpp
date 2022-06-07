@@ -1,9 +1,12 @@
 #include "daltools/crypto.h"
 
 #include <mutex>
+#include <cassert>
 #include <stdexcept>
 
 #include "hydrogen.h"
+
+#include "daltools/byte_tool.h"
 
 
 namespace {
@@ -16,6 +19,36 @@ namespace {
                 throw std::runtime_error{ "Failed to initizate libhydrogen" };
             }
         });
+    }
+
+}
+
+
+// KeyAttrib
+namespace dal::crypto {
+
+    std::vector<uint8_t> KeyAttrib::build_binary() const {
+        static_assert(std::is_same<std::chrono::system_clock::rep, int64_t>::value);
+        dal::parser::BinaryDataArray array;
+
+        array.append_str(this->m_owner_name);
+        array.append_str(this->m_email);
+        array.append_str(this->m_description);
+        array.append_int64(this->m_created_time.time_since_epoch().count());
+
+        return array.release();
+    }
+
+    bool KeyAttrib::parse_binary(const uint8_t* const arr, const size_t arr_size) {
+        dal::parser::BinaryArrayParser parser{arr, arr_size};
+
+        this->m_owner_name = parser.parse_str();
+        this->m_email = parser.parse_str();
+        this->m_description = parser.parse_str();
+
+        const auto a = std::chrono::system_clock::duration{parser.parse_int64()};
+        this->m_created_time = std::chrono::system_clock::time_point{a};
+        return true;
     }
 
 }
@@ -74,10 +107,42 @@ namespace dal::crypto {
         return output;
     }
 
+
+    std::vector<uint8_t> build_key_store_output(const std::string& passwd, const IKey& key, const KeyAttrib& attrib) {
+        dal::parser::BinaryDataArray array;
+        const auto attrib_bin = attrib.build_binary();
+
+        constexpr int HEADER_SIZE = sizeof(int32_t) * 4;
+
+        array.append_int32(HEADER_SIZE);
+        array.append_int32(attrib_bin.size());
+        array.append_int32(HEADER_SIZE + attrib_bin.size());
+        array.append_int32(key.size());
+        assert(array.size() == HEADER_SIZE);
+
+        array.append_array(attrib_bin.data(), attrib_bin.size());
+        array.append_array(key.data(), key.size());
+
+        return array.release();
+    }
+
+    bool parse_key_store_output(const std::string& passwd, const std::vector<uint8_t>& data, IKey& key, KeyAttrib& attrib) {
+        dal::parser::BinaryArrayParser parser(data);
+
+        const auto attrib_loc = parser.parse_int32();
+        const auto attrib_size = parser.parse_int32();
+        const auto key_loc = parser.parse_int32();
+        const auto key_size = parser.parse_int32();
+
+        attrib.parse_binary(data.data() + attrib_loc, attrib_size);
+        key.set(data.data() + key_loc, key_size);
+        return true;
+    }
+
 }
 
 
-//
+// PublicKeySignature::IKey
 namespace dal::crypto {
 
     bool PublicKeySignature::PublicKey::is_valid() const {

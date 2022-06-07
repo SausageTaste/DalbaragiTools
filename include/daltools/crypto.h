@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <string>
 #include <vector>
 #include <utility>
@@ -7,6 +8,24 @@
 
 
 namespace dal::crypto {
+
+    class KeyAttrib {
+
+    private:
+        // Use system clock since it's epoch is (de facto) defined to be consistent as Unix time
+        std::chrono::system_clock::time_point m_created_time = std::chrono::system_clock::now();
+    public:
+        std::string m_owner_name;
+        std::string m_email;
+        std::string m_description;
+
+    public:
+        std::vector<uint8_t> build_binary() const;
+
+        bool parse_binary(const uint8_t* const arr, const size_t arr_size);
+
+    };
+
 
     class IContextInfo {
 
@@ -64,6 +83,11 @@ namespace dal::crypto {
         std::string make_hex_str() const;
 
     };
+
+
+    std::vector<uint8_t> build_key_store_output(const std::string& passwd, const IKey& key, const KeyAttrib& attrib);
+
+    bool parse_key_store_output(const std::string& passwd, const std::vector<uint8_t>& data, IKey& key, KeyAttrib& attrib);
 
 
     class PublicKeySignature : private IContextInfo {
