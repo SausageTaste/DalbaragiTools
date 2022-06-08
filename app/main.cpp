@@ -49,11 +49,28 @@ namespace {
     }
 
     std::string add_line_breaks(const std::string input, const size_t line_length) {
-        return input;
+        std::string output;
+        auto header = input.data();
+        auto end = header + input.size();
+
+        while (header < end) {
+            const auto distance = end - header;
+            const auto line_size = std::min<long long>(line_length, distance);
+            output.append(header, line_size);
+            output.push_back('\n');
+            header += line_size;
+        }
+
+        return output;
     }
 
-    std::string remove_line_breaks(const std::string input) {
-        return input;
+    std::string clean_up_base64_str(std::string string) {
+        string.erase(std::remove_if(
+            string.begin(),
+            string.end(),
+            [](char x) { return std::isspace(x); }
+        ), string.end());
+        return string;
     }
 
     std::filesystem::path insert_suffix(std::filesystem::path path, const std::string& suffix) {
@@ -398,7 +415,7 @@ namespace {
             fmt::print("Failed to open a key file: \"{}\"\n", key_path);
             return;
         }
-        const auto base64_ = ::remove_line_breaks(*base64);
+        const auto base64_ = ::clean_up_base64_str(*base64);
         const auto compressed = dal::decode_base64(base64_.data(), base64_.size());
         if (!compressed) {
             fmt::print("Failed to decode a key file: \"{}\"\n", key_path);
