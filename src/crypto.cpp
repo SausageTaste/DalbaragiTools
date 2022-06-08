@@ -258,9 +258,7 @@ namespace dal::crypto {
         return true;
     }
 
-    std::pair<IKey, KeyAttrib> parse_key_store(const std::string& data, const char* const key_path) {
-        std::pair<IKey, KeyAttrib> output;
-
+    void parse_key_store(const std::string& data, const char* const key_path, IKey& out_key, KeyAttrib& out_attrib) {
         const auto base64 = ::clean_up_base64_str(data);
         const auto compressed = dal::decode_base64(base64.data(), base64.size());
         if (!compressed)
@@ -270,18 +268,16 @@ namespace dal::crypto {
         if (!key_data)
             throw std::runtime_error{fmt::format("Failed to uncompress a key file: \"{}\"\n", key_path)};
 
-        if (!parse_key_binary("", *key_data, output.first, output.second))
+        if (!parse_key_binary("", *key_data, out_key, out_attrib))
             throw std::runtime_error{fmt::format("Failed to parse a key file: \"{}\"\n", key_path)};
-
-        return output;
     }
 
-    std::pair<IKey, KeyAttrib> load_key(const char* const key_path) {
+    void load_key(const char* const key_path, IKey& out_key, KeyAttrib& out_attrib) {
         const auto base64 = ::read_file<std::string>(key_path);
         if (!base64)
             throw std::runtime_error{fmt::format("Failed to open a key file: \"{}\"\n", key_path)};
 
-        return parse_key_store(base64.value(), key_path);
+        parse_key_store(base64.value(), key_path, out_key, out_attrib);
     }
 
 }

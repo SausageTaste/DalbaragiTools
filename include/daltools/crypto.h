@@ -114,11 +114,25 @@ namespace dal::crypto {
     void save_key(const char* const path, const IKey& key, const KeyAttrib& attrib);
 
 
-    bool parse_key_binary(const std::vector<uint8_t>& data, IKey& key, KeyAttrib& attrib);
+    bool parse_key_binary(const std::vector<uint8_t>& data, IKey& out_key, KeyAttrib& out_attrib);
 
-    std::pair<IKey, KeyAttrib> parse_key_store(const std::string& data, const char* const key_path);
+    void parse_key_store(const std::string& data, const char* const key_path, IKey& out_key, KeyAttrib& out_attrib);
 
-    std::pair<IKey, KeyAttrib> load_key(const char* const key_path);
+    void load_key(const char* const key_path, IKey& out_key, KeyAttrib& out_attrib);
+
+    template <typename _KeyType>
+    std::pair<_KeyType, KeyAttrib> parse_key_store(const std::string& data, const char* const key_path) {
+        std::pair<_KeyType, KeyAttrib> output;
+        parse_key_store(data, key_path, output.first, output.second);
+        return output;
+    }
+
+    template <typename _KeyType>
+    std::pair<_KeyType, KeyAttrib> load_key(const char* const key_path) {
+        std::pair<_KeyType, KeyAttrib> output;
+        load_key(key_path, output.first, output.second);
+        return output;
+    }
 
 
     class PublicKeySignature : private IContextInfo {

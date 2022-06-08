@@ -17,7 +17,7 @@ namespace {
         attrib.m_type = key.key_type();
 
         const auto build1 = dal::crypto::build_key_store(key, attrib);
-        const auto parse1 = dal::crypto::parse_key_store(build1, "");
+        const auto parse1 = dal::crypto::parse_key_store<dal::crypto::IKey>(build1, "");
         const auto build2 = dal::crypto::build_key_store(parse1.first, parse1.second);
 
         if (build1 != build2)

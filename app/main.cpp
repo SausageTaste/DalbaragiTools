@@ -386,7 +386,7 @@ namespace {
         parser.parse_args(argc, argv);
 
         const auto key_path = parser.get<std::string>("--input");
-        const auto [key, attrib] = dal::crypto::load_key(key_path.c_str());
+        const auto [key, attrib] = dal::crypto::load_key<dal::crypto::IKey>(key_path.c_str());
 
         if (parser["--print"] == true) {
             fmt::print("Owner: {}\n", attrib.m_owner_name);
