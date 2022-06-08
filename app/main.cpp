@@ -16,6 +16,7 @@
 #include "daltools/model_exporter.h"
 #include "daltools/konst.h"
 #include "daltools/util.h"
+#include "daltools/compression.h"
 
 
 namespace {
@@ -45,6 +46,14 @@ namespace {
             if (!fs::is_directory(cur_path) && cur_path.u8string().size() > 3)
                 fs::create_directory(cur_path);
         }
+    }
+
+    std::string add_line_breaks(const std::string input, const size_t line_length) {
+        return input;
+    }
+
+    std::string remove_line_breaks(const std::string input) {
+        return input;
     }
 
     std::filesystem::path insert_suffix(std::filesystem::path path, const std::string& suffix) {
@@ -384,9 +393,20 @@ namespace {
         parser.parse_args(argc, argv);
 
         const auto key_path = parser.get<std::string>("--input");
-        const auto key_data = ::read_file<std::vector<uint8_t>>(key_path.c_str());
-        if (!key_data) {
+        const auto base64 = ::read_file<std::string>(key_path.c_str());
+        if (!base64) {
             fmt::print("Failed to open a key file: \"{}\"\n", key_path);
+            return;
+        }
+        const auto base64_ = ::remove_line_breaks(*base64);
+        const auto compressed = dal::decode_base64(base64_.data(), base64_.size());
+        if (!compressed) {
+            fmt::print("Failed to decode a key file: \"{}\"\n", key_path);
+            return;
+        }
+        const auto key_data = dal::decompress_with_header(compressed->data(), compressed->size());
+        if (!key_data) {
+            fmt::print("Failed to uncompress a key file: \"{}\"\n", key_path);
             return;
         }
 
@@ -450,9 +470,12 @@ namespace {
 
             {
                 const auto data = dal::crypto::build_key_store_output("", sk, attrib);
+                const auto compressed = dal::compress_with_header(data.data(), data.size());  // If it fails, it's a bug
+                const auto base64 = ::add_line_breaks(dal::encode_base64(compressed->data(), compressed->size()), 60);
+
                 const auto path = output_prefix + "-sign_sec.dky";
-                std::ofstream file(path, std::ios::binary);
-                file.write(reinterpret_cast<const char*>(data.data()), data.size());
+                std::ofstream file(path);
+                file.write(base64.data(), base64.size());
                 file.close();
 
                 std::cout << "    Secret key: " << path << '\n';
@@ -460,9 +483,12 @@ namespace {
 
             {
                 const auto data = dal::crypto::build_key_store_output("", pk, attrib);
+                const auto compressed = dal::compress_with_header(data.data(), data.size());  // If it fails, it's a bug
+                const auto base64 = ::add_line_breaks(dal::encode_base64(compressed->data(), compressed->size()), 60);
+
                 const auto path = output_prefix + "-sign_pub.dky";
-                std::ofstream file(path, std::ios::binary);
-                file.write(reinterpret_cast<const char*>(data.data()), data.size());
+                std::ofstream file(path);
+                file.write(base64.data(), base64.size());
                 file.close();
 
                 std::cout << "    Public key: " << path << '\n';

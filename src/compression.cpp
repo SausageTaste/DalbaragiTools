@@ -62,7 +62,7 @@ namespace dal {
         }
         else {
             dal::parser::BinaryDataArray output;
-            output.append_int64(result.m_output_size);
+            output.append_int64(src_size);
             output.append_array(buffer.data(), result.m_output_size);
             return output.release();
         }
