@@ -11,6 +11,8 @@
 
 namespace {
 
+    const std::string KEY_MAGIC_NUMBERS{ "DKEY" };
+
     std::once_flag g_flag_init_hydrogen;
 
     void init_hydrogen() {
@@ -27,7 +29,7 @@ namespace {
 // KeyAttrib
 namespace dal::crypto {
 
-    std::vector<uint8_t> KeyAttrib::build_binary() const {
+    std::vector<uint8_t> KeyAttrib::build_binary_v1() const {
         static_assert(std::is_same<std::chrono::system_clock::rep, int64_t>::value);
         dal::parser::BinaryDataArray array;
 
@@ -39,7 +41,7 @@ namespace dal::crypto {
         return array.release();
     }
 
-    bool KeyAttrib::parse_binary(const uint8_t* const arr, const size_t arr_size) {
+    bool KeyAttrib::parse_binary_v1(const uint8_t* const arr, const size_t arr_size) {
         dal::parser::BinaryArrayParser parser{arr, arr_size};
 
         this->m_owner_name = parser.parse_str();
@@ -109,11 +111,14 @@ namespace dal::crypto {
 
 
     std::vector<uint8_t> build_key_store_output(const std::string& passwd, const IKey& key, const KeyAttrib& attrib) {
+        const int32_t HEADER_SIZE = sizeof(char) * ::KEY_MAGIC_NUMBERS.size() + sizeof(int32_t) * 5;
+        const auto attrib_bin = attrib.build_binary_v1();
         dal::parser::BinaryDataArray array;
-        const auto attrib_bin = attrib.build_binary();
 
-        constexpr int HEADER_SIZE = sizeof(int32_t) * 4;
-
+        // Magic numbers
+        for (const auto c : ::KEY_MAGIC_NUMBERS)
+            array.append_char(c);
+        array.append_int32(1);  // Version
         array.append_int32(HEADER_SIZE);
         array.append_int32(attrib_bin.size());
         array.append_int32(HEADER_SIZE + attrib_bin.size());
@@ -129,12 +134,26 @@ namespace dal::crypto {
     bool parse_key_store_output(const std::string& passwd, const std::vector<uint8_t>& data, IKey& key, KeyAttrib& attrib) {
         dal::parser::BinaryArrayParser parser(data);
 
+        std::string magic_numbers;
+        for (const auto c : ::KEY_MAGIC_NUMBERS) {
+            if (c != parser.parse_char())
+                return false;
+        }
+
+        const auto version = parser.parse_int32();
         const auto attrib_loc = parser.parse_int32();
         const auto attrib_size = parser.parse_int32();
         const auto key_loc = parser.parse_int32();
         const auto key_size = parser.parse_int32();
 
-        attrib.parse_binary(data.data() + attrib_loc, attrib_size);
+        switch (version) {
+            case 1:
+                attrib.parse_binary_v1(data.data() + attrib_loc, attrib_size);
+                break;
+            default:
+                return false;
+        }
+
         key.set(data.data() + key_loc, key_size);
         return true;
     }

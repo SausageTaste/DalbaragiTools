@@ -19,9 +19,9 @@ namespace dal::crypto {
         std::string m_description;
 
     public:
-        std::vector<uint8_t> build_binary() const;
+        std::vector<uint8_t> build_binary_v1() const;
 
-        bool parse_binary(const uint8_t* const arr, const size_t arr_size);
+        bool parse_binary_v1(const uint8_t* const arr, const size_t arr_size);
 
     };
 
