@@ -392,6 +392,7 @@ namespace {
             fmt::print("Owner: {}\n", attrib.m_owner_name);
             fmt::print("E-mail: {}\n", attrib.m_email);
             fmt::print("Description: {}\n", attrib.m_description);
+            fmt::print("Key type: {}\n", attrib.get_type_str());
 
             const auto a = std::chrono::system_clock::to_time_t(attrib.m_created_time);
             fmt::print("Created date: {:%F %T %z}\n", fmt::localtime(a));
@@ -440,12 +441,14 @@ namespace {
             attrib.m_description = parser.get<std::string>("--description");
 
             {
+                attrib.m_type = sk.key_type();
                 const auto path = output_prefix + "-sign_sec.dky";
                 dal::crypto::save_key(path.c_str(), sk, attrib);
                 fmt::print("    Secret key: {}\n", path);
             }
 
             {
+                attrib.m_type = pk.key_type();
                 const auto path = output_prefix + "-sign_pub.dky";
                 dal::crypto::save_key(path.c_str(), sk, attrib);
                 fmt::print("    Public key: {}\n", path);

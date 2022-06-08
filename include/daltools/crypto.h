@@ -9,6 +9,16 @@
 
 namespace dal::crypto {
 
+    enum class KeyType{
+        sign_public,
+        sign_private,
+        signature,
+        unknown,
+    };
+
+    const char* get_key_type_str(const KeyType e);
+
+
     class KeyAttrib {
 
     public:
@@ -17,11 +27,16 @@ namespace dal::crypto {
         std::string m_owner_name;
         std::string m_email;
         std::string m_description;
+        KeyType m_type = KeyType::unknown;
 
     public:
         std::vector<uint8_t> build_binary_v1() const;
 
         bool parse_binary_v1(const uint8_t* const arr, const size_t arr_size);
+
+        const char* get_type_str() const {
+            return get_key_type_str(this->m_type);
+        }
 
     };
 
@@ -55,6 +70,12 @@ namespace dal::crypto {
         std::vector<uint8_t> m_key;
 
     public:
+        virtual ~IKey() = default;
+
+        virtual KeyType key_type() const {
+            return KeyType::unknown;
+        }
+
         IKey() = default;
 
         IKey(const uint8_t* const buf, const size_t buf_size);
@@ -110,6 +131,13 @@ namespace dal::crypto {
 
             bool is_valid() const;
 
+            KeyType key_type() const override {
+                if (this->is_valid())
+                    return KeyType::sign_public;
+                else
+                    return KeyType::unknown;
+            }
+
         };
 
 
@@ -120,6 +148,13 @@ namespace dal::crypto {
 
             bool is_valid() const;
 
+            KeyType key_type() const override {
+                if (this->is_valid())
+                    return KeyType::sign_private;
+                else
+                    return KeyType::unknown;
+            }
+
         };
 
 
@@ -129,6 +164,13 @@ namespace dal::crypto {
             using IKey::IKey;
 
             bool is_valid() const;
+
+            KeyType key_type() const override {
+                if (this->is_valid())
+                    return KeyType::signature;
+                else
+                    return KeyType::unknown;
+            }
 
         };
 

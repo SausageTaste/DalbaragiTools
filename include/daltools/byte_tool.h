@@ -147,6 +147,10 @@ namespace dal::parser {
 
         BinaryArrayParser(const std::vector<uint8_t>& vector);
 
+        bool is_emtpy() const {
+            return this->m_size == this->m_pos;
+        }
+
         template <typename T>
         void parse_array(T* const dst_arr, const size_t element_count) {
             if (is_big_endian()) {

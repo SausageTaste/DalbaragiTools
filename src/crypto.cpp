@@ -71,6 +71,16 @@ namespace {
         return string;
     }
 
+    template <typename T>
+    dal::crypto::KeyType convert_to_key_type(const T value) {
+        if (value >= static_cast<T>(dal::crypto::KeyType::unknown))
+            return dal::crypto::KeyType::unknown;
+        else if (value < 0)
+            return dal::crypto::KeyType::unknown;
+        else
+            return static_cast<dal::crypto::KeyType>(value);
+    }
+
 }
 
 
@@ -84,6 +94,7 @@ namespace dal::crypto {
         array.append_str(this->m_owner_name);
         array.append_str(this->m_email);
         array.append_str(this->m_description);
+        array.append_int32(static_cast<int32_t>(this->m_type));
         array.append_int64(this->m_created_time.time_since_epoch().count());
 
         return array.release();
@@ -95,10 +106,11 @@ namespace dal::crypto {
         this->m_owner_name = parser.parse_str();
         this->m_email = parser.parse_str();
         this->m_description = parser.parse_str();
+        this->m_type = ::convert_to_key_type(parser.parse_int32());
 
         const auto a = std::chrono::system_clock::duration{parser.parse_int64()};
         this->m_created_time = std::chrono::system_clock::time_point{a};
-        return true;
+        return parser.is_emtpy();
     }
 
 }
@@ -161,6 +173,24 @@ namespace dal::crypto {
         return output;
     }
 
+}
+
+
+namespace dal::crypto {
+
+    const char* get_key_type_str(const KeyType e) {
+        switch (e) {
+            case KeyType::sign_public:
+                return "sign_public";
+            case KeyType::sign_private:
+                return "sign_private";
+            case KeyType::signature:
+                return "signature";
+            default:
+                return "unknown";
+        }
+    }
+
 
     std::vector<uint8_t> build_key_binary(const IKey& key, const KeyAttrib& attrib) {
         const int32_t HEADER_SIZE = sizeof(char) * ::KEY_MAGIC_NUMBERS.size() + sizeof(int32_t) * 5;
@@ -213,13 +243,16 @@ namespace dal::crypto {
         const auto key_loc = parser.parse_int32();
         const auto key_size = parser.parse_int32();
 
+        bool parse_result = false;
         switch (version) {
             case 1:
-                attrib.parse_binary_v1(data.data() + attrib_loc, attrib_size);
+                parse_result = attrib.parse_binary_v1(data.data() + attrib_loc, attrib_size);
                 break;
             default:
                 return false;
         }
+        if (!parse_result)
+            return false;
 
         key.set(data.data() + key_loc, key_size);
         return true;

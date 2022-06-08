@@ -14,6 +14,7 @@ namespace {
         attrib.m_owner_name = "Sungmin Woo";
         attrib.m_email = "woos8899@gmail.com";
         attrib.m_description = "Test";
+        attrib.m_type = key.key_type();
 
         const auto build1 = dal::crypto::build_key_store(key, attrib);
         const auto parse1 = dal::crypto::parse_key_store(build1, "");
