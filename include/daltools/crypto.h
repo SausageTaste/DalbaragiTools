@@ -67,6 +67,8 @@ namespace dal::crypto {
 
         bool operator==(const IKey& other) const;
 
+        bool operator!=(const IKey& other) const;
+
         auto data() const {
             return this->m_key.data();
         }

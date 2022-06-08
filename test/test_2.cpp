@@ -19,7 +19,12 @@ namespace {
         const auto parse1 = dal::crypto::parse_key_store(build1, "");
         const auto build2 = dal::crypto::build_key_store(parse1.first, parse1.second);
 
-        return build1 == build2;
+        if (build1 != build2)
+            return false;
+        if (parse1.first != key)
+            return false;
+
+        return true;
     }
 
 }

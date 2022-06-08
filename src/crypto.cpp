@@ -126,6 +126,10 @@ namespace dal::crypto {
         return hydro_equal(this->data(), other.data(), this->size());
     }
 
+    bool IKey::operator!=(const IKey& other) const {
+        return !IKey::operator==(other);
+    }
+
     void IKey::set(const uint8_t* const buf, const size_t buf_size) {
         this->m_key.clear();
         this->m_key.assign(buf, buf + buf_size);
