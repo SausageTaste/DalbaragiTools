@@ -205,6 +205,50 @@ namespace {
 }
 
 
+// For work_key
+namespace {
+
+    auto load_key(const char* const key_path) {
+        const auto base64 = ::read_file<std::string>(key_path);
+        if (!base64)
+            throw std::runtime_error{fmt::format("Failed to open a key file: \"{}\"\n", key_path)};
+
+        const auto base64_ = ::clean_up_base64_str(*base64);
+        const auto compressed = dal::decode_base64(base64_.data(), base64_.size());
+        if (!compressed)
+            throw std::runtime_error{fmt::format("Failed to decode a key file: \"{}\"\n", key_path)};
+
+        const auto key_data = dal::decompress_with_header(compressed->data(), compressed->size());
+        if (!key_data)
+            throw std::runtime_error{fmt::format("Failed to uncompress a key file: \"{}\"\n", key_path)};
+
+        dal::crypto::IKey key;
+        dal::crypto::KeyAttrib attrib;
+        if (!dal::crypto::parse_key_store_output("", *key_data, key, attrib))
+            throw std::runtime_error{fmt::format("Failed to parse a key file: \"{}\"\n", key_path)};
+
+        return std::make_pair(key, attrib);
+    }
+
+}
+
+
+namespace {
+
+    void save_key(const char* const path, const dal::crypto::IKey& key, const dal::crypto::KeyAttrib& attrib) {
+        const auto data = dal::crypto::build_key_store_output("", key, attrib);
+        const auto compressed = dal::compress_with_header(data.data(), data.size());  // If it fails, it's a bug
+        const auto base64 = ::add_line_breaks(dal::encode_base64(compressed->data(), compressed->size()), 40);
+
+        std::ofstream file(path);
+        file.write(base64.data(), base64.size());
+        file.close();
+    }
+
+}
+
+
+// Operation main functions
 namespace {
 
     void work_model_mod(int argc, char* argv[]) {
@@ -394,7 +438,7 @@ namespace {
     void work_key(int argc, char* argv[]) {
         dal::Timer timer;
         argparse::ArgumentParser parser{ "daltools" };
-
+        {
         parser.add_argument("operation")
             .help("Operation name");
 
@@ -406,33 +450,11 @@ namespace {
         parser.add_argument("-i", "--input")
             .help("Key path")
             .required();
-
+        }
         parser.parse_args(argc, argv);
 
         const auto key_path = parser.get<std::string>("--input");
-        const auto base64 = ::read_file<std::string>(key_path.c_str());
-        if (!base64) {
-            fmt::print("Failed to open a key file: \"{}\"\n", key_path);
-            return;
-        }
-        const auto base64_ = ::clean_up_base64_str(*base64);
-        const auto compressed = dal::decode_base64(base64_.data(), base64_.size());
-        if (!compressed) {
-            fmt::print("Failed to decode a key file: \"{}\"\n", key_path);
-            return;
-        }
-        const auto key_data = dal::decompress_with_header(compressed->data(), compressed->size());
-        if (!key_data) {
-            fmt::print("Failed to uncompress a key file: \"{}\"\n", key_path);
-            return;
-        }
-
-        dal::crypto::IKey key;
-        dal::crypto::KeyAttrib attrib;
-        if (!dal::crypto::parse_key_store_output("", *key_data, key, attrib)) {
-            fmt::print("Failed to parse a key file: \"{}\"\n", key_path);
-            return;
-        }
+        const auto [key, attrib] = ::load_key(key_path.c_str());
 
         if (parser["--print"] == true) {
             fmt::print("Owner: {}\n", attrib.m_owner_name);
@@ -448,7 +470,7 @@ namespace {
     void work_keygen(int argc, char* argv[]) {
         dal::Timer timer;
         argparse::ArgumentParser parser{ "daltools" };
-
+        {
         parser.add_argument("operation")
             .help("Operation name");
 
@@ -468,7 +490,7 @@ namespace {
             .required();
 
         parser.add_argument("--description");
-
+        }
         parser.parse_args(argc, argv);
 
         const auto output_prefix = parser.get<std::string>("--output");
@@ -486,32 +508,18 @@ namespace {
             attrib.m_description = parser.get<std::string>("--description");
 
             {
-                const auto data = dal::crypto::build_key_store_output("", sk, attrib);
-                const auto compressed = dal::compress_with_header(data.data(), data.size());  // If it fails, it's a bug
-                const auto base64 = ::add_line_breaks(dal::encode_base64(compressed->data(), compressed->size()), 40);
-
                 const auto path = output_prefix + "-sign_sec.dky";
-                std::ofstream file(path);
-                file.write(base64.data(), base64.size());
-                file.close();
-
-                std::cout << "    Secret key: " << path << '\n';
+                ::save_key(path.c_str(), sk, attrib);
+                fmt::print("    Secret key: {}\n", path);
             }
 
             {
-                const auto data = dal::crypto::build_key_store_output("", pk, attrib);
-                const auto compressed = dal::compress_with_header(data.data(), data.size());  // If it fails, it's a bug
-                const auto base64 = ::add_line_breaks(dal::encode_base64(compressed->data(), compressed->size()), 40);
-
                 const auto path = output_prefix + "-sign_pub.dky";
-                std::ofstream file(path);
-                file.write(base64.data(), base64.size());
-                file.close();
-
-                std::cout << "    Public key: " << path << '\n';
+                ::save_key(path.c_str(), sk, attrib);
+                fmt::print("    Public key: {}\n", path);
             }
 
-            std::cout << "    took " << timer.get_elapsed() << " seconds\n";
+            fmt::print("    took {} seconds\n", timer.get_elapsed());
         }
     }
 
