@@ -1,12 +1,15 @@
 #include "daltools/crypto.h"
 
 #include <mutex>
+#include <fstream>
 #include <cassert>
 #include <stdexcept>
 
 #include "hydrogen.h"
+#include <fmt/format.h>
 
 #include "daltools/byte_tool.h"
+#include "daltools/compression.h"
 
 
 namespace {
@@ -21,6 +24,51 @@ namespace {
                 throw std::runtime_error{ "Failed to initizate libhydrogen" };
             }
         });
+    }
+
+    template <typename T>
+    std::optional<T> read_file(const char* const path) {
+        using namespace std::string_literals;
+
+        std::ifstream file{ path, std::ios::ate | std::ios::binary | std::ios::in };
+
+        if (!file.is_open())
+            return std::nullopt;
+
+        const auto file_size = static_cast<size_t>(file.tellg());
+        T buffer;
+        buffer.resize(file_size);
+
+        file.seekg(0);
+        file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+        file.close();
+
+        return buffer;
+    }
+
+    std::string add_line_breaks(const std::string input, const size_t line_length) {
+        std::string output;
+        auto header = input.data();
+        auto end = header + input.size();
+
+        while (header < end) {
+            const auto distance = end - header;
+            const auto line_size = std::min<long long>(line_length, distance);
+            output.append(header, line_size);
+            output.push_back('\n');
+            header += line_size;
+        }
+
+        return output;
+    }
+
+    std::string clean_up_base64_str(std::string string) {
+        string.erase(std::remove_if(
+            string.begin(),
+            string.end(),
+            [](char x) { return std::isspace(x); }
+        ), string.end());
+        return string;
     }
 
 }
@@ -110,7 +158,7 @@ namespace dal::crypto {
     }
 
 
-    std::vector<uint8_t> build_key_store_output(const std::string& passwd, const IKey& key, const KeyAttrib& attrib) {
+    std::vector<uint8_t> build_key_binary(const IKey& key, const KeyAttrib& attrib) {
         const int32_t HEADER_SIZE = sizeof(char) * ::KEY_MAGIC_NUMBERS.size() + sizeof(int32_t) * 5;
         const auto attrib_bin = attrib.build_binary_v1();
         dal::parser::BinaryDataArray array;
@@ -131,7 +179,22 @@ namespace dal::crypto {
         return array.release();
     }
 
-    bool parse_key_store_output(const std::string& passwd, const std::vector<uint8_t>& data, IKey& key, KeyAttrib& attrib) {
+    std::string build_key_store(const IKey& key, const KeyAttrib& attrib) {
+        const auto data = build_key_binary(key, attrib);
+        const auto compressed = dal::compress_with_header(data.data(), data.size());  // If it fails, it's a bug
+        const auto base64 = dal::encode_base64(compressed->data(), compressed->size());
+        return ::add_line_breaks(base64, 40);
+    }
+
+    void save_key(const char* const path, const IKey& key, const KeyAttrib& attrib) {
+        const auto data = build_key_store(key, attrib);
+        std::ofstream file(path);
+        file.write(data.data(), data.size());
+        file.close();
+    }
+
+
+    bool parse_key_binary(const std::string& passwd, const std::vector<uint8_t>& data, IKey& key, KeyAttrib& attrib) {
         dal::parser::BinaryArrayParser parser(data);
 
         std::string magic_numbers;
@@ -156,6 +219,32 @@ namespace dal::crypto {
 
         key.set(data.data() + key_loc, key_size);
         return true;
+    }
+
+    std::pair<IKey, KeyAttrib> parse_key_store(const std::string& data, const char* const key_path) {
+        std::pair<IKey, KeyAttrib> output;
+
+        const auto base64 = ::clean_up_base64_str(data);
+        const auto compressed = dal::decode_base64(base64.data(), base64.size());
+        if (!compressed)
+            throw std::runtime_error{fmt::format("Failed to decode a key file: \"{}\"\n", key_path)};
+
+        const auto key_data = dal::decompress_with_header(compressed->data(), compressed->size());
+        if (!key_data)
+            throw std::runtime_error{fmt::format("Failed to uncompress a key file: \"{}\"\n", key_path)};
+
+        if (!parse_key_binary("", *key_data, output.first, output.second))
+            throw std::runtime_error{fmt::format("Failed to parse a key file: \"{}\"\n", key_path)};
+
+        return output;
+    }
+
+    std::pair<IKey, KeyAttrib> load_key(const char* const key_path) {
+        const auto base64 = ::read_file<std::string>(key_path);
+        if (!base64)
+            throw std::runtime_error{fmt::format("Failed to open a key file: \"{}\"\n", key_path)};
+
+        return parse_key_store(base64.value(), key_path);
     }
 
 }

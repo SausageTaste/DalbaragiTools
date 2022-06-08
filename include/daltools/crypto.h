@@ -84,9 +84,18 @@ namespace dal::crypto {
     };
 
 
-    std::vector<uint8_t> build_key_store_output(const std::string& passwd, const IKey& key, const KeyAttrib& attrib);
+    std::vector<uint8_t> build_key_binary(const IKey& key, const KeyAttrib& attrib);
 
-    bool parse_key_store_output(const std::string& passwd, const std::vector<uint8_t>& data, IKey& key, KeyAttrib& attrib);
+    std::string build_key_store(const IKey& key, const KeyAttrib& attrib);
+
+    void save_key(const char* const path, const IKey& key, const KeyAttrib& attrib);
+
+
+    bool parse_key_binary(const std::vector<uint8_t>& data, IKey& key, KeyAttrib& attrib);
+
+    std::pair<IKey, KeyAttrib> parse_key_store(const std::string& data, const char* const key_path);
+
+    std::pair<IKey, KeyAttrib> load_key(const char* const key_path);
 
 
     class PublicKeySignature : private IContextInfo {
