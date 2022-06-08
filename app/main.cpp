@@ -488,7 +488,7 @@ namespace {
             {
                 const auto data = dal::crypto::build_key_store_output("", sk, attrib);
                 const auto compressed = dal::compress_with_header(data.data(), data.size());  // If it fails, it's a bug
-                const auto base64 = ::add_line_breaks(dal::encode_base64(compressed->data(), compressed->size()), 60);
+                const auto base64 = ::add_line_breaks(dal::encode_base64(compressed->data(), compressed->size()), 40);
 
                 const auto path = output_prefix + "-sign_sec.dky";
                 std::ofstream file(path);
@@ -501,7 +501,7 @@ namespace {
             {
                 const auto data = dal::crypto::build_key_store_output("", pk, attrib);
                 const auto compressed = dal::compress_with_header(data.data(), data.size());  // If it fails, it's a bug
-                const auto base64 = ::add_line_breaks(dal::encode_base64(compressed->data(), compressed->size()), 60);
+                const auto base64 = ::add_line_breaks(dal::encode_base64(compressed->data(), compressed->size()), 40);
 
                 const auto path = output_prefix + "-sign_pub.dky";
                 std::ofstream file(path);
