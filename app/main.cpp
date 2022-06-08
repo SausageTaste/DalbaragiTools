@@ -96,13 +96,13 @@ namespace {
 
 
     template <typename T>
-    T read_file(const char* const path) {
+    std::optional<T> read_file(const char* const path) {
         using namespace std::string_literals;
 
         std::ifstream file{ path, std::ios::ate | std::ios::binary | std::ios::in };
 
         if (!file.is_open())
-            throw std::runtime_error("failed to open file: "s + path);
+            return std::nullopt;
 
         const auto file_size = static_cast<size_t>(file.tellg());
         T buffer;
@@ -117,7 +117,7 @@ namespace {
 
     dal::parser::Model load_model(const char* const path) {
         const auto model_data = ::read_file<std::vector<uint8_t>>(path);
-        return dal::parser::parse_dmd(model_data.data(), model_data.size()).value();
+        return dal::parser::parse_dmd(model_data->data(), model_data->size()).value();
     }
 
     void export_model(
@@ -349,7 +349,7 @@ namespace {
 
                 if (key_path.has_value()) {
                     const auto key_hex = ::read_file<std::string>(key_path->c_str());
-                    const dal::crypto::PublicKeySignature::SecretKey sk{ key_hex };
+                    const dal::crypto::PublicKeySignature::SecretKey sk{ *key_hex };
                     if (!sk.is_valid())
                         throw std::runtime_error{ "Input secret key is not valid" };
 
@@ -385,21 +385,26 @@ namespace {
 
         const auto key_path = parser.get<std::string>("--input");
         const auto key_data = ::read_file<std::vector<uint8_t>>(key_path.c_str());
+        if (!key_data) {
+            fmt::print("Failed to open a key file: \"{}\"\n", key_path);
+            return;
+        }
+
         dal::crypto::IKey key;
         dal::crypto::KeyAttrib attrib;
-        if (!dal::crypto::parse_key_store_output("", key_data, key, attrib)) {
-            std::cout << "Failed to open a key: " << key_path << '\n';
+        if (!dal::crypto::parse_key_store_output("", *key_data, key, attrib)) {
+            fmt::print("Failed to parse a key file: \"{}\"\n", key_path);
             return;
         }
 
         if (parser["--print"] == true) {
-            std::cout << "===================================\n";
             fmt::print("Owner: {}\n", attrib.m_owner_name);
             fmt::print("E-mail: {}\n", attrib.m_email);
             fmt::print("Description: {}\n", attrib.m_description);
 
             const auto a = std::chrono::system_clock::to_time_t(attrib.m_created_time);
             fmt::print("Created date: {:%F %T %z}\n", fmt::localtime(a));
+            std::cout << "===================================\n";
         }
     }
 
@@ -483,7 +488,7 @@ namespace {
         for (const auto& src_path : files) {
             const auto file_content = ::read_file<std::vector<uint8_t>>(src_path.c_str());
             std::vector<dal::parser::SceneIntermediate> scenes;
-            const auto result = dal::parser::parse_json(scenes, file_content.data(), file_content.size());
+            const auto result = dal::parser::parse_json(scenes, file_content->data(), file_content->size());
 
             for (auto& scene : scenes) {
                 dal::parser::flip_uv_vertically(scene);
