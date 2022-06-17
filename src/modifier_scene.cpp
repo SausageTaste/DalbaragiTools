@@ -433,6 +433,7 @@ namespace {
     scene_t::Skeleton make_new_skeleton(const scene_t::Skeleton& src_skeleton, const ::JointParentNameManager& jname_manager) {
         scene_t::Skeleton output;
         output.m_name = src_skeleton.m_name;
+        output.m_root_transform = src_skeleton.m_root_transform;
         const auto survivor_joints = jname_manager.make_names_set();
 
         for (auto& src_joint : src_skeleton.m_joints) {
