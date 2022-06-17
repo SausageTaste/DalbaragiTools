@@ -87,6 +87,21 @@ namespace {
 // KeyAttrib
 namespace dal::crypto {
 
+     bool KeyAttrib::operator!=(const KeyAttrib& rhs) const {
+        if (this->m_created_time != rhs.m_created_time)
+            return true;
+        if (this->m_owner_name != rhs.m_owner_name)
+            return true;
+        if (this->m_email != rhs.m_email)
+            return true;
+        if (this->m_description != rhs.m_description)
+            return true;
+        if (this->m_type != rhs.m_type)
+            return true;
+
+        return false;
+     }
+
     std::vector<uint8_t> KeyAttrib::build_binary_v1() const {
         static_assert(std::is_same<std::chrono::system_clock::rep, int64_t>::value);
         dal::parser::BinaryDataArray array;

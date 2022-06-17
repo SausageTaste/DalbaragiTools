@@ -1,19 +1,23 @@
-#include <cstring>
+#include <string>
 #include <iostream>
 
 #include <daltools/crypto.h>
 
 
-const char* const TEST_MSG = "This is cool";
-
-
 namespace {
 
-    bool test_key_export_import(const dal::crypto::IKey& key) {
+    const std::string TEST_MSG = "This is a test message!";
+
+
+    auto create_attrib() noexcept {
         dal::crypto::KeyAttrib attrib;
         attrib.m_owner_name = "Sungmin Woo";
         attrib.m_email = "woos8899@gmail.com";
         attrib.m_description = "Test";
+        return attrib;
+    }
+
+    bool test_key_export_import(const dal::crypto::IKey& key, dal::crypto::KeyAttrib attrib) {
         attrib.m_type = key.key_type();
 
         const auto build1 = dal::crypto::build_key_store(key, attrib);
@@ -24,6 +28,8 @@ namespace {
             return false;
         if (parse1.first != key)
             return false;
+        if (parse1.second != attrib)
+            return false;
 
         return true;
     }
@@ -32,24 +38,24 @@ namespace {
 
 
 int main() {
-    std::cout << "Test 2" << std::endl;
+    const auto attrib = create_attrib();
 
     dal::crypto::PublicKeySignature sign_mgr{"test"};
     const auto [public_key, secret_key] = sign_mgr.gen_keys();
-    const auto [public_key2, secret_key2] = sign_mgr.gen_keys();
 
-    if (!::test_key_export_import(public_key))
+    if (!::test_key_export_import(public_key, attrib))
         return 1;
-    if (!::test_key_export_import(secret_key))
+    if (!::test_key_export_import(secret_key, attrib))
         return 2;
 
-    const auto signature = sign_mgr.create_signature(TEST_MSG, std::strlen(TEST_MSG), secret_key);
-    if (!signature.has_value())
+    const auto signature = sign_mgr.create_signature(TEST_MSG.data(), TEST_MSG.size(), secret_key);
+    if (!signature)
         return 3;
-
-    if (true != sign_mgr.verify(TEST_MSG, std::strlen(TEST_MSG), public_key, signature.value()))
+    if (!sign_mgr.verify(TEST_MSG.data(), TEST_MSG.size(), public_key, *signature))
         return 4;
-    if (false != sign_mgr.verify(TEST_MSG, std::strlen(TEST_MSG), public_key2, signature.value()))
+
+    const auto [public_key2, secret_key2] = sign_mgr.gen_keys();
+    if (sign_mgr.verify(TEST_MSG.data(), TEST_MSG.size(), public_key2, *signature))
         return 5;
 
     return 0;

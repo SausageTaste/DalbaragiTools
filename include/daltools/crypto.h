@@ -30,6 +30,8 @@ namespace dal::crypto {
         KeyType m_type = KeyType::unknown;
 
     public:
+        bool operator!=(const KeyAttrib& rhs) const;
+
         std::vector<uint8_t> build_binary_v1() const;
 
         bool parse_binary_v1(const uint8_t* const arr, const size_t arr_size);
