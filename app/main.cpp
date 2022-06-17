@@ -450,7 +450,7 @@ namespace {
             {
                 attrib.m_type = pk.key_type();
                 const auto path = output_prefix + "-sign_pub.dky";
-                dal::crypto::save_key(path.c_str(), sk, attrib);
+                dal::crypto::save_key(path.c_str(), pk, attrib);
                 fmt::print("    Public key: {}\n", path);
             }
 
@@ -507,6 +507,44 @@ namespace {
         }
     }
 
+    void work_verify(int argc, char* argv[]) {
+        argparse::ArgumentParser parser{ "daltools" };
+
+        parser.add_argument("operation")
+            .help("Operation name");
+
+        parser.add_argument("-k", "--key")
+            .help("Path to a public key file");
+
+        parser.add_argument("files")
+            .help("Input model file paths")
+            .remaining();
+
+        parser.parse_args(argc, argv);
+
+        const auto files = parser.get<std::vector<std::string>>("files");
+
+        for (const auto& src_path : files) {
+            const auto file_content = ::read_file<std::vector<uint8_t>>(src_path.c_str());
+
+            const auto key_path = parser.get<std::string>("--key");
+            const auto [key, attrib] = dal::crypto::load_key<dal::crypto::PublicKeySignature::PublicKey>(key_path.c_str());
+
+            dal::parser::Model model;
+            dal::crypto::PublicKeySignature sign_mgr{ dal::crypto::CONTEXT_PARSER };
+            const auto result = parse_verify_dmd(model, file_content->data(), file_content->size(), key, sign_mgr);
+
+            if (result != dal::parser::ModelParseResult::invalid_signature) {
+                fmt::print("\"{}\" has a valid signature by\n", src_path);
+                fmt::print("    Owner: {}\n", attrib.m_owner_name);
+                fmt::print("    E-mail: {}\n", attrib.m_email);
+            }
+            else {
+                fmt::print("\"{}\" has an invalid signature!!\n", src_path);
+            }
+        }
+    }
+
 }
 
 
@@ -524,6 +562,8 @@ int main(int argc, char* argv[]) try {
         ::work_keygen(argc, argv);
     else if ("compile"s == argv[1])
         ::work_compile(argc, argv);
+    else if ("verify"s == argv[1])
+        ::work_verify(argc, argv);
     else
         throw std::runtime_error{ "unkown operation ("s + argv[1] + "). It must be one of { model, keygen }" };
 }
