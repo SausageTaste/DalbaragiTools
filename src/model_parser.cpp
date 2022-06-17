@@ -70,7 +70,7 @@ namespace {
 namespace {
 
     const uint8_t* parse_skeleton(const uint8_t* header, const uint8_t* const end, dalp::Skeleton& output) {
-        //header = ::parse_mat4(header, end, output.m_root_transform);
+        header = ::parse_mat4(header, end, output.m_root_transform);
 
         const auto joint_count = dal::parser::make_int32(header); header += 4;
         output.m_joints.resize(joint_count);

@@ -79,7 +79,7 @@ namespace {
     ::BinaryBuildBuffer build_bin_skeleton(const dalp::Skeleton& skeleton) {
         ::BinaryBuildBuffer output;
 
-        //output.append_mat4(skeleton.m_root_transform);
+        output.append_mat4(skeleton.m_root_transform);
         output.append_int32(skeleton.m_joints.size());
 
         for (size_t i = 0; i < skeleton.m_joints.size(); ++i) {
