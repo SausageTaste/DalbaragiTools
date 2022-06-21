@@ -14,7 +14,7 @@
 
 namespace {
 
-    const std::string KEY_MAGIC_NUMBERS{ "DKEY" };
+    const char* const KEY_MAGIC_NUMBERS = "DKEY";
 
     std::once_flag g_flag_init_hydrogen;
 
@@ -208,13 +208,16 @@ namespace dal::crypto {
 
 
     std::vector<uint8_t> build_key_binary(const IKey& key, const KeyAttrib& attrib) {
-        const int32_t HEADER_SIZE = sizeof(char) * ::KEY_MAGIC_NUMBERS.size() + sizeof(int32_t) * 5;
+        const auto magic_num_len = std::strlen(::KEY_MAGIC_NUMBERS);
+        const int32_t HEADER_SIZE = sizeof(char) * magic_num_len + sizeof(int32_t) * 5;
         const auto attrib_bin = attrib.build_binary_v1();
         dal::parser::BinaryDataArray array;
 
         // Magic numbers
-        for (const auto c : ::KEY_MAGIC_NUMBERS)
-            array.append_char(c);
+        for (int i = 0; i < magic_num_len; ++i) {
+            array.append_char(::KEY_MAGIC_NUMBERS[i]);
+        }
+
         array.append_int32(1);  // Version
         array.append_int32(HEADER_SIZE);
         array.append_int32(attrib_bin.size());
@@ -246,9 +249,9 @@ namespace dal::crypto {
     bool parse_key_binary(const std::string& passwd, const std::vector<uint8_t>& data, IKey& key, KeyAttrib& attrib) {
         dal::parser::BinaryArrayParser parser(data);
 
-        std::string magic_numbers;
-        for (const auto c : ::KEY_MAGIC_NUMBERS) {
-            if (c != parser.parse_char())
+        const auto magic_num_len = std::strlen(::KEY_MAGIC_NUMBERS);
+        for (int i = 0; i < magic_num_len; ++i) {
+            if (::KEY_MAGIC_NUMBERS[i] != parser.parse_char())
                 return false;
         }
 
