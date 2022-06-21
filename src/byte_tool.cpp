@@ -95,3 +95,124 @@ namespace dal::parser {
     }
 
 }
+
+
+// BinaryDataArray
+namespace dal::parser {
+
+    BinaryDataArray& BinaryDataArray::operator+=(const BinaryDataArray& other) {
+        this->m_vector.insert(this->m_vector.end(), other.m_vector.begin(), other.m_vector.end());
+        return *this;
+    }
+
+    const uint8_t* BinaryDataArray::data() const {
+        return this->m_vector.data();
+    }
+
+    size_t BinaryDataArray::size() const {
+        return this->m_vector.size();
+    }
+
+    void BinaryDataArray::reserve(const size_t reserve_size) {
+        this->m_vector.reserve(reserve_size);
+    }
+
+    void BinaryDataArray::push_back(const uint8_t v) {
+        this->m_vector.push_back(v);
+    }
+
+    void BinaryDataArray::append_bool8(const bool v) {
+        this->push_back(v ? 1 : 0);
+    }
+
+    void BinaryDataArray::append_int32(const int32_t v) {
+        this->append_array(&v, 1);
+    }
+
+    void BinaryDataArray::append_int32_array(const int32_t* const arr, const size_t arr_size) {
+        this->append_array(arr, arr_size);
+    }
+
+    void BinaryDataArray::append_int64(const int64_t v) {
+        this->append_array(&v, 1);
+    }
+
+    void BinaryDataArray::append_float32(const float v) {
+        this->append_array(&v, 1);
+    }
+
+    void BinaryDataArray::append_float32_array(const float* const arr, const size_t arr_size) {
+        this->append_array(arr, arr_size);
+    }
+
+    void BinaryDataArray::append_char(const char c) {
+        this->push_back(c);
+    }
+
+    void BinaryDataArray::append_null_terminated_str(const char* const str, const size_t str_size) {
+        this->append_array(str, str_size);
+        this->push_back(0);
+    }
+
+    void BinaryDataArray::append_str(const std::string& str) {
+        this->append_null_terminated_str(str.data(), str.size());
+    }
+
+}
+
+
+// BinaryArrayParser
+namespace dal::parser {
+
+    BinaryArrayParser::BinaryArrayParser(const uint8_t* const array, const size_t size)
+        : m_array(array)
+        , m_size(size)
+        , m_pos(0)
+    {
+
+    }
+
+    BinaryArrayParser::BinaryArrayParser(const std::vector<uint8_t>& vector)
+        : m_array(vector.data())
+        , m_size(vector.size())
+        , m_pos(0)
+    {
+
+    }
+
+    bool BinaryArrayParser::parse_bool8() {
+        this->m_pos += 1;
+        return this->m_array[this->m_pos - 1] != 0 ? true : false;
+    }
+
+    int32_t BinaryArrayParser::parse_int32() {
+        return this->parse_one<int32_t>();
+    }
+
+    void BinaryArrayParser::parse_int32_array(int32_t* const arr, const size_t arr_size) {
+        this->parse_array(arr, arr_size);
+    }
+
+    int64_t BinaryArrayParser::parse_int64() {
+        return this->parse_one<int64_t>();
+    }
+
+    float BinaryArrayParser::parse_float32() {
+        return this->parse_one<float>();
+    }
+
+    void BinaryArrayParser::parse_float32_array(float* const arr, const size_t arr_size) {
+        this->parse_array(arr, arr_size);
+    }
+
+    char BinaryArrayParser::parse_char() {
+        return this->parse_one<char>();
+    }
+
+    std::string BinaryArrayParser::parse_str() {
+        const std::string output = reinterpret_cast<const char*>(this->m_array + this->m_pos);
+        this->m_pos += output.size() + 1;
+        return output;
+    }
+
+}

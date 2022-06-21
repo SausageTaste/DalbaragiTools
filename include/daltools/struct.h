@@ -175,6 +175,7 @@ namespace dal::parser {
 
         public:
             std::string m_name;
+            Transform m_root_transform;
             std::vector<SkelJoint> m_joints;
 
         public:
@@ -388,6 +389,7 @@ namespace dal::parser {
 
 
     struct Skeleton {
+        glm::mat4 m_root_transform{1};
         std::vector<SkelJoint> m_joints;
 
         // Returns -1 if not found

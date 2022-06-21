@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <string>
 #include <vector>
 #include <utility>
@@ -7,6 +8,40 @@
 
 
 namespace dal::crypto {
+
+    enum class KeyType{
+        sign_public,
+        sign_private,
+        signature,
+        unknown,
+    };
+
+    const char* get_key_type_str(const KeyType e);
+
+
+    class KeyAttrib {
+
+    public:
+        // Use system clock since it's epoch is (de facto) defined to be consistent as Unix time
+        std::chrono::system_clock::time_point m_created_time = std::chrono::system_clock::now();
+        std::string m_owner_name;
+        std::string m_email;
+        std::string m_description;
+        KeyType m_type = KeyType::unknown;
+
+    public:
+        bool operator!=(const KeyAttrib& rhs) const;
+
+        std::vector<uint8_t> build_binary_v1() const;
+
+        bool parse_binary_v1(const uint8_t* const arr, const size_t arr_size);
+
+        const char* get_type_str() const {
+            return get_key_type_str(this->m_type);
+        }
+
+    };
+
 
     class IContextInfo {
 
@@ -37,6 +72,12 @@ namespace dal::crypto {
         std::vector<uint8_t> m_key;
 
     public:
+        virtual ~IKey() = default;
+
+        virtual KeyType key_type() const {
+            return KeyType::unknown;
+        }
+
         IKey() = default;
 
         IKey(const uint8_t* const buf, const size_t buf_size);
@@ -48,6 +89,8 @@ namespace dal::crypto {
         IKey(const std::string& hex);
 
         bool operator==(const IKey& other) const;
+
+        bool operator!=(const IKey& other) const;
 
         auto data() const {
             return this->m_key.data();
@@ -66,6 +109,34 @@ namespace dal::crypto {
     };
 
 
+    std::vector<uint8_t> build_key_binary(const IKey& key, const KeyAttrib& attrib);
+
+    std::string build_key_store(const IKey& key, const KeyAttrib& attrib);
+
+    void save_key(const char* const path, const IKey& key, const KeyAttrib& attrib);
+
+
+    bool parse_key_binary(const std::vector<uint8_t>& data, IKey& out_key, KeyAttrib& out_attrib);
+
+    void parse_key_store(const std::string& data, const char* const key_path, IKey& out_key, KeyAttrib& out_attrib);
+
+    void load_key(const char* const key_path, IKey& out_key, KeyAttrib& out_attrib);
+
+    template <typename _KeyType>
+    std::pair<_KeyType, KeyAttrib> parse_key_store(const std::string& data, const char* const key_path) {
+        std::pair<_KeyType, KeyAttrib> output;
+        parse_key_store(data, key_path, output.first, output.second);
+        return output;
+    }
+
+    template <typename _KeyType>
+    std::pair<_KeyType, KeyAttrib> load_key(const char* const key_path) {
+        std::pair<_KeyType, KeyAttrib> output;
+        load_key(key_path, output.first, output.second);
+        return output;
+    }
+
+
     class PublicKeySignature : private IContextInfo {
 
     public:
@@ -75,6 +146,13 @@ namespace dal::crypto {
             using IKey::IKey;
 
             bool is_valid() const;
+
+            KeyType key_type() const override {
+                if (this->is_valid())
+                    return KeyType::sign_public;
+                else
+                    return KeyType::unknown;
+            }
 
         };
 
@@ -86,6 +164,13 @@ namespace dal::crypto {
 
             bool is_valid() const;
 
+            KeyType key_type() const override {
+                if (this->is_valid())
+                    return KeyType::sign_private;
+                else
+                    return KeyType::unknown;
+            }
+
         };
 
 
@@ -95,6 +180,13 @@ namespace dal::crypto {
             using IKey::IKey;
 
             bool is_valid() const;
+
+            KeyType key_type() const override {
+                if (this->is_valid())
+                    return KeyType::signature;
+                else
+                    return KeyType::unknown;
+            }
 
         };
 

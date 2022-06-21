@@ -211,6 +211,7 @@ namespace {
 
     void parse_skeleton(const json_t& json_data, scene_t::Skeleton& output) {
         output.m_name = json_data["name"];
+        ::parse_transform(json_data["transform"], output.m_root_transform);
 
         for (auto& x : json_data["joints"]) {
             ::parse_skeleton_joint(x, output.m_joints.emplace_back());
