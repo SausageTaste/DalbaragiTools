@@ -103,6 +103,11 @@ namespace dal::parser {
         void push_back(const uint8_t v);
 
         template <typename T>
+        void insert_back(T begin, T end) {
+            this->m_vector.insert(this->m_vector.end(), begin, end);
+        }
+
+        template <typename T>
         void append_array(const T* const array, const size_t size) {
             if (is_big_endian()) {
 
