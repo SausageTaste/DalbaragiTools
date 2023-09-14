@@ -51,7 +51,7 @@ namespace dal::parser {
             return !Transform::operator==(other);
         }
 
-        glm::mat4 Transform::make_mat4() const {
+        glm::mat4 make_mat4() const {
             const auto identity = glm::mat4{ 1 };
             const auto scale_mat = glm::scale(identity, glm::vec3{ this->m_scale, this->m_scale , this->m_scale });
             const auto translate_mat = glm::translate(identity, this->m_pos);
