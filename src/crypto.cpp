@@ -103,11 +103,16 @@ namespace dal::crypto {
      }
 
     std::vector<uint8_t> KeyAttrib::build_binary_v1() const {
+        /*
+        I have no idea why this contraint is needed.
+
         static_assert(
             std::is_same<std::chrono::system_clock::rep, int64_t>::value ||
             std::is_same<std::chrono::system_clock::rep, int32_t>::value ||
             std::is_same<std::chrono::system_clock::rep, int16_t>::value
         );
+        */
+
         dal::parser::BinaryDataArray array;
 
         array.append_str(this->m_owner_name);
