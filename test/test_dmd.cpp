@@ -88,52 +88,52 @@ namespace {
     }
 
     void compare_models(const dal::parser::Model& one, const dal::parser::Model& two) {
-        CHECK_TRUTH(one.m_aabb.m_max == two.m_aabb.m_max);
-        CHECK_TRUTH(one.m_aabb.m_min == two.m_aabb.m_min);
+        CHECK_TRUTH(one.aabb_.max_ == two.aabb_.max_);
+        CHECK_TRUTH(one.aabb_.min_ == two.aabb_.min_);
 
-        CHECK_TRUTH(one.m_skeleton.m_joints.size() == two.m_skeleton.m_joints.size());
-        for (size_t i = 0; i < std::min(one.m_skeleton.m_joints.size(), two.m_skeleton.m_joints.size()); ++i) {
-            CHECK_TRUTH(one.m_skeleton.m_joints[i].m_name == two.m_skeleton.m_joints[i].m_name);
-            CHECK_TRUTH(one.m_skeleton.m_joints[i].m_joint_type == two.m_skeleton.m_joints[i].m_joint_type);
-            CHECK_TRUTH(one.m_skeleton.m_joints[i].m_offset_mat == two.m_skeleton.m_joints[i].m_offset_mat);
-            CHECK_TRUTH(one.m_skeleton.m_joints[i].m_parent_index == two.m_skeleton.m_joints[i].m_parent_index);
+        CHECK_TRUTH(one.skeleton_.joints_.size() == two.skeleton_.joints_.size());
+        for (size_t i = 0; i < std::min(one.skeleton_.joints_.size(), two.skeleton_.joints_.size()); ++i) {
+            CHECK_TRUTH(one.skeleton_.joints_[i].name_ == two.skeleton_.joints_[i].name_);
+            CHECK_TRUTH(one.skeleton_.joints_[i].joint_type_ == two.skeleton_.joints_[i].joint_type_);
+            CHECK_TRUTH(one.skeleton_.joints_[i].offset_mat_ == two.skeleton_.joints_[i].offset_mat_);
+            CHECK_TRUTH(one.skeleton_.joints_[i].parent_index_ == two.skeleton_.joints_[i].parent_index_);
         }
 
-        CHECK_TRUTH(one.m_animations.size() == two.m_animations.size());
-        for (size_t i = 0; i < std::min(one.m_animations.size(), two.m_animations.size()); ++i) {
-            CHECK_TRUTH(one.m_animations[i].m_name == two.m_animations[i].m_name);
-            CHECK_TRUTH(one.m_animations[i].calc_duration_in_ticks() == two.m_animations[i].calc_duration_in_ticks());
-            CHECK_TRUTH(one.m_animations[i].m_ticks_per_sec == two.m_animations[i].m_ticks_per_sec);
+        CHECK_TRUTH(one.animations_.size() == two.animations_.size());
+        for (size_t i = 0; i < std::min(one.animations_.size(), two.animations_.size()); ++i) {
+            CHECK_TRUTH(one.animations_[i].name_ == two.animations_[i].name_);
+            CHECK_TRUTH(one.animations_[i].calc_duration_in_ticks() == two.animations_[i].calc_duration_in_ticks());
+            CHECK_TRUTH(one.animations_[i].ticks_per_sec_ == two.animations_[i].ticks_per_sec_);
 
-            CHECK_TRUTH(one.m_animations[i].m_joints.size() == two.m_animations[i].m_joints.size());
-            for (size_t j = 0; j < std::min(one.m_animations[i].m_joints.size(), two.m_animations[i].m_joints.size()); ++j) {
-                CHECK_TRUTH(one.m_animations[i].m_joints[j].m_name == two.m_animations[i].m_joints[j].m_name);
-                CHECK_TRUTH(one.m_animations[i].m_joints[j].m_positions == two.m_animations[i].m_joints[j].m_positions);
-                CHECK_TRUTH(one.m_animations[i].m_joints[j].m_rotations == two.m_animations[i].m_joints[j].m_rotations);
-                CHECK_TRUTH(one.m_animations[i].m_joints[j].m_scales == two.m_animations[i].m_joints[j].m_scales);
+            CHECK_TRUTH(one.animations_[i].joints_.size() == two.animations_[i].joints_.size());
+            for (size_t j = 0; j < std::min(one.animations_[i].joints_.size(), two.animations_[i].joints_.size()); ++j) {
+                CHECK_TRUTH(one.animations_[i].joints_[j].name_ == two.animations_[i].joints_[j].name_);
+                CHECK_TRUTH(one.animations_[i].joints_[j].translations_ == two.animations_[i].joints_[j].translations_);
+                CHECK_TRUTH(one.animations_[i].joints_[j].rotations_ == two.animations_[i].joints_[j].rotations_);
+                CHECK_TRUTH(one.animations_[i].joints_[j].scales_ == two.animations_[i].joints_[j].scales_);
             }
         }
 
-        CHECK_TRUTH(one.m_units_straight.size() == two.m_units_straight.size());
-        for (size_t i = 0; i < std::min(one.m_units_straight.size(), two.m_units_straight.size()); ++i) {
-            CHECK_TRUTH(one.m_units_straight[i].m_name == two.m_units_straight[i].m_name);
-            CHECK_TRUTH(one.m_units_straight[i].m_material == two.m_units_straight[i].m_material);
-            CHECK_TRUTH(one.m_units_straight[i].m_mesh.m_vertices == two.m_units_straight[i].m_mesh.m_vertices);
-            CHECK_TRUTH(one.m_units_straight[i].m_mesh.m_texcoords == two.m_units_straight[i].m_mesh.m_texcoords);
-            CHECK_TRUTH(one.m_units_straight[i].m_mesh.m_normals == two.m_units_straight[i].m_mesh.m_normals);
+        CHECK_TRUTH(one.units_straight_.size() == two.units_straight_.size());
+        for (size_t i = 0; i < std::min(one.units_straight_.size(), two.units_straight_.size()); ++i) {
+            CHECK_TRUTH(one.units_straight_[i].name_ == two.units_straight_[i].name_);
+            CHECK_TRUTH(one.units_straight_[i].material_ == two.units_straight_[i].material_);
+            CHECK_TRUTH(one.units_straight_[i].mesh_.vertices_ == two.units_straight_[i].mesh_.vertices_);
+            CHECK_TRUTH(one.units_straight_[i].mesh_.uv_coordinates_ == two.units_straight_[i].mesh_.uv_coordinates_);
+            CHECK_TRUTH(one.units_straight_[i].mesh_.normals_ == two.units_straight_[i].mesh_.normals_);
         }
 
-        CHECK_TRUTH(one.m_units_straight_joint.size() == two.m_units_straight_joint.size());
-        for (size_t i = 0; i < std::min(one.m_units_straight_joint.size(), two.m_units_straight_joint.size()); ++i) {
-            CHECK_TRUTH(one.m_units_straight_joint[i].m_name == two.m_units_straight_joint[i].m_name);
-            CHECK_TRUTH(one.m_units_straight_joint[i].m_material == two.m_units_straight_joint[i].m_material);
-            CHECK_TRUTH(one.m_units_straight_joint[i].m_mesh.m_vertices == two.m_units_straight_joint[i].m_mesh.m_vertices);
-            CHECK_TRUTH(one.m_units_straight_joint[i].m_mesh.m_texcoords == two.m_units_straight_joint[i].m_mesh.m_texcoords);
-            CHECK_TRUTH(one.m_units_straight_joint[i].m_mesh.m_normals == two.m_units_straight_joint[i].m_mesh.m_normals);
+        CHECK_TRUTH(one.units_straight_joint_.size() == two.units_straight_joint_.size());
+        for (size_t i = 0; i < std::min(one.units_straight_joint_.size(), two.units_straight_joint_.size()); ++i) {
+            CHECK_TRUTH(one.units_straight_joint_[i].name_ == two.units_straight_joint_[i].name_);
+            CHECK_TRUTH(one.units_straight_joint_[i].material_ == two.units_straight_joint_[i].material_);
+            CHECK_TRUTH(one.units_straight_joint_[i].mesh_.vertices_ == two.units_straight_joint_[i].mesh_.vertices_);
+            CHECK_TRUTH(one.units_straight_joint_[i].mesh_.uv_coordinates_ == two.units_straight_joint_[i].mesh_.uv_coordinates_);
+            CHECK_TRUTH(one.units_straight_joint_[i].mesh_.normals_ == two.units_straight_joint_[i].mesh_.normals_);
         }
 
-        CHECK_TRUTH(one.m_units_indexed.size() == two.m_units_indexed.size());
-        CHECK_TRUTH(one.m_units_indexed_joint.size() == two.m_units_indexed_joint.size());
+        CHECK_TRUTH(one.units_indexed_.size() == two.units_indexed_.size());
+        CHECK_TRUTH(one.units_indexed_joint_.size() == two.units_indexed_joint_.size());
     }
 
 }
@@ -148,26 +148,26 @@ namespace {
         const auto model = dal::parser::parse_dmd(file_content.data(), file_content.size());
 
         std::cout << "    * Loaded and parsed" << std::endl;
-        std::cout << "        render units straight:       " << model->m_units_straight.size() << std::endl;
-        std::cout << "        render units straight joint: " << model->m_units_straight_joint.size() << std::endl;
-        std::cout << "        render units indexed:        " << model->m_units_indexed.size() << std::endl;
-        std::cout << "        render units indexed joint:  " << model->m_units_indexed_joint.size() << std::endl;
-        std::cout << "        joints: " << model->m_skeleton.m_joints.size() << std::endl;
-        std::cout << "        animations: " << model->m_animations.size() << std::endl;
-        std::cout << "        signature: " << model->m_signature_hex << std::endl;
+        std::cout << "        render units straight:       " << model->units_straight_.size() << std::endl;
+        std::cout << "        render units straight joint: " << model->units_straight_joint_.size() << std::endl;
+        std::cout << "        render units indexed:        " << model->units_indexed_.size() << std::endl;
+        std::cout << "        render units indexed joint:  " << model->units_indexed_joint_.size() << std::endl;
+        std::cout << "        joints: " << model->skeleton_.joints_.size() << std::endl;
+        std::cout << "        animations: " << model->animations_.size() << std::endl;
+        std::cout << "        signature: " << model->signature_hex_ << std::endl;
 
         {
             const auto binary = dal::parser::build_binary_model(*model, nullptr, nullptr);
             const auto model_second = dal::parser::parse_dmd(binary->data(), binary->size());
 
             std::cout << "    * Second model parsed" << std::endl;
-            std::cout << "        render units straight:       " << model_second->m_units_straight.size() << std::endl;
-            std::cout << "        render units straight joint: " << model_second->m_units_straight_joint.size() << std::endl;
-            std::cout << "        render units indexed:        " << model_second->m_units_indexed.size() << std::endl;
-            std::cout << "        render units indexed joint:  " << model_second->m_units_indexed_joint.size() << std::endl;
-            std::cout << "        joints: " << model_second->m_skeleton.m_joints.size() << std::endl;
-            std::cout << "        animations: " << model_second->m_animations.size() << std::endl;
-            std::cout << "        signature: " << model_second->m_signature_hex << std::endl;
+            std::cout << "        render units straight:       " << model_second->units_straight_.size() << std::endl;
+            std::cout << "        render units straight joint: " << model_second->units_straight_joint_.size() << std::endl;
+            std::cout << "        render units indexed:        " << model_second->units_indexed_.size() << std::endl;
+            std::cout << "        render units indexed joint:  " << model_second->units_indexed_joint_.size() << std::endl;
+            std::cout << "        joints: " << model_second->skeleton_.joints_.size() << std::endl;
+            std::cout << "        animations: " << model_second->animations_.size() << std::endl;
+            std::cout << "        signature: " << model_second->signature_hex_ << std::endl;
 
             std::cout << "    * Built binary" << std::endl;
             std::cout << "        original binary size: " << file_content.size() << std::endl;
@@ -178,12 +178,12 @@ namespace {
         }
 
         {
-            const auto merged_0 = dalp::merge_by_material(model->m_units_straight);
-            const auto merged_1 = dalp::merge_by_material(model->m_units_straight_joint);
-            const auto merged_2 = dalp::merge_by_material(model->m_units_indexed);
-            const auto merged_3 = dalp::merge_by_material(model->m_units_indexed_joint);
+            const auto merged_0 = dalp::merge_by_material(model->units_straight_);
+            const auto merged_1 = dalp::merge_by_material(model->units_straight_joint_);
+            const auto merged_2 = dalp::merge_by_material(model->units_indexed_);
+            const auto merged_3 = dalp::merge_by_material(model->units_indexed_joint_);
 
-            const auto before = model->m_units_straight.size() + model->m_units_straight_joint.size() + model->m_units_indexed.size() + model->m_units_indexed_joint.size();
+            const auto before = model->units_straight_.size() + model->units_straight_joint_.size() + model->units_indexed_.size() + model->units_indexed_joint_.size();
             const auto after = merged_0.size() + merged_1.size() + merged_2.size() + merged_3.size();
 
             std::cout << "    * Merging by material" << std::endl;
@@ -239,23 +239,23 @@ namespace {
         const auto model_data = ::read_file(dst_path);
         auto model = dal::parser::parse_dmd(model_data.data(), model_data.size());
 
-        for (const auto& unit : model->m_units_straight) {
+        for (const auto& unit : model->units_straight_) {
             dalp::RenderUnit<dalp::Mesh_Indexed> new_unit;
-            new_unit.m_name = unit.m_name;
-            new_unit.m_material = unit.m_material;
-            new_unit.m_mesh = dal::parser::convert_to_indexed(unit.m_mesh);
-            model->m_units_indexed.push_back(new_unit);
+            new_unit.name_ = unit.name_;
+            new_unit.material_ = unit.material_;
+            new_unit.mesh_ = dal::parser::convert_to_indexed(unit.mesh_);
+            model->units_indexed_.push_back(new_unit);
         }
-        model->m_units_straight.clear();
+        model->units_straight_.clear();
 
-        for (const auto& unit : model->m_units_straight_joint) {
+        for (const auto& unit : model->units_straight_joint_) {
             dalp::RenderUnit<dalp::Mesh_IndexedJoint> new_unit;
-            new_unit.m_name = unit.m_name;
-            new_unit.m_material = unit.m_material;
-            new_unit.m_mesh = dal::parser::convert_to_indexed(unit.m_mesh);
-            model->m_units_indexed_joint.push_back(new_unit);
+            new_unit.name_ = unit.name_;
+            new_unit.material_ = unit.material_;
+            new_unit.mesh_ = dal::parser::convert_to_indexed(unit.mesh_);
+            model->units_indexed_joint_.push_back(new_unit);
         }
-        model->m_units_straight_joint.clear();
+        model->units_straight_joint_.clear();
 
         const auto binary_built = dalp::build_binary_model(*model, nullptr, nullptr);
 

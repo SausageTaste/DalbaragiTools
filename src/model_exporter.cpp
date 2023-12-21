@@ -62,12 +62,12 @@ namespace {
     }
 
     void append_bin_aabb(::BinaryBuildBuffer& output, const dalp::AABB3& aabb) {
-        output.append_float32(aabb.m_min.x);
-        output.append_float32(aabb.m_min.y);
-        output.append_float32(aabb.m_min.z);
-        output.append_float32(aabb.m_max.x);
-        output.append_float32(aabb.m_max.y);
-        output.append_float32(aabb.m_max.z);
+        output.append_float32(aabb.min_.x);
+        output.append_float32(aabb.min_.y);
+        output.append_float32(aabb.min_.z);
+        output.append_float32(aabb.max_.x);
+        output.append_float32(aabb.max_.y);
+        output.append_float32(aabb.max_.z);
     }
 
 }
@@ -79,16 +79,16 @@ namespace {
     ::BinaryBuildBuffer build_bin_skeleton(const dalp::Skeleton& skeleton) {
         ::BinaryBuildBuffer output;
 
-        output.append_mat4(skeleton.m_root_transform);
-        output.append_int32(skeleton.m_joints.size());
+        output.append_mat4(skeleton.root_transform_);
+        output.append_int32(skeleton.joints_.size());
 
-        for (size_t i = 0; i < skeleton.m_joints.size(); ++i) {
-            const auto& joint = skeleton.m_joints[i];
+        for (size_t i = 0; i < skeleton.joints_.size(); ++i) {
+            const auto& joint = skeleton.joints_[i];
 
-            output.append_str(joint.m_name);
-            output.append_int32(joint.m_parent_index);
+            output.append_str(joint.name_);
+            output.append_int32(joint.parent_index_);
 
-            switch (joint.m_joint_type) {
+            switch (joint.joint_type_) {
                 case dalp::JointType::basic:
                     output.append_int32(0);
                     break;
@@ -102,7 +102,7 @@ namespace {
                     assert(false);
             }
 
-            output.append_mat4(joint.m_offset_mat);
+            output.append_mat4(joint.offset_mat_);
         }
 
         return output;
@@ -111,19 +111,19 @@ namespace {
     ::BinaryBuildBuffer _build_bin_joint_keyframes(const dalp::AnimJoint& joint) {
         ::BinaryBuildBuffer output;
 
-        output.append_str(joint.m_name);
+        output.append_str(joint.name_);
         output.append_mat4(glm::mat4{1});
 
-        output.append_int32(joint.m_positions.size());
-        for (auto& trans : joint.m_positions) {
+        output.append_int32(joint.translations_.size());
+        for (auto& trans : joint.translations_) {
             output.append_float32(trans.first);
             output.append_float32(trans.second.x);
             output.append_float32(trans.second.y);
             output.append_float32(trans.second.z);
         }
 
-        output.append_int32(joint.m_rotations.size());
-        for (auto& rot : joint.m_rotations) {
+        output.append_int32(joint.rotations_.size());
+        for (auto& rot : joint.rotations_) {
             output.append_float32(rot.first);
             output.append_float32(rot.second.x);
             output.append_float32(rot.second.y);
@@ -131,8 +131,8 @@ namespace {
             output.append_float32(rot.second.w);
         }
 
-        output.append_int32(joint.m_scales.size());
-        for (auto& scale : joint.m_scales) {
+        output.append_int32(joint.scales_.size());
+        for (auto& scale : joint.scales_) {
             output.append_float32(scale.first);
             output.append_float32(scale.second);
         }
@@ -148,13 +148,13 @@ namespace {
         for (size_t i = 0; i < animations.size(); ++i) {
             auto& anim = animations[i];
 
-            output.append_str(anim.m_name);
+            output.append_str(anim.name_);
             output.append_float32(anim.calc_duration_in_ticks());
-            output.append_float32(anim.m_ticks_per_sec);
+            output.append_float32(anim.ticks_per_sec_);
 
-            output.append_int32(anim.m_joints.size());
+            output.append_int32(anim.joints_.size());
 
-            for (auto& joint : anim.m_joints) {
+            for (auto& joint : anim.joints_) {
                 output += ::_build_bin_joint_keyframes(joint);
             }
         }
@@ -171,13 +171,13 @@ namespace {
     ::BinaryBuildBuffer build_bin_material(const dalp::Material& material) {
         ::BinaryBuildBuffer output;
 
-        output.append_float32(material.m_roughness);
-        output.append_float32(material.m_metallic);
-        output.append_bool8(material.m_transparency);
-        output.append_str(material.m_albedo_map);
-        output.append_str(material.m_roughness_map);
-        output.append_str(material.m_metallic_map);
-        output.append_str(material.m_normal_map);
+        output.append_float32(material.roughness_);
+        output.append_float32(material.metallic_);
+        output.append_bool8(material.transparency_);
+        output.append_str(material.albedo_map_);
+        output.append_str(material.roughness_map_);
+        output.append_str(material.metallic_map_);
+        output.append_str(material.normal_map_);
 
         return output;
     }
@@ -185,15 +185,15 @@ namespace {
     ::BinaryBuildBuffer build_bin_mesh_straight(const dalp::Mesh_Straight& mesh) {
         ::BinaryBuildBuffer output;
 
-        assert(mesh.m_vertices.size() * 2 == mesh.m_texcoords.size() * 3);
-        assert(mesh.m_vertices.size() == mesh.m_normals.size());
-        assert(mesh.m_vertices.size() % 3 == 0);
-        const auto num_vertices = mesh.m_vertices.size() / 3;
+        assert(mesh.vertices_.size() * 2 == mesh.uv_coordinates_.size() * 3);
+        assert(mesh.vertices_.size() == mesh.normals_.size());
+        assert(mesh.vertices_.size() % 3 == 0);
+        const auto nuvertices_ = mesh.vertices_.size() / 3;
 
-        output.append_int32(num_vertices);
-        output.append_float32_vector(mesh.m_vertices);
-        output.append_float32_vector(mesh.m_texcoords);
-        output.append_float32_vector(mesh.m_normals);
+        output.append_int32(nuvertices_);
+        output.append_float32_vector(mesh.vertices_);
+        output.append_float32_vector(mesh.uv_coordinates_);
+        output.append_float32_vector(mesh.normals_);
 
         return output;
     }
@@ -201,13 +201,13 @@ namespace {
     ::BinaryBuildBuffer build_bin_mesh_straight_joint(const dalp::Mesh_StraightJoint& mesh) {
         ::BinaryBuildBuffer output;
 
-        assert(mesh.m_vertices.size() * dal::parser::NUM_JOINTS_PER_VERTEX == mesh.m_boneIndex.size() * 3);
-        assert(mesh.m_vertices.size() * dal::parser::NUM_JOINTS_PER_VERTEX == mesh.m_boneWeights.size() * 3);
+        assert(mesh.vertices_.size() * dal::parser::NUM_JOINTS_PER_VERTEX == mesh.joint_indices_.size() * 3);
+        assert(mesh.vertices_.size() * dal::parser::NUM_JOINTS_PER_VERTEX == mesh.joint_weights_.size() * 3);
 
         output += ::build_bin_mesh_straight(mesh);
 
-        output.append_float32_vector(mesh.m_boneWeights);
-        output.append_int32_array(mesh.m_boneIndex.data(), mesh.m_boneIndex.size());
+        output.append_float32_vector(mesh.joint_weights_);
+        output.append_int32_array(mesh.joint_indices_.data(), mesh.joint_indices_.size());
 
         return output;
     }
@@ -216,22 +216,22 @@ namespace {
         ::BinaryBuildBuffer output;
         static_assert(32 == sizeof(dalp::Mesh_Indexed::VERT_TYPE));
 
-        output.append_int32(mesh.m_vertices.size());
-        for (auto& vert : mesh.m_vertices) {
-            output.append_float32(vert.m_position.x);
-            output.append_float32(vert.m_position.y);
-            output.append_float32(vert.m_position.z);
+        output.append_int32(mesh.vertices_.size());
+        for (auto& vert : mesh.vertices_) {
+            output.append_float32(vert.pos_.x);
+            output.append_float32(vert.pos_.y);
+            output.append_float32(vert.pos_.z);
 
-            output.append_float32(vert.m_normal.x);
-            output.append_float32(vert.m_normal.y);
-            output.append_float32(vert.m_normal.z);
+            output.append_float32(vert.normal_.x);
+            output.append_float32(vert.normal_.y);
+            output.append_float32(vert.normal_.z);
 
-            output.append_float32(vert.m_uv_coords.x);
-            output.append_float32(vert.m_uv_coords.y);
+            output.append_float32(vert.uv_.x);
+            output.append_float32(vert.uv_.y);
         }
 
-        output.append_int32(mesh.m_indices.size());
-        for (auto index : mesh.m_indices) {
+        output.append_int32(mesh.indices_.size());
+        for (auto index : mesh.indices_) {
             output.append_int32(index);
         }
 
@@ -242,32 +242,32 @@ namespace {
         ::BinaryBuildBuffer output;
         static_assert(64 == sizeof(dalp::Mesh_IndexedJoint::VERT_TYPE));
 
-        output.append_int32(mesh.m_vertices.size());
-        for (auto& vert : mesh.m_vertices) {
-            output.append_float32(vert.m_position.x);
-            output.append_float32(vert.m_position.y);
-            output.append_float32(vert.m_position.z);
+        output.append_int32(mesh.vertices_.size());
+        for (auto& vert : mesh.vertices_) {
+            output.append_float32(vert.pos_.x);
+            output.append_float32(vert.pos_.y);
+            output.append_float32(vert.pos_.z);
 
-            output.append_float32(vert.m_normal.x);
-            output.append_float32(vert.m_normal.y);
-            output.append_float32(vert.m_normal.z);
+            output.append_float32(vert.normal_.x);
+            output.append_float32(vert.normal_.y);
+            output.append_float32(vert.normal_.z);
 
-            output.append_float32(vert.m_uv_coords.x);
-            output.append_float32(vert.m_uv_coords.y);
+            output.append_float32(vert.uv_.x);
+            output.append_float32(vert.uv_.y);
 
-            output.append_float32(vert.m_joint_weights.x);
-            output.append_float32(vert.m_joint_weights.y);
-            output.append_float32(vert.m_joint_weights.z);
-            output.append_float32(vert.m_joint_weights.w);
+            output.append_float32(vert.joint_weights_.x);
+            output.append_float32(vert.joint_weights_.y);
+            output.append_float32(vert.joint_weights_.z);
+            output.append_float32(vert.joint_weights_.w);
 
-            output.append_int32(vert.m_joint_indices.x);
-            output.append_int32(vert.m_joint_indices.y);
-            output.append_int32(vert.m_joint_indices.z);
-            output.append_int32(vert.m_joint_indices.w);
+            output.append_int32(vert.joint_indices_.x);
+            output.append_int32(vert.joint_indices_.y);
+            output.append_int32(vert.joint_indices_.z);
+            output.append_int32(vert.joint_indices_.w);
         }
 
-        output.append_int32(mesh.m_indices.size());
-        for (auto index : mesh.m_indices) {
+        output.append_int32(mesh.indices_.size());
+        for (auto index : mesh.indices_) {
             output.append_int32(index);
         }
 
@@ -287,36 +287,36 @@ namespace dal::parser {
     ) {
         BinaryBuildBuffer buffer;
 
-        ::append_bin_aabb(buffer, input.m_aabb);
-        buffer += ::build_bin_skeleton(input.m_skeleton);
-        buffer += ::build_bin_animation(input.m_animations);
+        ::append_bin_aabb(buffer, input.aabb_);
+        buffer += ::build_bin_skeleton(input.skeleton_);
+        buffer += ::build_bin_animation(input.animations_);
 
-        buffer.append_int32(input.m_units_straight.size());
-        for (auto& unit : input.m_units_straight) {
-            buffer.append_str(unit.m_name);
-            buffer += ::build_bin_material(unit.m_material);
-            buffer += ::build_bin_mesh_straight(unit.m_mesh);
+        buffer.append_int32(input.units_straight_.size());
+        for (auto& unit : input.units_straight_) {
+            buffer.append_str(unit.name_);
+            buffer += ::build_bin_material(unit.material_);
+            buffer += ::build_bin_mesh_straight(unit.mesh_);
         }
 
-        buffer.append_int32(input.m_units_straight_joint.size());
-        for (auto& unit : input.m_units_straight_joint) {
-            buffer.append_str(unit.m_name);
-            buffer += ::build_bin_material(unit.m_material);
-            buffer += ::build_bin_mesh_straight_joint(unit.m_mesh);
+        buffer.append_int32(input.units_straight_joint_.size());
+        for (auto& unit : input.units_straight_joint_) {
+            buffer.append_str(unit.name_);
+            buffer += ::build_bin_material(unit.material_);
+            buffer += ::build_bin_mesh_straight_joint(unit.mesh_);
         }
 
-        buffer.append_int32(input.m_units_indexed.size());
-        for (auto& unit : input.m_units_indexed) {
-            buffer.append_str(unit.m_name);
-            buffer += ::build_bin_material(unit.m_material);
-            buffer += ::build_bin_mesh_indexed(unit.m_mesh);
+        buffer.append_int32(input.units_indexed_.size());
+        for (auto& unit : input.units_indexed_) {
+            buffer.append_str(unit.name_);
+            buffer += ::build_bin_material(unit.material_);
+            buffer += ::build_bin_mesh_indexed(unit.mesh_);
         }
 
-        buffer.append_int32(input.m_units_indexed_joint.size());
-        for (auto& unit : input.m_units_indexed_joint) {
-            buffer.append_str(unit.m_name);
-            buffer += ::build_bin_material(unit.m_material);
-            buffer += ::build_bin_mesh_indexed_joint(unit.m_mesh);
+        buffer.append_int32(input.units_indexed_joint_.size());
+        for (auto& unit : input.units_indexed_joint_) {
+            buffer.append_str(unit.name_);
+            buffer += ::build_bin_material(unit.material_);
+            buffer += ::build_bin_mesh_indexed_joint(unit.mesh_);
         }
 
         // Null terminated signature

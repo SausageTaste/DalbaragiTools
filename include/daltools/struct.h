@@ -24,7 +24,7 @@ namespace dal::parser {
 
 
     struct AABB3 {
-        glm::vec3 m_min, m_max;
+        glm::vec3 min_, max_;
     };
 
 
@@ -34,9 +34,9 @@ namespace dal::parser {
         class Transform {
 
         public:
-            glm::vec3 m_pos{0, 0, 0};
-            glm::quat m_quat{1, 0, 0, 0};
-            glm::vec3 m_scale{1, 1, 1};
+            glm::vec3 pos_{0, 0, 0};
+            glm::quat quat_{1, 0, 0, 0};
+            glm::vec3 scale_{1, 1, 1};
 
         public:
             bool operator==(const Transform& other) const;
@@ -51,27 +51,27 @@ namespace dal::parser {
 
 
         struct IActor {
-            std::string m_name;
-            std::string m_parent_name;
-            std::vector<std::string> m_collections;
-            Transform m_transform;
-            bool m_hidden = false;
+            std::string name_;
+            std::string parent_name_;
+            std::vector<std::string> collections_;
+            Transform transform_;
+            bool hidden_ = false;
         };
 
 
         struct VertexJointPair {
-            jointID_t m_index = NULL_JID;
-            float m_weight = 0.f;
+            jointID_t index_ = NULL_JID;
+            float weight_ = 0.f;
         };
 
 
         struct Vertex {
 
         public:
-            glm::vec3 m_pos;
-            glm::vec2 uv_coord;
-            glm::vec3 m_normal;
-            std::vector<VertexJointPair> m_joints;
+            glm::vec3 pos_;
+            glm::vec2 uv_;
+            glm::vec3 normal_;
+            std::vector<VertexJointPair> joints_;
 
         public:
             bool are_same(const Vertex& other);
@@ -82,10 +82,10 @@ namespace dal::parser {
         struct Mesh {
 
         public:
-            std::string m_name;
-            std::string m_skeleton_name;
-            std::vector<Vertex> m_vertices;
-            std::vector<size_t> m_indices;
+            std::string name_;
+            std::string skeleton_name_;
+            std::vector<Vertex> vertices_;
+            std::vector<size_t> indices_;
 
         public:
             void add_vertex(const Vertex& vertex);
@@ -98,16 +98,16 @@ namespace dal::parser {
         struct Material {
 
         public:
-            std::string m_name;
+            std::string name_;
 
-            float m_roughness = 0.5;
-            float m_metallic = 0.0;
-            bool m_transparency = false;
+            float roughness_ = 0.5;
+            float metallic_ = 0.0;
+            bool transparency_ = false;
 
-            std::string m_albedo_map;
-            std::string m_roughness_map;
-            std::string m_metallic_map;
-            std::string m_normal_map;
+            std::string albedo_map_;
+            std::string roughness_map_;
+            std::string metallic_map_;
+            std::string normal_map_;
 
         public:
             bool operator==(const Material& rhs) const;
@@ -120,18 +120,18 @@ namespace dal::parser {
         struct SkelJoint {
 
         public:
-            std::string m_name;
-            std::string m_parent_name;
-            JointType m_joint_type = JointType::basic;
-            glm::mat4 m_offset_mat{ 1 };
+            std::string name_;
+            std::string parent_name_;
+            JointType joint_type_ = JointType::basic;
+            glm::mat4 offset_mat_{ 1 };
 
         public:
             bool has_parent() const {
-                return !this->m_parent_name.empty();
+                return !this->parent_name_.empty();
             }
 
             bool is_root() const {
-                return this->m_parent_name.empty();
+                return this->parent_name_.empty();
             }
 
         };
@@ -140,9 +140,9 @@ namespace dal::parser {
         struct Skeleton {
 
         public:
-            std::string m_name;
-            Transform m_root_transform;
-            std::vector<SkelJoint> m_joints;
+            std::string name_;
+            Transform root_transform_;
+            std::vector<SkelJoint> joints_;
 
         public:
             jointID_t find_index_by_name(const std::string& name) const;
@@ -153,10 +153,10 @@ namespace dal::parser {
         struct AnimJoint {
 
         public:
-            std::string m_name;
-            std::vector<std::pair<float, glm::vec3>> m_positions;
-            std::vector<std::pair<float, glm::quat>> m_rotations;
-            std::vector<std::pair<float, float>> m_scales;
+            std::string name_;
+            std::vector<std::pair<float, glm::vec3>> translations_;
+            std::vector<std::pair<float, glm::quat>> rotations_;
+            std::vector<std::pair<float, float>> scales_;
 
         public:
             void add_position(float time, float x, float y, float z);
@@ -175,9 +175,9 @@ namespace dal::parser {
         struct Animation {
 
         public:
-            std::string m_name;
-            std::vector<AnimJoint> m_joints;
-            float m_ticks_per_sec = 1;
+            std::string name_;
+            std::vector<AnimJoint> joints_;
+            float ticks_per_sec_ = 1;
 
         public:
             float calc_duration_in_ticks() const;
@@ -188,15 +188,15 @@ namespace dal::parser {
 
 
         struct RenderPair {
-            std::string m_mesh_name;
-            std::string m_material_name;
+            std::string mesh_name_;
+            std::string material_name_;
         };
 
 
         struct MeshActor : public IActor {
 
         public:
-            std::vector<RenderPair> m_render_pairs;
+            std::vector<RenderPair> render_pairs_;
 
         public:
             bool can_merge_with(const MeshActor& other) const;
@@ -205,9 +205,9 @@ namespace dal::parser {
 
 
         struct ILight {
-            glm::vec3 m_color;
-            float m_intensity = 1000.f;
-            bool m_has_shadow = false;
+            glm::vec3 color_;
+            float intensity_ = 1000.f;
+            bool has_shadow_ = false;
         };
 
 
@@ -217,29 +217,29 @@ namespace dal::parser {
 
 
         struct PointLight : public IActor, public ILight {
-            float m_max_distance = 0.f;
+            float max_distance_ = 0.f;
         };
 
 
         struct Spotlight : public PointLight {
-            float m_spot_degree = 0.f;
-            float m_spot_blend = 0.f;
+            float spot_degree_ = 0.f;
+            float spot_blend_ = 0.f;
         };
 
 
     public:
-        std::string m_name;
-        glm::mat4 m_root_transform{1};
+        std::string name_;
+        glm::mat4 root_transform_{1};
 
-        std::vector<Mesh> m_meshes;
-        std::vector<Material> m_materials;
-        std::vector<Skeleton> m_skeletons;
-        std::vector<Animation> m_animations;
+        std::vector<Mesh> meshes_;
+        std::vector<Material> materials_;
+        std::vector<Skeleton> skeletons_;
+        std::vector<Animation> animations_;
 
-        std::vector<MeshActor> m_mesh_actors;
-        std::vector<DirectionalLight> m_dlights;
-        std::vector<PointLight> m_plights;
-        std::vector<Spotlight> m_slights;
+        std::vector<MeshActor> mesh_actors_;
+        std::vector<DirectionalLight> dlights_;
+        std::vector<PointLight> plights_;
+        std::vector<Spotlight> slights_;
 
     public:
         Mesh* find_mesh_by_name(const std::string& name);
@@ -258,9 +258,9 @@ namespace dal::parser {
 
 
     struct Vertex {
-        glm::vec3 m_position;
-        glm::vec3 m_normal;
-        glm::vec2 m_uv_coords;
+        glm::vec3 pos_;
+        glm::vec3 normal_;
+        glm::vec2 uv_;
 
         bool operator==(const Vertex& other) const {
             return this->is_equal(other);
@@ -271,11 +271,11 @@ namespace dal::parser {
 
 
     struct VertexJoint {
-        glm::ivec4 m_joint_indices;
-        glm::vec4 m_joint_weights;
-        glm::vec3 m_position;
-        glm::vec3 m_normal;
-        glm::vec2 m_uv_coords;
+        glm::ivec4 joint_indices_;
+        glm::vec4 joint_weights_;
+        glm::vec3 pos_;
+        glm::vec3 normal_;
+        glm::vec2 uv_;
 
         bool operator==(const VertexJoint& other) const {
             return this->is_equal(other);
@@ -284,23 +284,23 @@ namespace dal::parser {
         bool is_equal(const VertexJoint& other) const;
     };
 
-    static_assert(sizeof(VertexJoint::m_joint_indices) == sizeof(VertexJoint::m_joint_weights));
-    constexpr int NUM_JOINTS_PER_VERTEX = sizeof(VertexJoint::m_joint_indices) / sizeof(float);
+    static_assert(sizeof(VertexJoint::joint_indices_) == sizeof(VertexJoint::joint_weights_));
+    constexpr int NUM_JOINTS_PER_VERTEX = sizeof(VertexJoint::joint_indices_) / sizeof(float);
 
 
     using Material = SceneIntermediate::Material;
 
 
     struct Mesh_Straight {
-        std::vector<float> m_vertices, m_texcoords, m_normals;
+        std::vector<float> vertices_, uv_coordinates_, normals_;
 
         void concat(const Mesh_Straight& other);
     };
 
 
     struct Mesh_StraightJoint : public Mesh_Straight {
-        std::vector<float> m_boneWeights;
-        std::vector<jointID_t> m_boneIndex;
+        std::vector<float> joint_weights_;
+        std::vector<jointID_t> joint_indices_;
 
         void concat(const Mesh_StraightJoint& other);
     };
@@ -308,26 +308,26 @@ namespace dal::parser {
 
     template <typename _Vertex>
     struct TMesh_Indexed {
-        std::vector<_Vertex> m_vertices;
-        std::vector<uint32_t> m_indices;
+        std::vector<_Vertex> vertices_;
+        std::vector<uint32_t> indices_;
 
         using VERT_TYPE = _Vertex;
 
         void add_vertex(const _Vertex& vert) {
-            for (size_t i = 0; i < this->m_vertices.size(); ++i) {
-                if (vert == this->m_vertices[i]) {
-                    this->m_indices.push_back(i);
+            for (size_t i = 0; i < this->vertices_.size(); ++i) {
+                if (vert == this->vertices_[i]) {
+                    this->indices_.push_back(i);
                     return;
                 }
             }
 
-            this->m_indices.push_back(this->m_vertices.size());
-            this->m_vertices.push_back(vert);
+            this->indices_.push_back(this->vertices_.size());
+            this->vertices_.push_back(vert);
         }
 
         void concat(const TMesh_Indexed<_Vertex>& other) {
-            for (const auto index : other.m_indices) {
-                this->add_vertex(other.m_vertices[index]);
+            for (const auto index : other.indices_) {
+                this->add_vertex(other.vertices_[index]);
             }
         }
     };
@@ -339,23 +339,23 @@ namespace dal::parser {
 
     template <typename _Mesh>
     struct RenderUnit {
-        std::string m_name;
-        _Mesh m_mesh;
-        Material m_material;
+        std::string name_;
+        _Mesh mesh_;
+        Material material_;
     };
 
 
     struct SkelJoint {
-        std::string m_name;
-        jointID_t m_parent_index;
-        JointType m_joint_type;
-        glm::mat4 m_offset_mat;
+        std::string name_;
+        jointID_t parent_index_;
+        JointType joint_type_;
+        glm::mat4 offset_mat_;
     };
 
 
     struct Skeleton {
-        glm::mat4 m_root_transform{1};
-        std::vector<SkelJoint> m_joints;
+        glm::mat4 root_transform_{1};
+        std::vector<SkelJoint> joints_;
 
         // Returns -1 if not found
         jointID_t find_by_name(const std::string& name) const;
@@ -367,16 +367,16 @@ namespace dal::parser {
 
 
     struct Model {
-        std::vector<RenderUnit<      Mesh_Straight >> m_units_straight;
-        std::vector<RenderUnit< Mesh_StraightJoint >> m_units_straight_joint;
-        std::vector<RenderUnit<       Mesh_Indexed >> m_units_indexed;
-        std::vector<RenderUnit<  Mesh_IndexedJoint >> m_units_indexed_joint;
+        std::vector<RenderUnit<      Mesh_Straight >> units_straight_;
+        std::vector<RenderUnit< Mesh_StraightJoint >> units_straight_joint_;
+        std::vector<RenderUnit<       Mesh_Indexed >> units_indexed_;
+        std::vector<RenderUnit<  Mesh_IndexedJoint >> units_indexed_joint_;
 
-        std::vector<Animation> m_animations;
-        Skeleton m_skeleton;
-        AABB3 m_aabb;
+        std::vector<Animation> animations_;
+        Skeleton skeleton_;
+        AABB3 aabb_;
 
-        std::string m_signature_hex;
+        std::string signature_hex_;
     };
 
 }

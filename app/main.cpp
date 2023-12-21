@@ -150,30 +150,30 @@ namespace {
 namespace {
 
     void flip_uv_vertically(dal::parser::Mesh_Straight& mesh) {
-        const auto vert_size = mesh.m_vertices.size() / 3;
+        const auto vert_size = mesh.vertices_.size() / 3;
 
         for (size_t i = 0; i < vert_size; ++i) {
-            mesh.m_texcoords[2 * i + 1] = 1.f - mesh.m_texcoords[2 * i + 1];
+            mesh.uv_coordinates_[2 * i + 1] = 1.f - mesh.uv_coordinates_[2 * i + 1];
         }
     }
 
     void flip_uv_vertically(dal::parser::Mesh_StraightJoint& mesh) {
-        const auto vert_size = mesh.m_vertices.size() / 3;
+        const auto vert_size = mesh.vertices_.size() / 3;
 
         for (size_t i = 0; i < vert_size; ++i) {
-            mesh.m_texcoords[2 * i + 1] = 1.f - mesh.m_texcoords[2 * i + 1];
+            mesh.uv_coordinates_[2 * i + 1] = 1.f - mesh.uv_coordinates_[2 * i + 1];
         }
     }
 
     void flip_uv_vertically(dal::parser::Mesh_Indexed& mesh) {
-        for (auto& vert : mesh.m_vertices) {
-            vert.m_uv_coords.y = 1.f - vert.m_uv_coords.y;
+        for (auto& vert : mesh.vertices_) {
+            vert.uv_.y = 1.f - vert.uv_.y;
         }
     }
 
     void flip_uv_vertically(dal::parser::Mesh_IndexedJoint& mesh) {
-        for (auto& vert : mesh.m_vertices) {
-            vert.m_uv_coords.y = 1.f - vert.m_uv_coords.y;
+        for (auto& vert : mesh.vertices_) {
+            vert.uv_.y = 1.f - vert.uv_.y;
         }
     }
 
@@ -240,34 +240,34 @@ namespace {
 
             if (parser["--print"] == true) {
                 std::cout << "    Print properties\n";
-                std::cout << "        render units straight: " << model.m_units_straight.size() << '\n';
-                std::cout << "        render units straight joint: " << model.m_units_straight_joint.size() << '\n';
-                std::cout << "        render units indexed: " << model.m_units_indexed.size() << '\n';
-                std::cout << "        render units indexed joint: " << model.m_units_indexed_joint.size() << '\n';
-                std::cout << "        joints: " << model.m_skeleton.m_joints.size() << '\n';
-                std::cout << "        animations: " << model.m_animations.size() << '\n';
+                std::cout << "        render units straight: " << model.units_straight_.size() << '\n';
+                std::cout << "        render units straight joint: " << model.units_straight_joint_.size() << '\n';
+                std::cout << "        render units indexed: " << model.units_indexed_.size() << '\n';
+                std::cout << "        render units indexed joint: " << model.units_indexed_joint_.size() << '\n';
+                std::cout << "        joints: " << model.skeleton_.joints_.size() << '\n';
+                std::cout << "        animations: " << model.animations_.size() << '\n';
 
-                if (model.m_signature_hex.empty())
+                if (model.signature_hex_.empty())
                     std::cout << "        signature: null\n";
                 else
-                    std::cout << "        signature: " << model.m_signature_hex << '\n';
+                    std::cout << "        signature: " << model.signature_hex_ << '\n';
             }
 
             if (parser["--flip"] == true) {
                 std::cout << "    Flipping uv coords vertically";
                 timer.check();
 
-                for (auto& unit : model.m_units_straight) {
-                    ::flip_uv_vertically(unit.m_mesh);
+                for (auto& unit : model.units_straight_) {
+                    ::flip_uv_vertically(unit.mesh_);
                 }
-                for (auto& unit : model.m_units_straight_joint) {
-                    ::flip_uv_vertically(unit.m_mesh);
+                for (auto& unit : model.units_straight_joint_) {
+                    ::flip_uv_vertically(unit.mesh_);
                 }
-                for (auto& unit : model.m_units_indexed) {
-                    ::flip_uv_vertically(unit.m_mesh);
+                for (auto& unit : model.units_indexed_) {
+                    ::flip_uv_vertically(unit.mesh_);
                 }
-                for (auto& unit : model.m_units_indexed_joint) {
-                    ::flip_uv_vertically(unit.m_mesh);
+                for (auto& unit : model.units_indexed_joint_) {
+                    ::flip_uv_vertically(unit.mesh_);
                 }
 
                 export_needed = true;
@@ -278,10 +278,10 @@ namespace {
                 std::cout << "    Merging by material";
                 timer.check();
 
-                model.m_units_straight = dal::parser::merge_by_material(model.m_units_straight);
-                model.m_units_straight_joint = dal::parser::merge_by_material(model.m_units_straight_joint);
-                model.m_units_indexed = dal::parser::merge_by_material(model.m_units_indexed);
-                model.m_units_indexed_joint = dal::parser::merge_by_material(model.m_units_indexed_joint);
+                model.units_straight_ = dal::parser::merge_by_material(model.units_straight_);
+                model.units_straight_joint_ = dal::parser::merge_by_material(model.units_straight_joint_);
+                model.units_indexed_ = dal::parser::merge_by_material(model.units_indexed_);
+                model.units_indexed_joint_ = dal::parser::merge_by_material(model.units_indexed_joint_);
 
                 export_needed = true;
                 std::cout << " done (" << timer.get_elapsed() << ")\n";
@@ -291,27 +291,27 @@ namespace {
                 std::cout << "    Indexing";
                 timer.check();
 
-                for (const auto& unit : model.m_units_straight) {
+                for (const auto& unit : model.units_straight_) {
                     dalp::RenderUnit<dalp::Mesh_Indexed> new_unit;
-                    new_unit.m_name = unit.m_name;
-                    new_unit.m_material = unit.m_material;
-                    new_unit.m_mesh = dal::parser::convert_to_indexed(unit.m_mesh);
-                    model.m_units_indexed.push_back(new_unit);
+                    new_unit.name_ = unit.name_;
+                    new_unit.material_ = unit.material_;
+                    new_unit.mesh_ = dal::parser::convert_to_indexed(unit.mesh_);
+                    model.units_indexed_.push_back(new_unit);
 
                     export_needed = true;
                 }
-                model.m_units_straight.clear();
+                model.units_straight_.clear();
 
-                for (const auto& unit : model.m_units_straight_joint) {
+                for (const auto& unit : model.units_straight_joint_) {
                     dalp::RenderUnit<dalp::Mesh_IndexedJoint> new_unit;
-                    new_unit.m_name = unit.m_name;
-                    new_unit.m_material = unit.m_material;
-                    new_unit.m_mesh = dal::parser::convert_to_indexed(unit.m_mesh);
-                    model.m_units_indexed_joint.push_back(new_unit);
+                    new_unit.name_ = unit.name_;
+                    new_unit.material_ = unit.material_;
+                    new_unit.mesh_ = dal::parser::convert_to_indexed(unit.mesh_);
+                    model.units_indexed_joint_.push_back(new_unit);
 
                     export_needed = true;
                 }
-                model.m_units_straight_joint.clear();
+                model.units_straight_joint_.clear();
 
                 std::cout << " done (" << timer.get_elapsed() << ")\n";
             }

@@ -145,7 +145,7 @@ namespace dal::parser {
     private:
         const uint8_t* m_array = nullptr;
         size_t m_size = 0;
-        size_t m_pos = 0;
+        size_t pos_ = 0;
 
     public:
         BinaryArrayParser(const uint8_t* const array, const size_t size);
@@ -153,7 +153,7 @@ namespace dal::parser {
         BinaryArrayParser(const std::vector<uint8_t>& vector);
 
         bool is_emtpy() const {
-            return this->m_size == this->m_pos;
+            return this->m_size == this->pos_;
         }
 
         template <typename T>
@@ -163,8 +163,8 @@ namespace dal::parser {
             }
             else {
                 const auto parse_size = element_count * sizeof(T);
-                std::memcpy(dst_arr, this->m_array + this->m_pos, parse_size);
-                this->m_pos += parse_size;
+                std::memcpy(dst_arr, this->m_array + this->pos_, parse_size);
+                this->pos_ += parse_size;
             }
         }
 

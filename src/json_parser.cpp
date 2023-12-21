@@ -102,9 +102,9 @@ namespace {
     }
 
     void parse_transform(const json_t& json_data, scene_t::Transform& output) {
-        ::parse_vec3(json_data["translation"], output.m_pos);
-        ::parse_quat(json_data["rotation"], output.m_quat);
-        ::parse_vec3(json_data["scale"], output.m_scale);
+        ::parse_vec3(json_data["translation"], output.pos_);
+        ::parse_quat(json_data["rotation"], output.quat_);
+        ::parse_vec3(json_data["scale"], output.scale_);
     }
 
     template <typename T>
@@ -115,19 +115,19 @@ namespace {
     }
 
     void parse_actor(const json_t& json_data, scene_t::IActor& actor) {
-        actor.m_name = json_data["name"];
-        actor.m_parent_name = json_data["parent name"];
-        ::parse_list(json_data["collections"], actor.m_collections);
-        ::parse_transform(json_data["transform"], actor.m_transform);
-        actor.m_hidden = json_data["hidden"];
+        actor.name_ = json_data["name"];
+        actor.parent_name_ = json_data["parent name"];
+        ::parse_list(json_data["collections"], actor.collections_);
+        ::parse_transform(json_data["transform"], actor.transform_);
+        actor.hidden_ = json_data["hidden"];
     }
 
     void parse_mesh(const json_t& json_data, scene_t::Mesh& output, const ::BinaryData& binary_data) {
-        output.m_name = json_data["name"];
-        output.m_skeleton_name = json_data["skeleton name"];
+        output.name_ = json_data["name"];
+        output.skeleton_name_ = json_data["skeleton name"];
 
         size_t vertex_count = json_data["vertex count"];
-        output.m_vertices.resize(vertex_count);
+        output.vertices_.resize(vertex_count);
 
         assert(!dal::parser::is_big_endian());
         static_assert(sizeof(float) * 2 == sizeof(glm::vec2));
@@ -139,7 +139,7 @@ namespace {
 
             for (size_t i = 0; i < vertex_count; ++i) {
                 const auto ptr = binary_data.ptr_at(bin_pos + i * sizeof(glm::vec3));
-                output.m_vertices[i].m_pos = *reinterpret_cast<const glm::vec3*>(ptr);
+                output.vertices_[i].pos_ = *reinterpret_cast<const glm::vec3*>(ptr);
             }
         }
 
@@ -149,7 +149,7 @@ namespace {
 
             for (size_t i = 0; i < vertex_count; ++i) {
                 const auto ptr = binary_data.ptr_at(bin_pos + i * sizeof(glm::vec2));
-                output.m_vertices[i].uv_coord = *reinterpret_cast<const glm::vec2*>(ptr);
+                output.vertices_[i].uv_ = *reinterpret_cast<const glm::vec2*>(ptr);
             }
         }
 
@@ -159,7 +159,7 @@ namespace {
 
             for (size_t i = 0; i < vertex_count; ++i) {
                 const auto ptr = binary_data.ptr_at(bin_pos + i * sizeof(glm::vec3));
-                output.m_vertices[i].m_normal = glm::normalize(*reinterpret_cast<const glm::vec3*>(ptr));
+                output.vertices_[i].normal_ = glm::normalize(*reinterpret_cast<const glm::vec3*>(ptr));
             }
         }
 
@@ -170,13 +170,13 @@ namespace {
             auto ptr = binary_data.ptr_at(bin_pos);
 
             for (size_t i = 0; i < vertex_count; ++i) {
-                auto& vertex = output.m_vertices[i];
+                auto& vertex = output.vertices_[i];
                 const auto joint_count = dalp::make_int32(ptr); ptr += 4;
 
                 for (size_t j = 0; j < joint_count; ++j) {
-                    auto& joint = vertex.m_joints.emplace_back();
-                    joint.m_index = dalp::make_int32(ptr); ptr += 4;
-                    joint.m_weight = dalp::make_float32(ptr); ptr += 4;
+                    auto& joint = vertex.joints_.emplace_back();
+                    joint.index_ = dalp::make_int32(ptr); ptr += 4;
+                    joint.weight_ = dalp::make_float32(ptr); ptr += 4;
                 }
             }
 
@@ -184,42 +184,42 @@ namespace {
         }
 
         {
-            output.m_indices.resize(output.m_vertices.size());
-            for (size_t i = 0; i < output.m_vertices.size(); ++i) {
-                output.m_indices[i] = i;
+            output.indices_.resize(output.vertices_.size());
+            for (size_t i = 0; i < output.vertices_.size(); ++i) {
+                output.indices_[i] = i;
             }
         }
     }
 
     void parse_material(const json_t& json_mesh, scene_t::Material& output_material) {
-        output_material.m_name = json_mesh["name"];
-        output_material.m_roughness = json_mesh["roughness"];
-        output_material.m_metallic = json_mesh["metallic"];
-        output_material.m_transparency = json_mesh["transparency"];
-        output_material.m_albedo_map = json_mesh["albedo map"];
-        output_material.m_roughness_map = json_mesh["roughness map"];
-        output_material.m_metallic_map = json_mesh["metallic map"];
-        output_material.m_normal_map = json_mesh["normal map"];
+        output_material.name_ = json_mesh["name"];
+        output_material.roughness_ = json_mesh["roughness"];
+        output_material.metallic_ = json_mesh["metallic"];
+        output_material.transparency_ = json_mesh["transparency"];
+        output_material.albedo_map_ = json_mesh["albedo map"];
+        output_material.roughness_map_ = json_mesh["roughness map"];
+        output_material.metallic_map_ = json_mesh["metallic map"];
+        output_material.normal_map_ = json_mesh["normal map"];
     }
 
     void parse_skeleton_joint(const json_t& json_data, scene_t::SkelJoint& output) {
-        output.m_name = json_data["name"];
-        output.m_parent_name = json_data["parent name"];
-        output.m_joint_type = static_cast<dalp::JointType>(static_cast<int>(json_data["joint type"]));
-        ::parse_mat4(json_data["offset matrix"], output.m_offset_mat);
+        output.name_ = json_data["name"];
+        output.parent_name_ = json_data["parent name"];
+        output.joint_type_ = static_cast<dalp::JointType>(static_cast<int>(json_data["joint type"]));
+        ::parse_mat4(json_data["offset matrix"], output.offset_mat_);
     }
 
     void parse_skeleton(const json_t& json_data, scene_t::Skeleton& output) {
-        output.m_name = json_data["name"];
-        ::parse_transform(json_data["transform"], output.m_root_transform);
+        output.name_ = json_data["name"];
+        ::parse_transform(json_data["transform"], output.root_transform_);
 
         for (auto& x : json_data["joints"]) {
-            ::parse_skeleton_joint(x, output.m_joints.emplace_back());
+            ::parse_skeleton_joint(x, output.joints_.emplace_back());
         }
     }
 
     void parse_anim_joint(const json_t& json_data, scene_t::AnimJoint& output) {
-        output.m_name = json_data["name"];
+        output.name_ = json_data["name"];
 
         for (auto& x : json_data["positions"]) {
             const auto& value = x["value"];
@@ -238,11 +238,11 @@ namespace {
     }
 
     void parse_animation(const json_t& json_data, scene_t::Animation& output) {
-        output.m_name = json_data["name"];
-        output.m_ticks_per_sec = json_data["ticks per seconds"];
+        output.name_ = json_data["name"];
+        output.ticks_per_sec_ = json_data["ticks per seconds"];
 
         for (auto& x : json_data["joints"]) {
-            ::parse_anim_joint(x, output.m_joints.emplace_back());
+            ::parse_anim_joint(x, output.joints_.emplace_back());
         }
     }
 
@@ -250,16 +250,16 @@ namespace {
         ::parse_actor(json_data, output);
 
         for (auto& x : json_data["render pairs"]) {
-            auto& pair = output.m_render_pairs.emplace_back();
-            pair.m_mesh_name = x["mesh name"];
-            pair.m_material_name = x["material name"];
+            auto& pair = output.render_pairs_.emplace_back();
+            pair.mesh_name_ = x["mesh name"];
+            pair.material_name_ = x["material name"];
         }
     }
 
     void parse_ilight(const json_t& json_data, scene_t::ILight& output) {
-        ::parse_vec3(json_data["color"], output.m_color);
-        output.m_intensity = json_data["intensity"];
-        output.m_has_shadow = json_data["has shadow"];
+        ::parse_vec3(json_data["color"], output.color_);
+        output.intensity_ = json_data["intensity"];
+        output.has_shadow_ = json_data["has shadow"];
     }
 
     void parse_dlight(const json_t& json_data, scene_t::DirectionalLight& output) {
@@ -268,7 +268,7 @@ namespace {
     }
 
     void parse_plight(const json_t& json_data, scene_t::PointLight& output) {
-        output.m_max_distance = json_data["max distance"];
+        output.max_distance_ = json_data["max distance"];
 
         ::parse_actor(json_data, output);
         ::parse_ilight(json_data, output);
@@ -277,44 +277,44 @@ namespace {
     void parse_slight(const json_t& json_data, scene_t::Spotlight& output) {
         ::parse_plight(json_data, output);
 
-        output.m_spot_degree = json_data["spot degree"];
-        output.m_spot_blend = json_data["spot blend"];
+        output.spot_degree_ = json_data["spot degree"];
+        output.spot_blend_ = json_data["spot blend"];
     }
 
     void parse_scene(const json_t& json_data, scene_t& scene, const ::BinaryData& binary_data) {
-        scene.m_name = json_data["name"];
-        scene.m_root_transform = ::parse_mat4(json_data["root transform"]);
+        scene.name_ = json_data["name"];
+        scene.root_transform_ = ::parse_mat4(json_data["root transform"]);
 
         for (auto& x : json_data["meshes"]) {
-            ::parse_mesh(x, scene.m_meshes.emplace_back(), binary_data);
+            ::parse_mesh(x, scene.meshes_.emplace_back(), binary_data);
         }
 
         for (auto& x : json_data["materials"]) {
-            ::parse_material(x, scene.m_materials.emplace_back());
+            ::parse_material(x, scene.materials_.emplace_back());
         }
 
         for (auto& x : json_data["skeletons"]) {
-            ::parse_skeleton(x, scene.m_skeletons.emplace_back());
+            ::parse_skeleton(x, scene.skeletons_.emplace_back());
         }
 
         for (auto& x : json_data["animations"]) {
-            ::parse_animation(x, scene.m_animations.emplace_back());
+            ::parse_animation(x, scene.animations_.emplace_back());
         }
 
         for (auto& x : json_data["mesh actors"]) {
-            ::parse_mesh_actor(x, scene.m_mesh_actors.emplace_back());
+            ::parse_mesh_actor(x, scene.mesh_actors_.emplace_back());
         }
 
         for (auto& x : json_data["directional lights"]) {
-            ::parse_dlight(x, scene.m_dlights.emplace_back());
+            ::parse_dlight(x, scene.dlights_.emplace_back());
         }
 
         for (auto& x : json_data["point lights"]) {
-            ::parse_plight(x, scene.m_plights.emplace_back());
+            ::parse_plight(x, scene.plights_.emplace_back());
         }
 
         for (auto& x : json_data["spotlights"]) {
-            ::parse_slight(x, scene.m_slights.emplace_back());
+            ::parse_slight(x, scene.slights_.emplace_back());
         }
     }
 

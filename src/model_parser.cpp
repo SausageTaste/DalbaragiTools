@@ -44,8 +44,8 @@ namespace {
         float fbuf[6];
         header = dal::parser::assemble_4_bytes_array<float>(header, fbuf, 6);
 
-        output.m_min = glm::vec3{ fbuf[0], fbuf[1], fbuf[2] };
-        output.m_max = glm::vec3{ fbuf[3], fbuf[4], fbuf[5] };
+        output.min_ = glm::vec3{ fbuf[0], fbuf[1], fbuf[2] };
+        output.max_ = glm::vec3{ fbuf[3], fbuf[4], fbuf[5] };
 
         return header;
     }
@@ -70,33 +70,33 @@ namespace {
 namespace {
 
     const uint8_t* parse_skeleton(const uint8_t* header, const uint8_t* const end, dalp::Skeleton& output) {
-        header = ::parse_mat4(header, end, output.m_root_transform);
+        header = ::parse_mat4(header, end, output.root_transform_);
 
         const auto joint_count = dal::parser::make_int32(header); header += 4;
-        output.m_joints.resize(joint_count);
+        output.joints_.resize(joint_count);
 
         for ( int i = 0; i < joint_count; ++i ) {
-            auto& joint = output.m_joints.at(i);
+            auto& joint = output.joints_.at(i);
 
-            joint.m_name = reinterpret_cast<const char*>(header); header += joint.m_name.size() + 1;
-            joint.m_parent_index = dalp::make_int32(header); header += 4;
+            joint.name_ = reinterpret_cast<const char*>(header); header += joint.name_.size() + 1;
+            joint.parent_index_ = dalp::make_int32(header); header += 4;
 
             const auto joint_type_index = dalp::make_int32(header); header += 4;
             switch ( joint_type_index ) {
             case 0:
-                joint.m_joint_type = dalp::JointType::basic;
+                joint.joint_type_ = dalp::JointType::basic;
                 break;
             case 1:
-                joint.m_joint_type = dalp::JointType::hair_root;
+                joint.joint_type_ = dalp::JointType::hair_root;
                 break;
             case 2:
-                joint.m_joint_type = dalp::JointType::skirt_root;
+                joint.joint_type_ = dalp::JointType::skirt_root;
                 break;
             default:
-                joint.m_joint_type = dalp::JointType::basic;
+                joint.joint_type_ = dalp::JointType::basic;
             }
 
-            header = parse_mat4(header, end, joint.m_offset_mat);
+            header = parse_mat4(header, end, joint.offset_mat_);
         }
 
         return header;
@@ -104,7 +104,7 @@ namespace {
 
     const uint8_t* parse_animJoint(const uint8_t* header, const uint8_t* const end, dalp::AnimJoint& output) {
         {
-            output.m_name = reinterpret_cast<const char*>(header); header += output.m_name.size() + 1;
+            output.name_ = reinterpret_cast<const char*>(header); header += output.name_.size() + 1;
             glm::mat4 _;
             header = parse_mat4(header, end, _);
         }
@@ -146,17 +146,17 @@ namespace {
         for ( int i = 0; i < anim_count; ++i ) {
             auto& anim = animations.at(i);
 
-            anim.m_name = reinterpret_cast<const char*>(header);
-            header += anim.m_name.size() + 1;
+            anim.name_ = reinterpret_cast<const char*>(header);
+            header += anim.name_.size() + 1;
 
             const auto duration_tick = dalp::make_float32(header); header += 4;
-            anim.m_ticks_per_sec = dalp::make_float32(header); header += 4;
+            anim.ticks_per_sec_ = dalp::make_float32(header); header += 4;
 
             const auto joint_count = dalp::make_int32(header); header += 4;
-            anim.m_joints.resize(joint_count);
+            anim.joints_.resize(joint_count);
 
             for ( int j = 0; j < joint_count; ++j ) {
-                header = ::parse_animJoint(header, end, anim.m_joints.at(j));
+                header = ::parse_animJoint(header, end, anim.joints_.at(j));
             }
         }
 
@@ -170,21 +170,21 @@ namespace {
 namespace {
 
     const uint8_t* parse_material(const uint8_t* header, const uint8_t* const end, dalp::Material& material) {
-        material.m_roughness = dalp::make_float32(header); header += 4;
-        material.m_metallic = dalp::make_float32(header); header += 4;
-        material.m_transparency = dalp::make_bool8(header); header += 1;
+        material.roughness_ = dalp::make_float32(header); header += 4;
+        material.metallic_ = dalp::make_float32(header); header += 4;
+        material.transparency_ = dalp::make_bool8(header); header += 1;
 
-        material.m_albedo_map = reinterpret_cast<const char*>(header);
-        header += material.m_albedo_map.size() + 1;
+        material.albedo_map_ = reinterpret_cast<const char*>(header);
+        header += material.albedo_map_.size() + 1;
 
-        material.m_roughness_map = reinterpret_cast<const char*>(header);
-        header += material.m_roughness_map.size() + 1;
+        material.roughness_map_ = reinterpret_cast<const char*>(header);
+        header += material.roughness_map_.size() + 1;
 
-        material.m_metallic_map = reinterpret_cast<const char*>(header);
-        header += material.m_metallic_map.size() + 1;
+        material.metallic_map_ = reinterpret_cast<const char*>(header);
+        header += material.metallic_map_.size() + 1;
 
-        material.m_normal_map = reinterpret_cast<const char*>(header);
-        header += material.m_normal_map.size() + 1;
+        material.normal_map_ = reinterpret_cast<const char*>(header);
+        header += material.normal_map_.size() + 1;
 
         return header;
     }
@@ -194,14 +194,14 @@ namespace {
         const auto vert_count_times_3 = vert_count * 3;
         const auto vert_count_times_2 = vert_count * 2;
 
-        mesh.m_vertices.resize(vert_count_times_3);
-        header = dalp::assemble_4_bytes_array<float>(header, mesh.m_vertices.data(), vert_count_times_3);
+        mesh.vertices_.resize(vert_count_times_3);
+        header = dalp::assemble_4_bytes_array<float>(header, mesh.vertices_.data(), vert_count_times_3);
 
-        mesh.m_texcoords.resize(vert_count_times_2);
-        header = dalp::assemble_4_bytes_array<float>(header, mesh.m_texcoords.data(), vert_count_times_2);
+        mesh.uv_coordinates_.resize(vert_count_times_2);
+        header = dalp::assemble_4_bytes_array<float>(header, mesh.uv_coordinates_.data(), vert_count_times_2);
 
-        mesh.m_normals.resize(vert_count_times_3);
-        header = dalp::assemble_4_bytes_array<float>(header, mesh.m_normals.data(), vert_count_times_3);
+        mesh.normals_.resize(vert_count_times_3);
+        header = dalp::assemble_4_bytes_array<float>(header, mesh.normals_.data(), vert_count_times_3);
 
         return header;
     }
@@ -212,20 +212,20 @@ namespace {
         const auto vert_count_times_2 = vert_count * 2;
         const auto vert_count_times_joint_count = vert_count * dal::parser::NUM_JOINTS_PER_VERTEX;
 
-        mesh.m_vertices.resize(vert_count_times_3);
-        header = dalp::assemble_4_bytes_array<float>(header, mesh.m_vertices.data(), vert_count_times_3);
+        mesh.vertices_.resize(vert_count_times_3);
+        header = dalp::assemble_4_bytes_array<float>(header, mesh.vertices_.data(), vert_count_times_3);
 
-        mesh.m_texcoords.resize(vert_count_times_2);
-        header = dalp::assemble_4_bytes_array<float>(header, mesh.m_texcoords.data(), vert_count_times_2);
+        mesh.uv_coordinates_.resize(vert_count_times_2);
+        header = dalp::assemble_4_bytes_array<float>(header, mesh.uv_coordinates_.data(), vert_count_times_2);
 
-        mesh.m_normals.resize(vert_count_times_3);
-        header = dalp::assemble_4_bytes_array<float>(header, mesh.m_normals.data(), vert_count_times_3);
+        mesh.normals_.resize(vert_count_times_3);
+        header = dalp::assemble_4_bytes_array<float>(header, mesh.normals_.data(), vert_count_times_3);
 
-        mesh.m_boneWeights.resize(vert_count_times_joint_count);
-        header = dalp::assemble_4_bytes_array<float>(header, mesh.m_boneWeights.data(), vert_count_times_joint_count);
+        mesh.joint_weights_.resize(vert_count_times_joint_count);
+        header = dalp::assemble_4_bytes_array<float>(header, mesh.joint_weights_.data(), vert_count_times_joint_count);
 
-        mesh.m_boneIndex.resize(vert_count_times_joint_count);
-        header = dalp::assemble_4_bytes_array<int32_t>(header, mesh.m_boneIndex.data(), vert_count_times_joint_count);
+        mesh.joint_indices_.resize(vert_count_times_joint_count);
+        header = dalp::assemble_4_bytes_array<int32_t>(header, mesh.joint_indices_.data(), vert_count_times_joint_count);
 
         return header;
     }
@@ -233,19 +233,19 @@ namespace {
     const uint8_t* parse_mesh(const uint8_t* header, const uint8_t* const end, dalp::Mesh_Indexed& mesh) {
         const auto vertex_count = dalp::make_int32(header); header += 4;
         for (int32_t i = 0; i < vertex_count; ++i) {
-            auto& vert = mesh.m_vertices.emplace_back();
+            auto& vert = mesh.vertices_.emplace_back();
 
             float fbuf[8];
             header = dalp::assemble_4_bytes_array<float>(header, fbuf, 8);
 
-            vert.m_position = glm::vec3{ fbuf[0], fbuf[1], fbuf[2] };
-            vert.m_normal = glm::vec3{ fbuf[3], fbuf[4], fbuf[5] };
-            vert.m_uv_coords = glm::vec2{ fbuf[6], fbuf[7] };
+            vert.pos_ = glm::vec3{ fbuf[0], fbuf[1], fbuf[2] };
+            vert.normal_ = glm::vec3{ fbuf[3], fbuf[4], fbuf[5] };
+            vert.uv_ = glm::vec2{ fbuf[6], fbuf[7] };
         }
 
         const auto index_count = dalp::make_int32(header); header += 4;
         for (int32_t i = 0; i < index_count; ++i) {
-            mesh.m_indices.push_back(dalp::make_int32(header)); header += 4;
+            mesh.indices_.push_back(dalp::make_int32(header)); header += 4;
         }
 
         return header;
@@ -254,7 +254,7 @@ namespace {
     const uint8_t* parse_mesh(const uint8_t* header, const uint8_t* const end, dalp::Mesh_IndexedJoint& mesh) {
         const auto vertex_count = dalp::make_int32(header); header += 4;
         for (int32_t i = 0; i < vertex_count; ++i) {
-            auto& vert = mesh.m_vertices.emplace_back();
+            auto& vert = mesh.vertices_.emplace_back();
 
             float fbuf[8];
             header = dalp::assemble_4_bytes_array<float>(header, fbuf, 8);
@@ -263,22 +263,22 @@ namespace {
             int32_t ibuf_joint[dal::parser::NUM_JOINTS_PER_VERTEX];
             header = dalp::assemble_4_bytes_array<int32_t>(header, ibuf_joint, dal::parser::NUM_JOINTS_PER_VERTEX);
 
-            vert.m_position = glm::vec3{ fbuf[0], fbuf[1], fbuf[2] };
-            vert.m_normal = glm::vec3{ fbuf[3], fbuf[4], fbuf[5] };
-            vert.m_uv_coords = glm::vec2{ fbuf[6], fbuf[7] };
+            vert.pos_ = glm::vec3{ fbuf[0], fbuf[1], fbuf[2] };
+            vert.normal_ = glm::vec3{ fbuf[3], fbuf[4], fbuf[5] };
+            vert.uv_ = glm::vec2{ fbuf[6], fbuf[7] };
 
-            static_assert(sizeof(vert.m_joint_weights.x) == sizeof(float));
-            static_assert(sizeof(vert.m_joint_indices.x) == sizeof(int32_t));
-            static_assert(sizeof(vert.m_joint_weights) == sizeof(float) * dal::parser::NUM_JOINTS_PER_VERTEX);
-            static_assert(sizeof(vert.m_joint_indices) == sizeof(int32_t) * dal::parser::NUM_JOINTS_PER_VERTEX);
+            static_assert(sizeof(vert.joint_weights_.x) == sizeof(float));
+            static_assert(sizeof(vert.joint_indices_.x) == sizeof(int32_t));
+            static_assert(sizeof(vert.joint_weights_) == sizeof(float) * dal::parser::NUM_JOINTS_PER_VERTEX);
+            static_assert(sizeof(vert.joint_indices_) == sizeof(int32_t) * dal::parser::NUM_JOINTS_PER_VERTEX);
 
-            memcpy(&vert.m_joint_weights, fbuf_joint, sizeof(vert.m_joint_weights));
-            memcpy(&vert.m_joint_indices, ibuf_joint, sizeof(vert.m_joint_indices));
+            memcpy(&vert.joint_weights_, fbuf_joint, sizeof(vert.joint_weights_));
+            memcpy(&vert.joint_indices_, ibuf_joint, sizeof(vert.joint_indices_));
         }
 
         const auto index_count = dalp::make_int32(header); header += 4;
         for (int32_t i = 0; i < index_count; ++i) {
-            mesh.m_indices.push_back(dalp::make_int32(header)); header += 4;
+            mesh.indices_.push_back(dalp::make_int32(header)); header += 4;
         }
 
         return header;
@@ -286,9 +286,9 @@ namespace {
 
     template <typename _Mesh>
     const uint8_t* parse_render_unit(const uint8_t* header, const uint8_t* const end, dalp::RenderUnit<_Mesh>& unit) {
-        unit.m_name = reinterpret_cast<const char*>(header); header += unit.m_name.size() + 1;
-        header = ::parse_material(header, end, unit.m_material);
-        header = ::parse_mesh(header, end, unit.m_mesh);
+        unit.name_ = reinterpret_cast<const char*>(header); header += unit.name_.size() + 1;
+        header = ::parse_material(header, end, unit.material_);
+        header = ::parse_mesh(header, end, unit.mesh_);
 
         return header;
     }
@@ -297,32 +297,32 @@ namespace {
     dalp::ModelParseResult parse_all(dalp::Model& output, const uint8_t* const begin, const uint8_t* const end) {
         const uint8_t* header = begin;
 
-        header = ::parse_aabb(header, end, output.m_aabb);
-        header = ::parse_skeleton(header, end, output.m_skeleton);
-        header = ::parse_animations(header, end, output.m_animations);
+        header = ::parse_aabb(header, end, output.aabb_);
+        header = ::parse_skeleton(header, end, output.skeleton_);
+        header = ::parse_animations(header, end, output.animations_);
 
-        output.m_units_straight.resize(dalp::make_int32(header)); header += 4;
-        for (auto& unit : output.m_units_straight) {
+        output.units_straight_.resize(dalp::make_int32(header)); header += 4;
+        for (auto& unit : output.units_straight_) {
             header = ::parse_render_unit(header, end, unit);
         }
 
-        output.m_units_straight_joint.resize(dalp::make_int32(header)); header += 4;
-        for (auto& unit : output.m_units_straight_joint) {
+        output.units_straight_joint_.resize(dalp::make_int32(header)); header += 4;
+        for (auto& unit : output.units_straight_joint_) {
             header = ::parse_render_unit(header, end, unit);
         }
 
-        output.m_units_indexed.resize(dalp::make_int32(header)); header += 4;
-        for (auto& unit : output.m_units_indexed) {
+        output.units_indexed_.resize(dalp::make_int32(header)); header += 4;
+        for (auto& unit : output.units_indexed_) {
             header = ::parse_render_unit(header, end, unit);
         }
 
-        output.m_units_indexed_joint.resize(dalp::make_int32(header)); header += 4;
-        for (auto& unit : output.m_units_indexed_joint) {
+        output.units_indexed_joint_.resize(dalp::make_int32(header)); header += 4;
+        for (auto& unit : output.units_indexed_joint_) {
             header = ::parse_render_unit(header, end, unit);
         }
 
-        output.m_signature_hex = reinterpret_cast<const char*>(header);
-        header += output.m_signature_hex.size() + 1;
+        output.signature_hex_ = reinterpret_cast<const char*>(header);
+        header += output.signature_hex_.size() + 1;
 
         if (header != end)
             return dalp::ModelParseResult::corrupted_content;
@@ -374,11 +374,11 @@ namespace dal::parser {
 
         // Varify
         {
-            const dal::crypto::PublicKeySignature::Signature signature{ output.m_signature_hex };
+            const dal::crypto::PublicKeySignature::Signature signature{ output.signature_hex_ };
 
             const auto varify_result = sign_mgr.verify(
                 unzipped->data(),
-                unzipped->size() - output.m_signature_hex.size() - 1,
+                unzipped->size() - output.signature_hex_.size() - 1,
                 public_key,
                 signature
             );

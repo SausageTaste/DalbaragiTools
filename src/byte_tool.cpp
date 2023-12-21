@@ -167,7 +167,7 @@ namespace dal::parser {
     BinaryArrayParser::BinaryArrayParser(const uint8_t* const array, const size_t size)
         : m_array(array)
         , m_size(size)
-        , m_pos(0)
+        , pos_(0)
     {
 
     }
@@ -175,14 +175,14 @@ namespace dal::parser {
     BinaryArrayParser::BinaryArrayParser(const std::vector<uint8_t>& vector)
         : m_array(vector.data())
         , m_size(vector.size())
-        , m_pos(0)
+        , pos_(0)
     {
 
     }
 
     bool BinaryArrayParser::parse_bool8() {
-        this->m_pos += 1;
-        return this->m_array[this->m_pos - 1] != 0 ? true : false;
+        this->pos_ += 1;
+        return this->m_array[this->pos_ - 1] != 0 ? true : false;
     }
 
     int32_t BinaryArrayParser::parse_int32() {
@@ -210,8 +210,8 @@ namespace dal::parser {
     }
 
     std::string BinaryArrayParser::parse_str() {
-        const std::string output = reinterpret_cast<const char*>(this->m_array + this->m_pos);
-        this->m_pos += output.size() + 1;
+        const std::string output = reinterpret_cast<const char*>(this->m_array + this->pos_);
+        this->pos_ += output.size() + 1;
         return output;
     }
 
