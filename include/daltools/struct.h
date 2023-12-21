@@ -28,40 +28,6 @@ namespace dal::parser {
     };
 
 
-    class Transform {
-
-    public:
-        glm::vec3 m_pos;
-        glm::quat m_quat;
-        float m_scale = 1.f;
-
-    public:
-        bool operator==(const Transform& other) const {
-            if (this->m_pos != other.m_pos)
-                return false;
-            if (this->m_quat != other.m_quat)
-                return false;
-            if (this->m_scale != other.m_scale)
-                return false;
-
-            return true;
-        }
-
-        bool operator!=(const Transform& other) const {
-            return !Transform::operator==(other);
-        }
-
-        glm::mat4 make_mat4() const {
-            const auto identity = glm::mat4{ 1 };
-            const auto scale_mat = glm::scale(identity, glm::vec3{ this->m_scale, this->m_scale , this->m_scale });
-            const auto translate_mat = glm::translate(identity, this->m_pos);
-
-            return translate_mat * glm::mat4_cast(this->m_quat) * scale_mat;
-        }
-
-    };
-
-
     struct SceneIntermediate {
 
     public:
