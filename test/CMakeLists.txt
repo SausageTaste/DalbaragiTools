@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.4.1)
 
 
-add_executable(dal_parser_test_1 test_1.cpp)
-target_compile_features   (dal_parser_test_1 PUBLIC  cxx_std_17)
-target_include_directories(dal_parser_test_1 PRIVATE .)
-target_link_libraries     (dal_parser_test_1 PRIVATE dalbaragi::daltools)
-add_test(test_1 dal_parser_test_1)
+add_executable            (daltest_dmd test_dmd.cpp)
+target_compile_features   (daltest_dmd PUBLIC  cxx_std_17)
+target_include_directories(daltest_dmd PRIVATE .)
+target_link_libraries     (daltest_dmd PRIVATE dalbaragi::daltools)
+add_test                  (daltest_dmd daltest_dmd)
 
 add_executable            (daltest_keygen test_keygen.cpp)
 target_compile_features   (daltest_keygen PUBLIC  cxx_std_17)
