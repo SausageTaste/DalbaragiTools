@@ -64,6 +64,8 @@ namespace {
 
 
     bool test_one_json(const char* const json_path) {
+        const auto start_time = std::chrono::steady_clock::now();
+
         const auto file_content = ::read_file<std::vector<uint8_t>>(json_path);
         std::vector<dal::parser::SceneIntermediate> scenes;
         const auto result = dal::parser::parse_json(scenes, file_content->data(), file_content->size());
@@ -87,6 +89,9 @@ namespace {
             return false;
         }
 
+        const auto end_time = std::chrono::steady_clock::now();
+        const auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+        fmt::print("Test passed: {} ({} ms)\n", json_path, elapsed_time);
         return true;
     }
 
