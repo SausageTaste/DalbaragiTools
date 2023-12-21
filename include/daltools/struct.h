@@ -252,7 +252,6 @@ namespace dal::parser {
 
         struct PointLight : public IActor, public ILight {
             float m_max_distance = 0.f;
-            float m_half_intense_distance = 0.f;
         };
 
 

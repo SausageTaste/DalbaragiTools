@@ -269,7 +269,6 @@ namespace {
 
     void parse_plight(const json_t& json_data, scene_t::PointLight& output) {
         output.m_max_distance = json_data["max distance"];
-        output.m_half_intense_distance = json_data["half intense distance"];
 
         ::parse_actor(json_data, output);
         ::parse_ilight(json_data, output);
