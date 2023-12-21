@@ -96,7 +96,7 @@ namespace {
 int main() {
     const auto root_path = ::find_root_path();
 
-    for (const auto& entry : std::filesystem::directory_iterator(root_path / "test")) {
+    for (const auto& entry : std::filesystem::directory_iterator(root_path / "test" / "json")) {
         if (entry.path().extension() == ".json") {
             if (!::test_one_json(entry.path().u8string().c_str())) {
                 return 1;
