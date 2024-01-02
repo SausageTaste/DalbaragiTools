@@ -1,5 +1,6 @@
 #include "daltools/crypto.h"
 
+#include <algorithm>
 #include <mutex>
 #include <fstream>
 #include <cassert>
