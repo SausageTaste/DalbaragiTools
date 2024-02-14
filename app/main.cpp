@@ -18,6 +18,8 @@
 #include "daltools/util.h"
 #include "daltools/compression.h"
 
+#include "work_functions.hpp"
+
 
 namespace {
 
@@ -367,146 +369,6 @@ namespace {
         }
     }
 
-    void work_key(int argc, char* argv[]) {
-        dal::Timer timer;
-        argparse::ArgumentParser parser{ "daltools" };
-        {
-        parser.add_argument("operation")
-            .help("Operation name");
-
-        parser.add_argument("-p", "--print")
-            .help("Print attributes of a key")
-            .default_value(false)
-            .implicit_value(true);
-
-        parser.add_argument("-i", "--input")
-            .help("Key path")
-            .required();
-        }
-        parser.parse_args(argc, argv);
-
-        const auto key_path = parser.get<std::string>("--input");
-        const auto [key, attrib] = dal::crypto::load_key<dal::crypto::IKey>(key_path.c_str());
-
-        if (parser["--print"] == true) {
-            fmt::print("Owner: {}\n", attrib.m_owner_name);
-            fmt::print("E-mail: {}\n", attrib.m_email);
-            fmt::print("Description: {}\n", attrib.m_description);
-            fmt::print("Key type: {}\n", attrib.get_type_str());
-
-            const auto a = std::chrono::system_clock::to_time_t(attrib.m_created_time);
-            fmt::print("Created date: {:%F %T %z}\n", fmt::localtime(a));
-            std::cout << "===================================\n";
-        }
-    }
-
-    void work_keygen(int argc, char* argv[]) {
-        dal::Timer timer;
-        argparse::ArgumentParser parser{ "daltools" };
-        {
-        parser.add_argument("operation")
-            .help("Operation name");
-
-        parser.add_argument("-s", "--sign")
-            .help("Generate key pair for signing")
-            .default_value(false)
-            .implicit_value(true);
-
-        parser.add_argument("-o", "--output")
-            .help("File path to save key files. Extension must be omitted")
-            .required();
-
-        parser.add_argument("--owner")
-            .required();
-
-        parser.add_argument("--email")
-            .required();
-
-        parser.add_argument("--description");
-        }
-        parser.parse_args(argc, argv);
-
-        const auto output_prefix = parser.get<std::string>("--output");
-
-        if (parser["--sign"] == true) {
-            std::cout << "Keypair for signing\n";
-            timer.check();
-
-            dal::crypto::PublicKeySignature sign_mgr{ dal::crypto::CONTEXT_PARSER };
-            const auto [pk, sk] = sign_mgr.gen_keys();
-
-            dal::crypto::KeyAttrib attrib;
-            attrib.m_owner_name = parser.get<std::string>("--owner");
-            attrib.m_email = parser.get<std::string>("--email");
-            attrib.m_description = parser.get<std::string>("--description");
-
-            {
-                attrib.m_type = sk.key_type();
-                const auto path = output_prefix + "-sign_sec.dky";
-                dal::crypto::save_key(path.c_str(), sk, attrib);
-                fmt::print("    Secret key: {}\n", path);
-            }
-
-            {
-                attrib.m_type = pk.key_type();
-                const auto path = output_prefix + "-sign_pub.dky";
-                dal::crypto::save_key(path.c_str(), pk, attrib);
-                fmt::print("    Public key: {}\n", path);
-            }
-
-            fmt::print("    took {} seconds\n", timer.get_elapsed());
-        }
-    }
-
-    void work_compile(int argc, char* argv[]) {
-        argparse::ArgumentParser parser{ "daltools" };
-
-        parser.add_argument("operation")
-            .help("Operation name");
-
-        parser.add_argument("-k", "--key")
-            .help("Path to a secret key file");
-
-        parser.add_argument("files")
-            .help("Input model file paths")
-            .remaining();
-
-        parser.parse_args(argc, argv);
-
-        const auto files = parser.get<std::vector<std::string>>("files");
-
-        for (const auto& src_path : files) {
-            const auto file_content = ::read_file<std::vector<uint8_t>>(src_path.c_str());
-            std::vector<dal::parser::SceneIntermediate> scenes;
-            const auto result = dal::parser::parse_json(scenes, file_content->data(), file_content->size());
-
-            for (auto& scene : scenes) {
-                dal::parser::flip_uv_vertically(scene);
-                dal::parser::clear_collection_info(scene);
-                dal::parser::optimize_scene(scene);
-            }
-
-            const auto model = dal::parser::convert_to_model_dmd(scenes.at(0));
-            dal::parser::binary_buffer_t binary_built;
-            const auto key_path = parser.present("--key");
-            if (key_path.has_value()) {
-                dal::crypto::PublicKeySignature sign_mgr{ dal::crypto::CONTEXT_PARSER };
-                const auto [key, attrib] = dal::crypto::load_key<dal::crypto::PublicKeySignature::SecretKey>(key_path->c_str());
-                binary_built = dal::parser::build_binary_model(model, &key, &sign_mgr).value();
-            }
-            else {
-                binary_built = dal::parser::build_binary_model(model, nullptr, nullptr).value();
-            }
-
-            std::filesystem::path output_path = src_path;
-            output_path.replace_extension("dmd");
-
-            std::ofstream file(output_path.u8string().c_str(), std::ios::binary);
-            file.write(reinterpret_cast<const char*>(binary_built.data()), binary_built.size());
-            file.close();
-        }
-    }
-
     void work_verify(int argc, char* argv[]) {
         argparse::ArgumentParser parser{ "daltools" };
 
@@ -551,21 +413,20 @@ namespace {
 int main(int argc, char* argv[]) try {
     using namespace std::string_literals;
 
+    std::unordered_map<std::string, dal::work_func_t> arg_map{
+        { "key"s, dal::work_key },
+        { "keygen"s, dal::work_keygen },
+        { "compile"s, dal::work_compile },
+    };
+
     if (argc < 2)
         throw std::runtime_error{ "Operation must be specified" };
 
-    if ("model"s == argv[1])
-        ::work_model_mod(argc, argv);
-    else if ("key"s == argv[1])
-        ::work_key(argc, argv);
-    else if ("keygen"s == argv[1])
-        ::work_keygen(argc, argv);
-    else if ("compile"s == argv[1])
-        ::work_compile(argc, argv);
-    else if ("verify"s == argv[1])
-        ::work_verify(argc, argv);
+    auto found = arg_map.find(argv[1]);
+    if (found != arg_map.end())
+        found->second(argc, argv);
     else
-        throw std::runtime_error{ "unkown operation ("s + argv[1] + "). It must be one of { model, keygen }" };
+        throw std::runtime_error{ "Unknown operation ("s + argv[1] + "). It must be one of { key, keygen, compile }" };
 }
 catch (const std::runtime_error& e) {
     std::cout << "\nstd::runtime_error: " << e.what() << std::endl;
