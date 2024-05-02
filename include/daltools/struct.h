@@ -1,9 +1,9 @@
 #pragma once
 
 #include <map>
-#include <vector>
-#include <string>
 #include <optional>
+#include <string>
+#include <vector>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -17,9 +17,9 @@ namespace dal::parser {
 
 
     enum class JointType {
-        basic        = 0,
-        hair_root    = 1,
-        skirt_root   = 2,
+        basic = 0,
+        hair_root = 1,
+        skirt_root = 2,
     };
 
 
@@ -34,9 +34,9 @@ namespace dal::parser {
         class Transform {
 
         public:
-            glm::vec3 pos_{0, 0, 0};
-            glm::quat quat_{1, 0, 0, 0};
-            glm::vec3 scale_{1, 1, 1};
+            glm::vec3 pos_{ 0, 0, 0 };
+            glm::quat quat_{ 1, 0, 0, 0 };
+            glm::vec3 scale_{ 1, 1, 1 };
 
         public:
             bool operator==(const Transform& other) const;
@@ -46,7 +46,6 @@ namespace dal::parser {
             }
 
             glm::mat4 make_mat4() const;
-
         };
 
 
@@ -75,7 +74,6 @@ namespace dal::parser {
 
         public:
             bool are_same(const Vertex& other);
-
         };
 
 
@@ -91,7 +89,6 @@ namespace dal::parser {
             void add_vertex(const Vertex& vertex);
 
             void concat(const Mesh& other);
-
         };
 
 
@@ -113,7 +110,6 @@ namespace dal::parser {
             bool operator==(const Material& rhs) const;
 
             bool is_physically_same(const Material& other) const;
-
         };
 
 
@@ -126,14 +122,9 @@ namespace dal::parser {
             glm::mat4 offset_mat_{ 1 };
 
         public:
-            bool has_parent() const {
-                return !this->parent_name_.empty();
-            }
+            bool has_parent() const { return !this->parent_name_.empty(); }
 
-            bool is_root() const {
-                return this->parent_name_.empty();
-            }
-
+            bool is_root() const { return this->parent_name_.empty(); }
         };
 
 
@@ -146,7 +137,6 @@ namespace dal::parser {
 
         public:
             jointID_t find_index_by_name(const std::string& name) const;
-
         };
 
 
@@ -168,7 +158,6 @@ namespace dal::parser {
             float get_max_time_point() const;
 
             bool are_keyframes_empty() const;
-
         };
 
 
@@ -183,7 +172,6 @@ namespace dal::parser {
             float calc_duration_in_ticks() const;
 
             jointID_t find_index_by_name(const std::string& name) const;
-
         };
 
 
@@ -200,7 +188,6 @@ namespace dal::parser {
 
         public:
             bool can_merge_with(const MeshActor& other) const;
-
         };
 
 
@@ -211,12 +198,14 @@ namespace dal::parser {
         };
 
 
-        struct DirectionalLight : public IActor, public ILight {
+        struct DirectionalLight
+            : public IActor
+            , public ILight {};
 
-        };
 
-
-        struct PointLight : public IActor, public ILight {
+        struct PointLight
+            : public IActor
+            , public ILight {
             float max_distance_ = 0.f;
         };
 
@@ -229,7 +218,7 @@ namespace dal::parser {
 
     public:
         std::string name_;
-        glm::mat4 root_transform_{1};
+        glm::mat4 root_transform_{ 1 };
 
         std::vector<Mesh> meshes_;
         std::vector<Material> materials_;
@@ -253,7 +242,6 @@ namespace dal::parser {
         const IActor* find_actor_by_name(const std::string& name) const;
 
         glm::mat4 make_hierarchy_transform(const IActor& actor) const;
-
     };
 
 
@@ -284,8 +272,12 @@ namespace dal::parser {
         bool is_equal(const VertexJoint& other) const;
     };
 
-    static_assert(sizeof(VertexJoint::joint_indices_) == sizeof(VertexJoint::joint_weights_));
-    constexpr int NUM_JOINTS_PER_VERTEX = sizeof(VertexJoint::joint_indices_) / sizeof(float);
+    static_assert(
+        sizeof(VertexJoint::joint_indices_) ==
+        sizeof(VertexJoint::joint_weights_)
+    );
+    constexpr int NUM_JOINTS_PER_VERTEX = sizeof(VertexJoint::joint_indices_) /
+                                          sizeof(float);
 
 
     using Material = SceneIntermediate::Material;
@@ -354,7 +346,7 @@ namespace dal::parser {
 
 
     struct Skeleton {
-        glm::mat4 root_transform_{1};
+        glm::mat4 root_transform_{ 1 };
         std::vector<SkelJoint> joints_;
 
         // Returns -1 if not found
@@ -367,10 +359,10 @@ namespace dal::parser {
 
 
     struct Model {
-        std::vector<RenderUnit<      Mesh_Straight >> units_straight_;
-        std::vector<RenderUnit< Mesh_StraightJoint >> units_straight_joint_;
-        std::vector<RenderUnit<       Mesh_Indexed >> units_indexed_;
-        std::vector<RenderUnit<  Mesh_IndexedJoint >> units_indexed_joint_;
+        std::vector<RenderUnit<Mesh_Straight>> units_straight_;
+        std::vector<RenderUnit<Mesh_StraightJoint>> units_straight_joint_;
+        std::vector<RenderUnit<Mesh_Indexed>> units_indexed_;
+        std::vector<RenderUnit<Mesh_IndexedJoint>> units_indexed_joint_;
 
         std::vector<Animation> animations_;
         Skeleton skeleton_;
@@ -379,4 +371,4 @@ namespace dal::parser {
         std::string signature_hex_;
     };
 
-}
+}  // namespace dal::parser

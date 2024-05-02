@@ -7,16 +7,14 @@ namespace dal::parser {
 
     bool Vertex::is_equal(const Vertex& other) const {
         return (
-            this->pos_ == other.pos_ &&
-            this->uv_ == other.uv_ &&
+            this->pos_ == other.pos_ && this->uv_ == other.uv_ &&
             this->normal_ == other.normal_
         );
     }
 
     bool VertexJoint::is_equal(const VertexJoint& other) const {
         return (
-            this->pos_ == other.pos_ &&
-            this->uv_ == other.uv_ &&
+            this->pos_ == other.pos_ && this->uv_ == other.uv_ &&
             this->normal_ == other.normal_ &&
             this->joint_weights_ == other.joint_weights_ &&
             this->joint_indices_ == other.joint_indices_
@@ -25,21 +23,38 @@ namespace dal::parser {
 
 
     void Mesh_Straight::concat(const Mesh_Straight& other) {
-        this->vertices_.insert(vertices_.end(), other.vertices_.begin(), other.vertices_.end());
-        this->uv_coordinates_.insert(uv_coordinates_.end(), other.uv_coordinates_.begin(), other.uv_coordinates_.end());
-        this->normals_.insert(normals_.end(), other.normals_.begin(), other.normals_.end());
+        this->vertices_.insert(
+            vertices_.end(), other.vertices_.begin(), other.vertices_.end()
+        );
+        this->uv_coordinates_.insert(
+            uv_coordinates_.end(),
+            other.uv_coordinates_.begin(),
+            other.uv_coordinates_.end()
+        );
+        this->normals_.insert(
+            normals_.end(), other.normals_.begin(), other.normals_.end()
+        );
     }
 
     void Mesh_StraightJoint::concat(const Mesh_StraightJoint& other) {
         this->Mesh_Straight::concat(other);
 
-        this->joint_weights_.insert(joint_weights_.end(), other.joint_weights_.begin(), other.joint_weights_.end());
-        this->joint_indices_.insert(joint_indices_.end(), other.joint_indices_.begin(), other.joint_indices_.end());
+        this->joint_weights_.insert(
+            joint_weights_.end(),
+            other.joint_weights_.begin(),
+            other.joint_weights_.end()
+        );
+        this->joint_indices_.insert(
+            joint_indices_.end(),
+            other.joint_indices_.begin(),
+            other.joint_indices_.end()
+        );
     }
 
 
     jointID_t Skeleton::find_by_name(const std::string& name) const {
-        for (jointID_t i = 0; i < this->joints_.size(); ++i) {
+        const auto size = static_cast<jointID_t>(this->joints_.size());
+        for (jointID_t i = 0; i < size; ++i) {
             if (this->joints_[i].name_ == name) {
                 return i;
             }
@@ -48,7 +63,7 @@ namespace dal::parser {
         return -1;
     }
 
-}
+}  // namespace dal::parser
 
 
 //
@@ -69,9 +84,9 @@ namespace dal::parser {
     }
 
     glm::mat4 scene_t::Transform::make_mat4() const {
-        const auto scale = glm::scale(glm::mat4{1}, this->scale_);
+        const auto scale = glm::scale(glm::mat4{ 1 }, this->scale_);
         const auto rotation = glm::mat4_cast(this->quat_);
-        const auto translation = glm::translate(glm::mat4{1}, this->pos_);
+        const auto translation = glm::translate(glm::mat4{ 1 }, this->pos_);
         return translation * rotation * scale;
     }
 
@@ -99,7 +114,7 @@ namespace dal::parser {
         }
 
         return true;
-     }
+    }
 
 
     void scene_t::Mesh::add_vertex(const scene_t::Vertex& vertex) {
@@ -117,7 +132,9 @@ namespace dal::parser {
 
     void scene_t::Mesh::concat(const scene_t::Mesh& other) {
         if (this->skeleton_name_ != other.skeleton_name_)
-            throw std::runtime_error{"Cannot concatenate meshes with different skeletons"};
+            throw std::runtime_error{
+                "Cannot concatenate meshes with different skeletons"
+            };
 
         for (const auto index : other.indices_) {
             this->add_vertex(other.vertices_[index]);
@@ -134,7 +151,8 @@ namespace dal::parser {
         return true;
     }
 
-    bool scene_t::Material::is_physically_same(const scene_t::Material& other) const {
+    bool scene_t::Material::is_physically_same(const scene_t::Material& other
+    ) const {
         if (this->roughness_ != other.roughness_)
             return false;
         if (this->metallic_ != other.metallic_)
@@ -155,8 +173,10 @@ namespace dal::parser {
     }
 
 
-    jointID_t scene_t::Skeleton::find_index_by_name(const std::string& name) const {
-        for (jointID_t i = 0; i < this->joints_.size(); ++i) {
+    jointID_t scene_t::Skeleton::find_index_by_name(const std::string& name
+    ) const {
+        const auto size = static_cast<jointID_t>(this->joints_.size());
+        for (jointID_t i = 0; i < size; ++i) {
             if (this->joints_[i].name_ == name) {
                 return i;
             }
@@ -165,14 +185,18 @@ namespace dal::parser {
     }
 
 
-    void scene_t::AnimJoint::add_position(float time, float x, float y, float z) {
+    void scene_t::AnimJoint::add_position(
+        float time, float x, float y, float z
+    ) {
         auto& added = this->translations_.emplace_back();
 
         added.first = time;
         added.second = glm::vec3{ x, y, z };
     }
 
-    void scene_t::AnimJoint::add_rotation(float time, float w, float x, float y, float z) {
+    void scene_t::AnimJoint::add_rotation(
+        float time, float w, float x, float y, float z
+    ) {
         auto& added = this->rotations_.emplace_back();
 
         added.first = time;
@@ -190,11 +214,10 @@ namespace dal::parser {
         float max_value = 0;
 
         for (auto& x : this->translations_)
-            max_value = std::max(max_value, x.first);
+            max_value = glm::max(max_value, x.first);
         for (auto& x : this->rotations_)
-            max_value = std::max(max_value, x.first);
-        for (auto& x : this->scales_)
-            max_value = std::max(max_value, x.first);
+            max_value = glm::max(max_value, x.first);
+        for (auto& x : this->scales_) max_value = glm::max(max_value, x.first);
 
         return max_value;
     }
@@ -215,13 +238,15 @@ namespace dal::parser {
         float max_value = 0.f;
 
         for (auto& joint : this->joints_)
-            max_value = std::max(max_value, joint.get_max_time_point());
+            max_value = glm::max(max_value, joint.get_max_time_point());
 
         return 0.f != max_value ? max_value : 1.f;
     }
 
-    jointID_t scene_t::Animation::find_index_by_name(const std::string& name) const {
-        for (jointID_t i = 0; i < this->joints_.size(); ++i) {
+    jointID_t scene_t::Animation::find_index_by_name(const std::string& name
+    ) const {
+        const auto size = static_cast<jointID_t>(this->joints_.size());
+        for (jointID_t i = 0; i < size; ++i) {
             if (this->joints_[i].name_ == name) {
                 return i;
             }
@@ -243,7 +268,7 @@ namespace dal::parser {
         return true;
     }
 
-}
+}  // namespace dal::parser
 
 
 // SceneIntermediate
@@ -259,7 +284,8 @@ namespace dal::parser {
         return nullptr;
     }
 
-    const scene_t::Mesh* scene_t::find_mesh_by_name(const std::string& name) const {
+    const scene_t::Mesh* scene_t::find_mesh_by_name(const std::string& name
+    ) const {
         for (auto& mesh : this->meshes_) {
             if (mesh.name_ == name) {
                 return &mesh;
@@ -269,7 +295,9 @@ namespace dal::parser {
         return nullptr;
     }
 
-    const scene_t::Material* scene_t::find_material_by_name(const std::string& name) const {
+    const scene_t::Material* scene_t::find_material_by_name(
+        const std::string& name
+    ) const {
         for (auto& x : this->materials_) {
             if (x.name_ == name) {
                 return &x;
@@ -279,7 +307,9 @@ namespace dal::parser {
         return nullptr;
     }
 
-    const scene_t::Skeleton* scene_t::find_skeleton_by_name(const std::string& name) const {
+    const scene_t::Skeleton* scene_t::find_skeleton_by_name(
+        const std::string& name
+    ) const {
         for (auto& x : this->skeletons_) {
             if (x.name_ == name) {
                 return &x;
@@ -289,7 +319,8 @@ namespace dal::parser {
         return nullptr;
     }
 
-    const scene_t::IActor* scene_t::find_actor_by_name(const std::string& name) const {
+    const scene_t::IActor* scene_t::find_actor_by_name(const std::string& name
+    ) const {
         for (auto& x : this->mesh_actors_)
             if (x.name_ == name)
                 return &x;
@@ -309,7 +340,8 @@ namespace dal::parser {
         return nullptr;
     }
 
-    glm::mat4 scene_t::make_hierarchy_transform(const scene_t::IActor& actor) const {
+    glm::mat4 scene_t::make_hierarchy_transform(const scene_t::IActor& actor
+    ) const {
         glm::mat4 output = actor.transform_.make_mat4();
         const IActor* cur_actor = &actor;
 
@@ -319,9 +351,10 @@ namespace dal::parser {
             if (nullptr == cur_actor) {
                 if (nullptr != this->find_skeleton_by_name(parent_name)) {
                     break;
-                }
-                else {
-                    throw std::runtime_error{"Failed to find a parent actor \"" + parent_name + '"'};
+                } else {
+                    throw std::runtime_error{
+                        "Failed to find a parent actor \"" + parent_name + '"'
+                    };
                 }
             }
 
@@ -331,4 +364,4 @@ namespace dal::parser {
         return output;
     }
 
-}
+}  // namespace dal::parser
