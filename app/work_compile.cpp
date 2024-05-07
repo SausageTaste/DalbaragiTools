@@ -43,11 +43,24 @@ namespace {
         using namespace dal::parser;
         using SecretKey = PublicKeySignature::SecretKey;
 
-        const auto file_content = ::read_file(src_path);
+        const auto json_data = ::read_file(src_path);
+
+        auto bin_path = src_path;
+        bin_path.replace_extension("bin");
+
         std::vector<SceneIntermediate> scenes;
-        const auto result = parse_json(
-            scenes, file_content->data(), file_content->size()
-        );
+        JsonParseResult result;
+        if (const auto bin_data = ::read_file(bin_path)) {
+            result = parse_json_bin(
+                scenes,
+                json_data->data(),
+                json_data->size(),
+                bin_data->data(),
+                bin_data->size()
+            );
+        } else {
+            result = parse_json(scenes, json_data->data(), json_data->size());
+        }
 
         for (auto& scene : scenes) {
             flip_uv_vertically(scene);

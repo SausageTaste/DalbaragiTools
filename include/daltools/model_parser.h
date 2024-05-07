@@ -45,4 +45,12 @@ namespace dal::parser {
         const size_t content_size
     );
 
+    JsonParseResult parse_json_bin(
+        std::vector<SceneIntermediate>& scenes,
+        const uint8_t* const json_data,
+        const size_t json_size,
+        const uint8_t* const bin_data,
+        const size_t bin_size
+    );
+
 }  // namespace dal::parser

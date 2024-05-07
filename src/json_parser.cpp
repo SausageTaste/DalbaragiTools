@@ -47,6 +47,30 @@ namespace {
             return this->m_data.data() + index;
         }
 
+        bool parse_from_bin(
+            const uint8_t* const data,
+            const size_t size,
+            const json_t& json_data
+        ) {
+            const size_t raw_size = json_data["raw size"];
+
+            if (json_data.contains("compressed size")) {
+                this->m_data.resize(raw_size);
+                const auto result = dal::decompress_zip(
+                    m_data.data(), m_data.size(), data, size
+                );
+                if (dal::CompressResult::success != result.m_result) {
+                    return false;
+                }
+
+                assert(result.m_output_size == m_data.size());
+            } else {
+                m_data.assign(data, data + size);
+            }
+
+            return true;
+        }
+
         bool parse_from_json(const json_t& json_data) {
             const size_t raw_size = json_data["raw size"];
 
@@ -370,6 +394,29 @@ namespace dal::parser {
 
         ::BinaryData binary_data;
         binary_data.parse_from_json(json_data["binary data"]);
+
+        for (auto& x : json_data["scenes"]) {
+            ::parse_scene(x, scenes.emplace_back(), binary_data);
+        }
+
+        return JsonParseResult::success;
+    }
+
+    JsonParseResult parse_json_bin(
+        std::vector<SceneIntermediate>& scenes,
+        const uint8_t* const json_file_data,
+        const size_t json_file_size,
+        const uint8_t* const bin_data,
+        const size_t bin_size
+    ) {
+        const auto json_data = nlohmann::json::parse(
+            json_file_data, json_file_data + json_file_size
+        );
+
+        ::BinaryData binary_data;
+        binary_data.parse_from_bin(
+            bin_data, bin_size, json_data["binary data"]
+        );
 
         for (auto& x : json_data["scenes"]) {
             ::parse_scene(x, scenes.emplace_back(), binary_data);
