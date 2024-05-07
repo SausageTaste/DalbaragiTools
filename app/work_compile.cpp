@@ -14,7 +14,9 @@
 
 namespace {
 
-    std::optional<std::vector<uint8_t>> read_file(const std::string& path) {
+    std::optional<std::vector<uint8_t>> read_file(
+        const std::filesystem::path& path
+    ) {
         std::ifstream file{ path,
                             std::ios::ate | std::ios::binary | std::ios::in };
 
@@ -34,7 +36,8 @@ namespace {
 
 
     void do_file(
-        const std::string& src_path, const std::optional<std::string> key_path
+        const std::filesystem::path& src_path,
+        const std::optional<std::filesystem::path> key_path
     ) {
         using namespace dal::crypto;
         using namespace dal::parser;
@@ -57,7 +60,8 @@ namespace {
 
         if (key_path.has_value()) {
             PublicKeySignature sign_mgr{ CONTEXT_PARSER };
-            const auto [key, attrib] = load_key<SecretKey>(key_path->c_str());
+            const auto key_path_str = key_path->u8string().c_str();
+            const auto [key, attrib] = load_key<SecretKey>(key_path_str);
             bin_built = build_binary_model(model, &key, &sign_mgr);
         } else {
             bin_built = build_binary_model(model, nullptr, nullptr);
@@ -84,8 +88,15 @@ namespace dal {
         parser.parse_args(argc, argv);
 
         const auto files = parser.get<std::vector<std::string>>("files");
-        for (const auto& src_path : files)
-            ::do_file(src_path, parser.present("--key"));
+        for (const auto& src_path_str : files) {
+            std::filesystem::path src_path{ src_path_str };
+
+            std::optional<std::filesystem::path> key_path = std::nullopt;
+            if (const auto key_path_str = parser.present("--key"))
+                key_path = key_path_str.value();
+
+            ::do_file(src_path, key_path);
+        }
     }
 
 }  // namespace dal
