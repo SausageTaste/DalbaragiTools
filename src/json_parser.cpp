@@ -2,12 +2,12 @@
 
 #include <optional>
 
-#include <nlohmann/json.hpp>
 #include <libbase64.h>
+#include <nlohmann/json.hpp>
 
 #include "daltools/byte_tool.h"
-#include "daltools/konst.h"
 #include "daltools/compression.h"
+#include "daltools/konst.h"
 
 
 namespace {
@@ -31,8 +31,7 @@ namespace {
 
         if (1 != result) {
             output.clear();
-        }
-        else {
+        } else {
             output.resize(output_size);
         }
 
@@ -58,20 +57,23 @@ namespace {
 
             if (json_data.contains("compressed size")) {
                 this->m_data.resize(raw_size);
-                const auto result = dal::decompress_zip(this->m_data.data(), this->m_data.size(), base64_decoded.data(), base64_decoded.size());
+                const auto result = dal::decompress_zip(
+                    this->m_data.data(),
+                    this->m_data.size(),
+                    base64_decoded.data(),
+                    base64_decoded.size()
+                );
                 if (dal::CompressResult::success != result.m_result) {
                     return false;
                 }
 
                 assert(result.m_output_size == this->m_data.size());
-            }
-            else {
+            } else {
                 this->m_data = std::move(base64_decoded);
             }
 
             return true;
         }
-
     };
 
 
@@ -122,7 +124,11 @@ namespace {
         actor.hidden_ = json_data["hidden"];
     }
 
-    void parse_mesh(const json_t& json_data, scene_t::Mesh& output, const ::BinaryData& binary_data) {
+    void parse_mesh(
+        const json_t& json_data,
+        scene_t::Mesh& output,
+        const ::BinaryData& binary_data
+    ) {
         output.name_ = json_data["name"];
         output.skeleton_name_ = json_data["skeleton name"];
 
@@ -134,22 +140,33 @@ namespace {
         static_assert(sizeof(float) * 3 == sizeof(glm::vec3));
 
         {
-            const size_t bin_pos = json_data["vertices binary data"]["position"];
+            const size_t bin_pos =
+                json_data["vertices binary data"]["position"];
             const size_t bin_size = json_data["vertices binary data"]["size"];
 
             for (size_t i = 0; i < vertex_count; ++i) {
-                const auto ptr = binary_data.ptr_at(bin_pos + i * sizeof(glm::vec3));
-                output.vertices_[i].pos_ = *reinterpret_cast<const glm::vec3*>(ptr);
+                const auto ptr = binary_data.ptr_at(
+                    bin_pos + i * sizeof(glm::vec3)
+                );
+                output.vertices_[i].pos_ = *reinterpret_cast<const glm::vec3*>(
+                    ptr
+                );
             }
         }
 
         {
-            const size_t bin_pos = json_data["uv coordinates binary data"]["position"];
-            const size_t bin_size = json_data["uv coordinates binary data"]["size"];
+            const size_t bin_pos =
+                json_data["uv coordinates binary data"]["position"];
+            const size_t bin_size =
+                json_data["uv coordinates binary data"]["size"];
 
             for (size_t i = 0; i < vertex_count; ++i) {
-                const auto ptr = binary_data.ptr_at(bin_pos + i * sizeof(glm::vec2));
-                output.vertices_[i].uv_ = *reinterpret_cast<const glm::vec2*>(ptr);
+                const auto ptr = binary_data.ptr_at(
+                    bin_pos + i * sizeof(glm::vec2)
+                );
+                output.vertices_[i].uv_ = *reinterpret_cast<const glm::vec2*>(
+                    ptr
+                );
             }
         }
 
@@ -158,8 +175,12 @@ namespace {
             const size_t bin_size = json_data["normals binary data"]["size"];
 
             for (size_t i = 0; i < vertex_count; ++i) {
-                const auto ptr = binary_data.ptr_at(bin_pos + i * sizeof(glm::vec3));
-                output.vertices_[i].normal_ = glm::normalize(*reinterpret_cast<const glm::vec3*>(ptr));
+                const auto ptr = binary_data.ptr_at(
+                    bin_pos + i * sizeof(glm::vec3)
+                );
+                output.vertices_[i].normal_ = glm::normalize(
+                    *reinterpret_cast<const glm::vec3*>(ptr)
+                );
             }
         }
 
@@ -171,12 +192,15 @@ namespace {
 
             for (size_t i = 0; i < vertex_count; ++i) {
                 auto& vertex = output.vertices_[i];
-                const auto joint_count = dalp::make_int32(ptr); ptr += 4;
+                const auto joint_count = dalp::make_int32(ptr);
+                ptr += 4;
 
                 for (size_t j = 0; j < joint_count; ++j) {
                     auto& joint = vertex.joints_.emplace_back();
-                    joint.index_ = dalp::make_int32(ptr); ptr += 4;
-                    joint.weight_ = dalp::make_float32(ptr); ptr += 4;
+                    joint.index_ = dalp::make_int32(ptr);
+                    ptr += 4;
+                    joint.weight_ = dalp::make_float32(ptr);
+                    ptr += 4;
                 }
             }
 
@@ -191,7 +215,9 @@ namespace {
         }
     }
 
-    void parse_material(const json_t& json_mesh, scene_t::Material& output_material) {
+    void parse_material(
+        const json_t& json_mesh, scene_t::Material& output_material
+    ) {
         output_material.name_ = json_mesh["name"];
         output_material.roughness_ = json_mesh["roughness"];
         output_material.metallic_ = json_mesh["metallic"];
@@ -202,10 +228,14 @@ namespace {
         output_material.normal_map_ = json_mesh["normal map"];
     }
 
-    void parse_skeleton_joint(const json_t& json_data, scene_t::SkelJoint& output) {
+    void parse_skeleton_joint(
+        const json_t& json_data, scene_t::SkelJoint& output
+    ) {
         output.name_ = json_data["name"];
         output.parent_name_ = json_data["parent name"];
-        output.joint_type_ = static_cast<dalp::JointType>(static_cast<int>(json_data["joint type"]));
+        output.joint_type_ = static_cast<dalp::JointType>(
+            static_cast<int>(json_data["joint type"])
+        );
         ::parse_mat4(json_data["offset matrix"], output.offset_mat_);
     }
 
@@ -228,7 +258,9 @@ namespace {
 
         for (auto& x : json_data["rotations"]) {
             const auto& value = x["value"];
-            output.add_rotation(x["time point"], value[0], value[1], value[2], value[3]);
+            output.add_rotation(
+                x["time point"], value[0], value[1], value[2], value[3]
+            );
         }
 
         for (auto& x : json_data["scales"]) {
@@ -262,7 +294,9 @@ namespace {
         output.has_shadow_ = json_data["has shadow"];
     }
 
-    void parse_dlight(const json_t& json_data, scene_t::DirectionalLight& output) {
+    void parse_dlight(
+        const json_t& json_data, scene_t::DirectionalLight& output
+    ) {
         ::parse_actor(json_data, output);
         ::parse_ilight(json_data, output);
     }
@@ -281,7 +315,9 @@ namespace {
         output.spot_blend_ = json_data["spot blend"];
     }
 
-    void parse_scene(const json_t& json_data, scene_t& scene, const ::BinaryData& binary_data) {
+    void parse_scene(
+        const json_t& json_data, scene_t& scene, const ::BinaryData& binary_data
+    ) {
         scene.name_ = json_data["name"];
         scene.root_transform_ = ::parse_mat4(json_data["root transform"]);
 
@@ -318,13 +354,19 @@ namespace {
         }
     }
 
-}
+}  // namespace
 
 
 namespace dal::parser {
 
-    JsonParseResult parse_json(std::vector<SceneIntermediate>& scenes, const uint8_t* const file_content, const size_t content_size) {
-        const auto json_data = nlohmann::json::parse(file_content, file_content + content_size);
+    JsonParseResult parse_json(
+        std::vector<SceneIntermediate>& scenes,
+        const uint8_t* const file_content,
+        const size_t content_size
+    ) {
+        const auto json_data = nlohmann::json::parse(
+            file_content, file_content + content_size
+        );
 
         ::BinaryData binary_data;
         binary_data.parse_from_json(json_data["binary data"]);
@@ -336,4 +378,4 @@ namespace dal::parser {
         return JsonParseResult::success;
     }
 
-}
+}  // namespace dal::parser

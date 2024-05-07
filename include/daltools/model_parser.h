@@ -2,8 +2,8 @@
 
 #include <optional>
 
-#include "daltools/struct.h"
 #include "daltools/crypto.h"
+#include "daltools/struct.h"
 
 
 namespace dal::parser {
@@ -16,9 +16,15 @@ namespace dal::parser {
         invalid_signature,
     };
 
-    ModelParseResult parse_dmd(Model& output, const uint8_t* const file_content, const size_t content_size);
+    ModelParseResult parse_dmd(
+        Model& output,
+        const uint8_t* const file_content,
+        const size_t content_size
+    );
 
-    std::optional<Model> parse_dmd(const uint8_t* const file_content, const size_t content_size);
+    std::optional<Model> parse_dmd(
+        const uint8_t* const file_content, const size_t content_size
+    );
 
     ModelParseResult parse_verify_dmd(
         Model& output,
@@ -33,6 +39,10 @@ namespace dal::parser {
         success,
     };
 
-    JsonParseResult parse_json(std::vector<SceneIntermediate>& scenes, const uint8_t* const file_content, const size_t content_size);
+    JsonParseResult parse_json(
+        std::vector<SceneIntermediate>& scenes,
+        const uint8_t* const file_content,
+        const size_t content_size
+    );
 
-}
+}  // namespace dal::parser
