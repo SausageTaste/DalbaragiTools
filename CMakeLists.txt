@@ -8,6 +8,7 @@ project(DalbaragiTools
 
 
 set(source_dir ${PROJECT_SOURCE_DIR}/src)
+set(DALTOOLS_ENABLE_TEST OFF CACHE BOOL "Enable testing")
 
 #set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 #set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
@@ -66,6 +67,20 @@ FetchContent_MakeAvailable(fetch_fmt)
 FetchContent_MakeAvailable(fetch_base64)
 
 
+if (DALTOOLS_ENABLE_TEST)
+    FetchContent_Declare(
+        daltools_fetch_googletest
+        GIT_REPOSITORY https://github.com/google/googletest
+        GIT_TAG        v1.14.0
+    )
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+    FetchContent_MakeAvailable(
+        daltools_fetch_googletest
+    )
+endif()
+
+
 # Define project library
 # ----------------------------------------------------------------------------------
 
@@ -118,7 +133,10 @@ target_link_libraries(libdaltools
 # Add subdirectories
 # ----------------------------------------------------------------------------------
 
-enable_testing()
-
 add_subdirectory(./app)
-add_subdirectory(./test)
+
+
+if (DALTOOLS_ENABLE_TEST)
+    enable_testing()
+    add_subdirectory(./test)
+endif()

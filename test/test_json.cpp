@@ -3,6 +3,7 @@
 #include <optional>
 
 #include <fmt/format.h>
+#include <gtest/gtest.h>
 
 #include "daltools/model_exporter.h"
 #include "daltools/model_parser.h"
@@ -37,6 +38,22 @@ namespace {
 
         throw std::runtime_error{ "Failed to find root folder" };
     }
+
+    std::vector<fs::path> get_json_paths() {
+        std::vector<fs::path> output;
+
+        const auto root_path = ::find_root_path();
+        const auto json_path = root_path / "test" / "json";
+
+        for (const auto& entry : fs::directory_iterator(json_path)) {
+            if (entry.path().extension() == ".json") {
+                output.push_back(entry.path());
+            }
+        }
+
+        return output;
+    }
+
 
     template <typename T>
     std::optional<T> read_file(const fs::path& path) {
@@ -76,62 +93,62 @@ namespace {
     }
 
 
-    bool test_one_json(const fs::path& json_path) {
-        const auto start_time = ::time_sec();
+    TEST(Json, RealFileTest) {
+        for (const auto json_path : ::get_json_paths()) {
+            const auto start_time = ::time_sec();
+            const auto file_content = ::read_file<std::vector<uint8_t>>(
+                json_path
+            );
+            ASSERT_TRUE(file_content.has_value())
+                << "Failed to read file: " << json_path.u8string();
 
-        const auto file_content = ::read_file<std::vector<uint8_t>>(json_path);
-        std::vector<dal::parser::SceneIntermediate> scenes;
-        const auto result = dal::parser::parse_json(
-            scenes, file_content->data(), file_content->size()
-        );
-        assert(scenes.size() == 1);
+            std::vector<dal::parser::SceneIntermediate> scenes;
+            const auto result = dal::parser::parse_json(
+                scenes, file_content->data(), file_content->size()
+            );
+            ASSERT_EQ(scenes.size(), 1);
 
-        for (auto& scene : scenes) {
-            dal::parser::flip_uv_vertically(scene);
-            dal::parser::clear_collection_info(scene);
-            dal::parser::optimize_scene(scene);
-        }
+            for (auto& scene : scenes) {
+                dal::parser::flip_uv_vertically(scene);
+                dal::parser::clear_collection_info(scene);
+                dal::parser::optimize_scene(scene);
+            }
 
-        const auto model1 = dal::parser::convert_to_model_dmd(scenes.at(0));
-        const auto binary1 =
-            dal::parser::build_binary_model(model1, nullptr, nullptr).value();
+            const auto model1 = dal::parser::convert_to_model_dmd(scenes.at(0));
+            const auto binary1 = dal::parser::build_binary_model(
+                model1, nullptr, nullptr
+            );
+            ASSERT_TRUE(binary1.has_value());
 
-        const auto model2 =
-            dal::parser::parse_dmd(binary1.data(), binary1.size()).value();
-        const auto binary2 =
-            dal::parser::build_binary_model(model2, nullptr, nullptr).value();
+            const auto model2 = dal::parser::parse_dmd(
+                binary1->data(), binary1->size()
+            );
+            ASSERT_TRUE(model2.has_value());
 
-        const auto similarity = compare_binary_buffers(binary1, binary2);
-        if (1.0 != similarity) {
-            fmt::print(
-                "Binary results are different: {} ({})\n",
+            const auto binary2 = dal::parser::build_binary_model(
+                model2.value(), nullptr, nullptr
+            );
+            ASSERT_TRUE(binary2.has_value());
+
+            const auto similarity = compare_binary_buffers(*binary1, *binary2);
+            ASSERT_DOUBLE_EQ(1.0, similarity) << fmt::format(
+                "Binary results are different: {} ({})",
                 json_path.u8string(),
                 similarity
             );
-            return false;
-        }
 
-        const auto end_time = ::time_sec();
-        const auto elapsed_time = end_time - start_time;
-        fmt::print(
-            "Test passed: {} ({} ms)\n", json_path.u8string(), elapsed_time
-        );
-        return true;
+            const auto end_time = ::time_sec();
+            const auto elapsed_time = end_time - start_time;
+            fmt::print(
+                "Test passed: {} ({} ms)\n", json_path.u8string(), elapsed_time
+            );
+        }
     }
 
 }  // namespace
 
 
-int main() {
-    const auto root_path = ::find_root_path();
-    const auto json_path = root_path / "test" / "json";
-
-    for (const auto& entry : fs::directory_iterator(json_path)) {
-        if (entry.path().extension() == ".json") {
-            if (!::test_one_json(entry.path())) {
-                return 1;
-            }
-        }
-    }
-    return 0;
+int main(int argc, char** argv) {
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }
