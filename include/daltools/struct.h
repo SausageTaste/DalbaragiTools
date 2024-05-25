@@ -150,14 +150,12 @@ namespace dal::parser {
 
         public:
             void add_position(float time, float x, float y, float z);
-
             void add_rotation(float time, float w, float x, float y, float z);
-
             void add_scale(float time, float x);
 
             float get_max_time_point() const;
 
-            bool are_keyframes_empty() const;
+            bool is_almost_identity(double epsilon) const;
         };
 
 

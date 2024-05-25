@@ -222,13 +222,29 @@ namespace dal::parser {
         return max_value;
     }
 
-    bool scene_t::AnimJoint::are_keyframes_empty() const {
-        if (!this->translations_.empty())
-            return false;
-        if (!this->rotations_.empty())
-            return false;
-        if (!this->scales_.empty())
-            return false;
+    bool scene_t::AnimJoint::is_almost_identity(double epsilon) const {
+        const auto epsilon_sq = epsilon * epsilon;
+
+        for (auto& x : this->translations_) {
+            if (glm::dot(x.second, x.second) > epsilon_sq)
+                return false;
+        }
+
+        for (auto& x : this->rotations_) {
+            if (std::abs(x.second.w - 1.f) > epsilon)
+                return false;
+            if (std::abs(x.second.x) > epsilon)
+                return false;
+            if (std::abs(x.second.y) > epsilon)
+                return false;
+            if (std::abs(x.second.z) > epsilon)
+                return false;
+        }
+
+        for (auto& x : this->scales_) {
+            if (std::abs(x.second - 1.f) > epsilon)
+                return false;
+        }
 
         return true;
     }

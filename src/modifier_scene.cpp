@@ -421,7 +421,7 @@ namespace {
         // Nodes with keyframes
         for (auto& anim : animations) {
             for (auto& joint : anim.joints_) {
-                if (!joint.are_keyframes_empty()) {
+                if (!joint.is_almost_identity(0.01)) {
                     output.insert(joint.name_);
                 }
             }
