@@ -126,9 +126,10 @@ namespace {
                     if (const auto v = ch_data.try_get(ch))
                         prev_v = v.value();
                 } else if (time_point > tp) {
-                    if (const auto v = ch_data.try_get(ch))
-                        prev_v = v.value();
-                    break;
+                    if (const auto v = ch_data.try_get(ch)) {
+                        next_v = v.value();
+                        break;
+                    }
                 }
             }
 
