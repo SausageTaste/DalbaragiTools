@@ -1,7 +1,9 @@
 #include "daltools/model_parser.h"
 
 #include <optional>
+#include <set>
 
+#include <fmt/format.h>
 #include <libbase64.h>
 #include <nlohmann/json.hpp>
 
@@ -98,6 +100,105 @@ namespace {
 
             return true;
         }
+    };
+
+
+    class AnimAssembler {
+
+    public:
+        /**
+         * @param tp Time point
+         * @param ch Channel
+         * @param v Value
+         */
+        void add(const float tp, const int ch, const float v) {
+            auto& channel_data = this->get_or_create_ch(tp);
+            channel_data.notify(ch, v);
+        }
+
+        float get_extended(const float tp, const int ch) const {
+            if (const auto v = this->get_value(tp, ch))
+                return *v;
+
+            std::optional<float> prev_v, next_v;
+            for (const auto& [time_point, ch_data] : this->data_) {
+                if (time_point < tp) {
+                    if (const auto v = ch_data.try_get(ch))
+                        prev_v = v.value();
+                } else if (time_point > tp) {
+                    if (const auto v = ch_data.try_get(ch))
+                        prev_v = v.value();
+                    break;
+                }
+            }
+
+            if (prev_v.has_value())
+                return prev_v.value();
+            else if (next_v.has_value())
+                return next_v.value();
+            else
+                return 0.0f;
+        }
+
+        std::set<float> get_time_points() const {
+            std::set<float> output;
+            for (const auto& [time_point, _] : this->data_) {
+                output.insert(time_point);
+            }
+            return output;
+        }
+
+    private:
+        struct ChannelData {
+            int channel_;
+            float value_;
+        };
+
+        class Channels {
+
+        public:
+            void notify(const int ch, const float v) { data_[ch] = v; }
+
+            std::optional<float> try_get(const int ch) const {
+                const auto it = this->data_.find(ch);
+                if (this->data_.end() == it) {
+                    return std::nullopt;
+                } else {
+                    return it->second;
+                }
+            }
+
+        private:
+            std::map<int, float> data_;
+        };
+
+        Channels& get_or_create_ch(const float tp) {
+            auto it = data_.find(tp);
+            if (data_.end() == it) {
+                auto result = data_.emplace(tp, Channels{});
+                return result.first->second;
+            } else {
+                return it->second;
+            }
+        }
+
+        const Channels* try_get_ch(const float tp) const {
+            auto it = this->data_.find(tp);
+            if (this->data_.end() == it) {
+                return nullptr;
+            } else {
+                return &it->second;
+            }
+        }
+
+        std::optional<float> get_value(const float tp, const int ch) const {
+            if (const auto ch_data = this->try_get_ch(tp))
+                return ch_data->try_get(ch);
+            else
+                return std::nullopt;
+        }
+
+        std::map<float, Channels> data_;
     };
 
 
@@ -293,13 +394,113 @@ namespace {
         }
     }
 
-    void parse_animation(const json_t& json_data, scene_t::Animation& output) {
+    bool parse_animation(
+        const json_t& json_data,
+        scene_t::Animation& output,
+        const ::BinaryData& binary_data
+    ) {
         output.name_ = json_data["name"];
         output.ticks_per_sec_ = json_data["ticks per seconds"];
 
-        for (auto& x : json_data["joints"]) {
-            ::parse_anim_joint(x, output.joints_.emplace_back());
+        const auto joints_data_loc = json_data["joints data loc"];
+        const auto joints_data_size = json_data["joints data size"];
+
+        const auto begin = binary_data.ptr_at(joints_data_loc);
+        const auto end = begin + joints_data_size;
+        auto it = begin;
+
+        const auto joint_count = dalp::make_int32(it);
+        it += 4;
+
+        for (int32_t i = 0; i < joint_count; ++i) {
+            const std::string joint_name{ reinterpret_cast<const char*>(it) };
+            it += joint_name.size() + 1;
+
+            auto& dst_joint = output.joints_.emplace_back();
+            dst_joint.name_ = joint_name;
+
+            // Positions
+            {
+                ::AnimAssembler asmbler;
+                const auto triplet_count = dalp::make_int32(it);
+                it += 4;
+
+                for (int32_t j = 0; j < triplet_count; ++j) {
+                    const auto time_point = dalp::make_float32(it);
+                    it += 4;
+                    const auto channel = dalp::make_int16(it);
+                    it += 2;
+                    const auto value = dalp::make_float32(it);
+                    it += 4;
+
+                    asmbler.add(time_point, channel, value);
+                }
+
+                for (const auto tp : asmbler.get_time_points()) {
+                    dst_joint.add_position(
+                        tp,
+                        asmbler.get_extended(tp, 0),
+                        asmbler.get_extended(tp, 1),
+                        asmbler.get_extended(tp, 2)
+                    );
+                }
+            }
+
+            // Rotations
+            {
+                ::AnimAssembler asmbler;
+                const auto triplet_count = dalp::make_int32(it);
+                it += 4;
+
+                for (int32_t j = 0; j < triplet_count; ++j) {
+                    const auto time_point = dalp::make_float32(it);
+                    it += 4;
+                    const auto channel = dalp::make_int16(it);
+                    it += 2;
+                    const auto value = dalp::make_float32(it);
+                    it += 4;
+
+                    asmbler.add(time_point, channel, value);
+                }
+
+                for (const auto tp : asmbler.get_time_points()) {
+                    dst_joint.add_rotation(
+                        tp,
+                        asmbler.get_extended(tp, 0),
+                        asmbler.get_extended(tp, 1),
+                        asmbler.get_extended(tp, 2),
+                        asmbler.get_extended(tp, 3)
+                    );
+                }
+            }
+
+            // Scales
+            {
+                ::AnimAssembler asmbler;
+                const auto triplet_count = dalp::make_int32(it);
+                it += 4;
+
+                for (int32_t j = 0; j < triplet_count; ++j) {
+                    const auto time_point = dalp::make_float32(it);
+                    it += 4;
+                    const auto channel = dalp::make_int16(it);
+                    it += 2;
+                    const auto value = dalp::make_float32(it);
+                    it += 4;
+
+                    asmbler.add(time_point, channel, value);
+                }
+
+                for (const auto tp : asmbler.get_time_points()) {
+                    const double x_scale = asmbler.get_extended(tp, 0);
+                    const double y_scale = asmbler.get_extended(tp, 1);
+                    const double z_scale = asmbler.get_extended(tp, 2);
+                    const auto mean_scale = (x_scale + y_scale + z_scale) / 3.0;
+                    dst_joint.add_scale(tp, static_cast<float>(mean_scale));
+                }
+            }
         }
+        return end == it;
     }
 
     void parse_mesh_actor(const json_t& json_data, scene_t::MeshActor& output) {
@@ -358,7 +559,11 @@ namespace {
         }
 
         for (auto& x : json_data["animations"]) {
-            ::parse_animation(x, scene.animations_.emplace_back());
+            auto& anim = scene.animations_.emplace_back();
+            if (!::parse_animation(x, anim, binary_data)) {
+                throw std::runtime_error{ "Failed to parse animation" };
+                scene.animations_.pop_back();
+            }
         }
 
         for (auto& x : json_data["mesh actors"]) {
