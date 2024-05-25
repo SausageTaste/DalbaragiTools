@@ -102,10 +102,28 @@ namespace {
             ASSERT_TRUE(file_content.has_value())
                 << "Failed to read file: " << json_path.u8string();
 
-            std::vector<dal::parser::SceneIntermediate> scenes;
-            const auto result = dal::parser::parse_json(
-                scenes, file_content->data(), file_content->size()
+            // Replace extension from .json to .bin
+            auto bin_path = json_path;
+            bin_path.replace_extension(".bin");
+            const auto bin_file_content = ::read_file<std::vector<uint8_t>>(
+                bin_path
             );
+
+            std::vector<dal::parser::SceneIntermediate> scenes;
+            dal::parser::JsonParseResult result;
+            if (bin_file_content) {
+                result = dal::parser::parse_json_bin(
+                    scenes,
+                    file_content->data(),
+                    file_content->size(),
+                    bin_file_content->data(),
+                    bin_file_content->size()
+                );
+            } else {
+                result = dal::parser::parse_json(
+                    scenes, file_content->data(), file_content->size()
+                );
+            }
             ASSERT_EQ(scenes.size(), 1);
 
             for (auto& scene : scenes) {
