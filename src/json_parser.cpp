@@ -374,27 +374,6 @@ namespace {
         }
     }
 
-    void parse_anim_joint(const json_t& json_data, scene_t::AnimJoint& output) {
-        output.name_ = json_data["name"];
-
-        for (auto& x : json_data["positions"]) {
-            const auto& value = x["value"];
-            output.add_position(x["time point"], value[0], value[1], value[2]);
-        }
-
-        for (auto& x : json_data["rotations"]) {
-            const auto& value = x["value"];
-            output.add_rotation(
-                x["time point"], value[0], value[1], value[2], value[3]
-            );
-        }
-
-        for (auto& x : json_data["scales"]) {
-            const auto& value = x["value"];
-            output.add_scale(x["time point"], value);
-        }
-    }
-
     bool parse_animation(
         const json_t& json_data,
         scene_t::Animation& output,
