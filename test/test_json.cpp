@@ -1,25 +1,34 @@
+#include <filesystem>
 #include <fstream>
 #include <optional>
-#include <filesystem>
 
 #include <fmt/format.h>
 
-#include "daltools/modifier.h"
-#include "daltools/model_parser.h"
 #include "daltools/model_exporter.h"
+#include "daltools/model_parser.h"
+#include "daltools/modifier.h"
+
+
+namespace fs = std::filesystem;
 
 
 namespace {
 
-    std::filesystem::path find_root_path() {
+    double time_sec() {
+        const auto now = std::chrono::system_clock::now();
+        return static_cast<double>(now.time_since_epoch().count()) / 1e9;
+    }
+
+
+    fs::path find_root_path() {
         constexpr int DEPTH = 10;
 
-        std::filesystem::path current_dir = ".";
+        fs::path current_dir = ".";
 
         for (int i = 0; i < DEPTH; ++i) {
-            for (const auto& entry : std::filesystem::directory_iterator(current_dir)) {
+            for (const auto& entry : fs::directory_iterator(current_dir)) {
                 if (entry.path().filename().u8string() == ".git") {
-                    return std::filesystem::absolute(current_dir);
+                    return fs::absolute(current_dir);
                 }
             }
 
@@ -30,8 +39,9 @@ namespace {
     }
 
     template <typename T>
-    std::optional<T> read_file(const char* const path) {
-        std::ifstream file{ path, std::ios::ate | std::ios::binary | std::ios::in };
+    std::optional<T> read_file(const fs::path& path) {
+        std::ifstream file{ path,
+                            std::ios::ate | std::ios::binary | std::ios::in };
 
         if (!file.is_open())
             return std::nullopt;
@@ -47,7 +57,9 @@ namespace {
         return buffer;
     }
 
-    double compare_binary_buffers(const std::vector<uint8_t>& lhs, const std::vector<uint8_t>& rhs) {
+    double compare_binary_buffers(
+        const std::vector<uint8_t>& lhs, const std::vector<uint8_t>& rhs
+    ) {
         if (lhs.size() != rhs.size()) {
             return 0.0;
         }
@@ -59,16 +71,19 @@ namespace {
             }
         }
 
-        return static_cast<double>(same_count) / static_cast<double>(lhs.size());
+        return static_cast<double>(same_count) /
+               static_cast<double>(lhs.size());
     }
 
 
-    bool test_one_json(const char* const json_path) {
-        const auto start_time = std::chrono::steady_clock::now();
+    bool test_one_json(const fs::path& json_path) {
+        const auto start_time = ::time_sec();
 
         const auto file_content = ::read_file<std::vector<uint8_t>>(json_path);
         std::vector<dal::parser::SceneIntermediate> scenes;
-        const auto result = dal::parser::parse_json(scenes, file_content->data(), file_content->size());
+        const auto result = dal::parser::parse_json(
+            scenes, file_content->data(), file_content->size()
+        );
         assert(scenes.size() == 1);
 
         for (auto& scene : scenes) {
@@ -78,32 +93,42 @@ namespace {
         }
 
         const auto model1 = dal::parser::convert_to_model_dmd(scenes.at(0));
-        const auto binary1 = dal::parser::build_binary_model(model1, nullptr, nullptr).value();
+        const auto binary1 =
+            dal::parser::build_binary_model(model1, nullptr, nullptr).value();
 
-        const auto model2 = dal::parser::parse_dmd(binary1.data(), binary1.size()).value();
-        const auto binary2 = dal::parser::build_binary_model(model2, nullptr, nullptr).value();
+        const auto model2 =
+            dal::parser::parse_dmd(binary1.data(), binary1.size()).value();
+        const auto binary2 =
+            dal::parser::build_binary_model(model2, nullptr, nullptr).value();
 
         const auto similarity = compare_binary_buffers(binary1, binary2);
         if (1.0 != similarity) {
-            fmt::print("Binary results are different: {} ({})\n", json_path, similarity);
+            fmt::print(
+                "Binary results are different: {} ({})\n",
+                json_path.u8string(),
+                similarity
+            );
             return false;
         }
 
-        const auto end_time = std::chrono::steady_clock::now();
-        const auto elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-        fmt::print("Test passed: {} ({} ms)\n", json_path, elapsed_time);
+        const auto end_time = ::time_sec();
+        const auto elapsed_time = end_time - start_time;
+        fmt::print(
+            "Test passed: {} ({} ms)\n", json_path.u8string(), elapsed_time
+        );
         return true;
     }
 
-}
+}  // namespace
 
 
 int main() {
     const auto root_path = ::find_root_path();
+    const auto json_path = root_path / "test" / "json";
 
-    for (const auto& entry : std::filesystem::directory_iterator(root_path / "test" / "json")) {
+    for (const auto& entry : fs::directory_iterator(json_path)) {
         if (entry.path().extension() == ".json") {
-            if (!::test_one_json(entry.path().u8string().c_str())) {
+            if (!::test_one_json(entry.path())) {
                 return 1;
             }
         }
