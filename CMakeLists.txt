@@ -9,6 +9,7 @@ project(DalbaragiTools
 
 set(source_dir ${PROJECT_SOURCE_DIR}/src)
 set(DALTOOLS_ENABLE_TEST OFF CACHE BOOL "Enable testing")
+set(BUILD_SHARED_LIBS OFF)
 
 #set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 #set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
@@ -60,12 +61,19 @@ FetchContent_Declare(
     GIT_TAG        b20a31a997e0b48274fa09e58b65ee9202531e4f
 )
 
+FetchContent_Declare(
+    fetch_brotli
+    GIT_REPOSITORY https://github.com/google/brotli
+    GIT_TAG        v1.1.0
+)
+
 FetchContent_MakeAvailable(fetch_glm)
 FetchContent_MakeAvailable(fetch_libhydrogen)
 FetchContent_MakeAvailable(fetch_argparse)
 FetchContent_MakeAvailable(fetch_json)
 FetchContent_MakeAvailable(fetch_fmt)
 FetchContent_MakeAvailable(fetch_base64)
+FetchContent_MakeAvailable(fetch_brotli)
 
 
 if (DALTOOLS_ENABLE_TEST)
@@ -85,7 +93,7 @@ endif()
 # Define project library
 # ----------------------------------------------------------------------------------
 
-add_library(libdaltools
+add_library(libdaltools STATIC
     ${source_dir}/model_parser.cpp
     ${source_dir}/struct.cpp
     ${source_dir}/byte_tool.cpp
@@ -128,6 +136,8 @@ target_link_libraries(libdaltools
         nlohmann_json::nlohmann_json
         base64
         fmt::fmt
+        brotlidec
+        brotlienc
 )
 
 
