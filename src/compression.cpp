@@ -9,9 +9,12 @@
 
 #include "daltools/byte_tool.h"
 
-#ifndef BROTLI_BUFFER_SIZE
-    #define BROTLI_BUFFER_SIZE 1024
-#endif
+
+namespace {
+
+    constexpr int BROTLI_BUFFER_SIZE = 1024 * 1024 * 32;
+
+}
 
 
 namespace dal {
@@ -110,7 +113,7 @@ namespace dal {
         const uint8_t* const src, const size_t src_size
     ) {
         auto instance = BrotliEncoderCreateInstance(nullptr, nullptr, nullptr);
-        std::array<uint8_t, BROTLI_BUFFER_SIZE> buffer;
+        std::vector<uint8_t> buffer(BROTLI_BUFFER_SIZE);
         uint8vec_t result;
 
         auto available_in = src_size;
@@ -147,7 +150,7 @@ namespace dal {
         const uint8_t* src, size_t src_size, size_t hint
     ) {
         auto instance = BrotliDecoderCreateInstance(nullptr, nullptr, nullptr);
-        std::array<uint8_t, BROTLI_BUFFER_SIZE> buffer;
+        std::vector<uint8_t> buffer(BROTLI_BUFFER_SIZE);
         uint8vec_t result;
         result.reserve(hint);
 
