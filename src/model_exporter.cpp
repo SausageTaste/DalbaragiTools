@@ -354,8 +354,4 @@ namespace dal::parser {
         }
     }
 
-    std::optional<binary_buffer_t> zip_binary_model(const uint8_t* const data, const size_t data_size) {
-        return ::compress_dal_model(data, data_size);
-    }
-
 }
