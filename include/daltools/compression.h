@@ -8,6 +8,9 @@
 
 namespace dal {
 
+    using uint8vec_t = std::vector<uint8_t>;
+
+
     enum class CompressResult {
         success,
         not_enough_buffer_size,
@@ -27,6 +30,7 @@ namespace dal {
         const uint8_t* const src,
         const size_t src_size
     );
+    std::optional<uint8vec_t> compress_zip(const uint8vec_t& src);
 
     CompressResultData decompress_zip(
         uint8_t* const dst,
@@ -34,6 +38,11 @@ namespace dal {
         const uint8_t* const src,
         const size_t src_size
     );
+    std::optional<uint8vec_t> decompress_zip(const uint8vec_t& src);
+
+
+    std::optional<uint8vec_t> compress_bro(const uint8vec_t& src);
+    std::optional<uint8vec_t> decompress_bro(const uint8vec_t& src);
 
 
     std::optional<std::vector<uint8_t>> compress_with_header(

@@ -1,9 +1,17 @@
 #include "daltools/compression.h"
 
+#include <array>
+
+#include <brotli/decode.h>
+#include <brotli/encode.h>
 #include <libbase64.h>
 #include <zlib.h>
 
 #include "daltools/byte_tool.h"
+
+#ifndef BROTLI_BUFFER_SIZE
+    #define BROTLI_BUFFER_SIZE 1024
+#endif
 
 
 namespace dal {
@@ -26,6 +34,21 @@ namespace dal {
             output.m_result = CompressResult::unknown_error;
         }
 
+        return output;
+    }
+
+    std::optional<uint8vec_t> compress_zip(const uint8vec_t& src) {
+        uint8vec_t output;
+        output.resize(src.size() * 2);
+
+        const auto res = compress_zip(
+            output.data(), output.size(), src.data(), src.size()
+        );
+        if (res.m_result != CompressResult::success) {
+            return std::nullopt;
+        }
+
+        output.resize(res.m_output_size);
         return output;
     }
 
@@ -62,6 +85,86 @@ namespace dal {
         }
 
         return output;
+    }
+
+    std::optional<uint8vec_t> decompress_zip(const uint8vec_t& src) {
+        uint8vec_t output;
+        output.resize(src.size() * 10);
+
+        const auto res = decompress_zip(
+            output.data(), output.size(), src.data(), src.size()
+        );
+        if (res.m_result != CompressResult::success) {
+            return std::nullopt;
+        }
+
+        output.resize(res.m_output_size);
+        return output;
+    }
+
+
+    std::optional<uint8vec_t> compress_bro(const uint8vec_t& src) {
+        auto instance = BrotliEncoderCreateInstance(nullptr, nullptr, nullptr);
+        std::array<uint8_t, BROTLI_BUFFER_SIZE> buffer;
+        uint8vec_t result;
+
+        auto available_in = src.size();
+        auto available_out = buffer.size();
+        auto next_in = src.data();
+        auto next_out = buffer.data();
+
+        do {
+            BrotliEncoderCompressStream(
+                instance,
+                BROTLI_OPERATION_FINISH,
+                &available_in,
+                &next_in,
+                &available_out,
+                &next_out,
+                nullptr
+            );
+            result.insert(
+                result.end(), buffer.begin(), buffer.end() - available_out
+            );
+            available_out = buffer.size();
+            next_out = buffer.data();
+        } while (!(available_in == 0 && BrotliEncoderIsFinished(instance)));
+
+        BrotliEncoderDestroyInstance(instance);
+        return result;
+    }
+
+    std::optional<uint8vec_t> decompress_bro(const uint8vec_t& src) {
+        auto instance = BrotliDecoderCreateInstance(nullptr, nullptr, nullptr);
+        std::array<uint8_t, BROTLI_BUFFER_SIZE> buffer;
+        uint8vec_t result;
+
+        auto available_in = src.size();
+        auto available_out = buffer.size();
+        auto next_in = src.data();
+        auto next_out = buffer.data();
+        BrotliDecoderResult oneshot_result;
+
+        do {
+            oneshot_result = BrotliDecoderDecompressStream(
+                instance,
+                &available_in,
+                &next_in,
+                &available_out,
+                &next_out,
+                nullptr
+            );
+            result.insert(
+                result.end(), buffer.begin(), buffer.end() - available_out
+            );
+            available_out = buffer.size();
+            next_out = buffer.data();
+        } while (!(
+            available_in == 0 && oneshot_result == BROTLI_DECODER_RESULT_SUCCESS
+        ));
+
+        BrotliDecoderDestroyInstance(instance);
+        return result;
     }
 
 
