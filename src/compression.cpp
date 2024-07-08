@@ -106,14 +106,16 @@ namespace dal {
     }
 
 
-    std::optional<uint8vec_t> compress_bro(const uint8vec_t& src) {
+    std::optional<uint8vec_t> compress_bro(
+        const uint8_t* const src, const size_t src_size
+    ) {
         auto instance = BrotliEncoderCreateInstance(nullptr, nullptr, nullptr);
         std::array<uint8_t, BROTLI_BUFFER_SIZE> buffer;
         uint8vec_t result;
 
-        auto available_in = src.size();
+        auto available_in = src_size;
         auto available_out = buffer.size();
-        auto next_in = src.data();
+        auto next_in = src;
         auto next_out = buffer.data();
 
         do {
@@ -137,15 +139,21 @@ namespace dal {
         return result;
     }
 
-    std::optional<uint8vec_t> decomp_bro(const uint8vec_t& src, size_t hint) {
+    std::optional<uint8vec_t> compress_bro(const uint8vec_t& src) {
+        return compress_bro(src.data(), src.size());
+    }
+
+    std::optional<uint8vec_t> decomp_bro(
+        const uint8_t* src, size_t src_size, size_t hint
+    ) {
         auto instance = BrotliDecoderCreateInstance(nullptr, nullptr, nullptr);
         std::array<uint8_t, BROTLI_BUFFER_SIZE> buffer;
         uint8vec_t result;
         result.reserve(hint);
 
-        auto available_in = src.size();
+        auto available_in = src_size;
         auto available_out = buffer.size();
-        auto next_in = src.data();
+        auto next_in = src;
         auto next_out = buffer.data();
         BrotliDecoderResult oneshot_result;
 
@@ -169,6 +177,10 @@ namespace dal {
 
         BrotliDecoderDestroyInstance(instance);
         return result;
+    }
+
+    std::optional<uint8vec_t> decomp_bro(const uint8vec_t& src, size_t hint) {
+        return decomp_bro(src.data(), src.size(), hint);
     }
 
 

@@ -11,17 +11,19 @@ namespace dalp = dal::parser;
 namespace {
 
     std::optional<std::vector<uint8_t>> unzip_dal_model(const uint8_t* const buf, const size_t buf_size) {
-        const auto expected_unzipped_size = dal::parser::make_int32(buf + dalp::MAGIC_NUMBER_SIZE);
-        const auto zipped_data_offset = dalp::MAGIC_NUMBER_SIZE + 4;
+        const auto expected_unzipped_size = dal::parser::make_int64(buf + dalp::MAGIC_NUMBER_SIZE);
+        const auto zipped_data_offset = dalp::MAGIC_NUMBER_SIZE + sizeof(int64_t);
 
-        std::vector<uint8_t> unzipped(expected_unzipped_size);
-        const auto decomp_result = dal::decomp_zip(unzipped.data(), unzipped.size(), buf + zipped_data_offset, buf_size - zipped_data_offset);
-        if (dal::CompressResult::success != decomp_result.m_result) {
+        const auto unzipped = dal::decomp_bro(
+            buf + zipped_data_offset,
+            buf_size - zipped_data_offset,
+            expected_unzipped_size
+        );
+
+        if (unzipped.has_value())
+            return unzipped.value();
+        else
             return std::nullopt;
-        }
-        else {
-            return unzipped;
-        }
     }
 
     bool is_magic_numbers_correct(const uint8_t* const buf) {

@@ -17,6 +17,8 @@ namespace dal::parser {
 
     int32_t make_int32(const uint8_t* begin);
 
+    int64_t make_int64(const uint8_t* begin);
+
     float make_float32(const uint8_t* begin);
 
     template <typename T>
@@ -68,6 +70,32 @@ namespace dal::parser {
 //*/
 
         return src + copy_size;
+    }
+
+    template <typename T>
+    T assemble_8_bytes(const uint8_t* const begin) {
+        static_assert(1 == sizeof(uint8_t));
+        static_assert(8 == sizeof(T));
+
+        T res;
+
+        if ( is_big_endian() ) {
+            uint8_t buf[8];
+            buf[0] = begin[7];
+            buf[1] = begin[6];
+            buf[2] = begin[5];
+            buf[3] = begin[4];
+            buf[4] = begin[3];
+            buf[5] = begin[2];
+            buf[6] = begin[1];
+            buf[7] = begin[0];
+            memcpy(&res, buf, 8);
+        }
+        else {
+            memcpy(&res, begin, 8);
+        }
+
+        return res;
     }
 
 

@@ -1,8 +1,8 @@
 #include "daltools/model_exporter.h"
 
 #include "daltools/byte_tool.h"
-#include "daltools/konst.h"
 #include "daltools/compression.h"
+#include "daltools/konst.h"
 
 
 namespace dalp = dal::parser;
@@ -32,33 +32,29 @@ namespace {
         void append_raw_array(const uint8_t* const arr, const size_t arr_size) {
             this->append_array(arr, arr_size);
         }
-
     };
 
-}
+}  // namespace
 
 
 namespace {
 
-    std::optional<dalp::binary_buffer_t> compress_dal_model(const uint8_t* const src, const size_t src_size) {
-        dalp::binary_buffer_t output(src_size + 64);
+    std::optional<std::vector<uint8_t>> compress_dal_model(
+        const uint8_t* const src, const size_t src_size
+    ) {
+        dalp::BinaryDataArray output;
 
-        const auto src_size_int32 = static_cast<int32_t>(src_size);
-        const auto data_offset = dalp::MAGIC_NUMBER_SIZE + sizeof(int32_t);
+        output.append_array(
+            dalp::MAGIC_NUMBERS_DAL_MODEL, dalp::MAGIC_NUMBER_SIZE
+        );
+        output.append_int64(src_size);
 
-        static_assert(4 == sizeof(int32_t));
-
-        memcpy(output.data(), dalp::MAGIC_NUMBERS_DAL_MODEL, dalp::MAGIC_NUMBER_SIZE);
-        memcpy(output.data() + dalp::MAGIC_NUMBER_SIZE, &src_size_int32, sizeof(int32_t));
-
-        const auto result = dal::compress_zip(output.data() + data_offset, output.size() - data_offset, src, src_size);
-        if (dal::CompressResult::success != result.m_result) {
+        const auto compressed = dal::compress_bro(src, src_size);
+        if (!compressed.has_value())
             return std::nullopt;
-        }
-        else {
-            output.resize(result.m_output_size + data_offset);
-            return output;
-        }
+
+        output.append_array(compressed->data(), compressed->size());
+        return output.release();
     }
 
     void append_bin_aabb(::BinaryBuildBuffer& output, const dalp::AABB3& aabb) {
@@ -70,7 +66,7 @@ namespace {
         output.append_float32(aabb.max_.z);
     }
 
-}
+}  // namespace
 
 
 // Build animations
@@ -108,11 +104,12 @@ namespace {
         return output;
     }
 
-    ::BinaryBuildBuffer _build_bin_joint_keyframes(const dalp::AnimJoint& joint) {
+    ::BinaryBuildBuffer _build_bin_joint_keyframes(const dalp::AnimJoint& joint
+    ) {
         ::BinaryBuildBuffer output;
 
         output.append_str(joint.name_);
-        output.append_mat4(glm::mat4{1});
+        output.append_mat4(glm::mat4{ 1 });
 
         output.append_int32(joint.translations_.size());
         for (auto& trans : joint.translations_) {
@@ -140,7 +137,9 @@ namespace {
         return output;
     }
 
-    ::BinaryBuildBuffer build_bin_animation(const std::vector<dalp::Animation>& animations) {
+    ::BinaryBuildBuffer build_bin_animation(
+        const std::vector<dalp::Animation>& animations
+    ) {
         ::BinaryBuildBuffer output;
 
         output.append_int32(animations.size());
@@ -162,7 +161,7 @@ namespace {
         return output;
     }
 
-}
+}  // namespace
 
 
 // Build render units
@@ -182,7 +181,8 @@ namespace {
         return output;
     }
 
-    ::BinaryBuildBuffer build_bin_mesh_straight(const dalp::Mesh_Straight& mesh) {
+    ::BinaryBuildBuffer build_bin_mesh_straight(const dalp::Mesh_Straight& mesh
+    ) {
         ::BinaryBuildBuffer output;
 
         assert(mesh.vertices_.size() * 2 == mesh.uv_coordinates_.size() * 3);
@@ -198,16 +198,26 @@ namespace {
         return output;
     }
 
-    ::BinaryBuildBuffer build_bin_mesh_straight_joint(const dalp::Mesh_StraightJoint& mesh) {
+    ::BinaryBuildBuffer build_bin_mesh_straight_joint(
+        const dalp::Mesh_StraightJoint& mesh
+    ) {
         ::BinaryBuildBuffer output;
 
-        assert(mesh.vertices_.size() * dal::parser::NUM_JOINTS_PER_VERTEX == mesh.joint_indices_.size() * 3);
-        assert(mesh.vertices_.size() * dal::parser::NUM_JOINTS_PER_VERTEX == mesh.joint_weights_.size() * 3);
+        assert(
+            mesh.vertices_.size() * dal::parser::NUM_JOINTS_PER_VERTEX ==
+            mesh.joint_indices_.size() * 3
+        );
+        assert(
+            mesh.vertices_.size() * dal::parser::NUM_JOINTS_PER_VERTEX ==
+            mesh.joint_weights_.size() * 3
+        );
 
         output += ::build_bin_mesh_straight(mesh);
 
         output.append_float32_vector(mesh.joint_weights_);
-        output.append_int32_array(mesh.joint_indices_.data(), mesh.joint_indices_.size());
+        output.append_int32_array(
+            mesh.joint_indices_.data(), mesh.joint_indices_.size()
+        );
 
         return output;
     }
@@ -238,7 +248,9 @@ namespace {
         return output;
     }
 
-    ::BinaryBuildBuffer build_bin_mesh_indexed_joint(const dalp::Mesh_IndexedJoint& mesh) {
+    ::BinaryBuildBuffer build_bin_mesh_indexed_joint(
+        const dalp::Mesh_IndexedJoint& mesh
+    ) {
         ::BinaryBuildBuffer output;
         static_assert(64 == sizeof(dalp::Mesh_IndexedJoint::VERT_TYPE));
 
@@ -274,7 +286,7 @@ namespace {
         return output;
     }
 
-}
+}  // namespace
 
 
 namespace dal::parser {
@@ -321,13 +333,14 @@ namespace dal::parser {
 
         // Null terminated signature
         if (nullptr != sign_key && nullptr != sign_key) {
-            const auto signature = sign_mgr->create_signature(buffer.data(), buffer.size(), *sign_key);
+            const auto signature = sign_mgr->create_signature(
+                buffer.data(), buffer.size(), *sign_key
+            );
             if (!signature.has_value())
                 return ModelExportResult::unknown_error;
 
             buffer.append_str(signature->make_hex_str());
-        }
-        else {
+        } else {
             buffer.append_char('\0');
         }
 
@@ -345,13 +358,11 @@ namespace dal::parser {
         crypto::PublicKeySignature* const sign_mgr
     ) {
         binary_buffer_t result;
-
-        if (ModelExportResult::success != build_binary_model(result, input, sign_key, sign_mgr)) {
+        const auto res = build_binary_model(result, input, sign_key, sign_mgr);
+        if (ModelExportResult::success != res)
             return std::nullopt;
-        }
-        else {
+        else
             return result;
-        }
     }
 
-}
+}  // namespace dal::parser

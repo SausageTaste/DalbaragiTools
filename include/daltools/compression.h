@@ -41,7 +41,12 @@ namespace dal {
     std::optional<uint8vec_t> decomp_zip(const uint8vec_t& src, size_t hint);
 
 
+    std::optional<uint8vec_t> compress_bro(const uint8_t* src, size_t src_size);
     std::optional<uint8vec_t> compress_bro(const uint8vec_t& src);
+
+    std::optional<uint8vec_t> decomp_bro(
+        const uint8_t* src, size_t src_size, size_t hint
+    );
     std::optional<uint8vec_t> decomp_bro(const uint8vec_t& src, size_t hint);
 
 
