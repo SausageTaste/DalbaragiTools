@@ -52,7 +52,7 @@ namespace dal {
         return output;
     }
 
-    CompressResultData decompress_zip(
+    CompressResultData decomp_zip(
         uint8_t* const dst,
         const size_t dst_size,
         const uint8_t* const src,
@@ -87,11 +87,14 @@ namespace dal {
         return output;
     }
 
-    std::optional<uint8vec_t> decompress_zip(const uint8vec_t& src) {
+    std::optional<uint8vec_t> decomp_zip(const uint8vec_t& src, size_t hint) {
         uint8vec_t output;
-        output.resize(src.size() * 10);
+        if (0 != hint)
+            output.resize(hint);
+        else
+            output.resize(src.size() * 4);
 
-        const auto res = decompress_zip(
+        const auto res = decomp_zip(
             output.data(), output.size(), src.data(), src.size()
         );
         if (res.m_result != CompressResult::success) {
@@ -134,10 +137,11 @@ namespace dal {
         return result;
     }
 
-    std::optional<uint8vec_t> decompress_bro(const uint8vec_t& src) {
+    std::optional<uint8vec_t> decomp_bro(const uint8vec_t& src, size_t hint) {
         auto instance = BrotliDecoderCreateInstance(nullptr, nullptr, nullptr);
         std::array<uint8_t, BROTLI_BUFFER_SIZE> buffer;
         uint8vec_t result;
+        result.reserve(hint);
 
         auto available_in = src.size();
         auto available_out = buffer.size();
@@ -195,7 +199,7 @@ namespace dal {
         const auto raw_data_size = parser.parse_int64();
         std::vector<uint8_t> buffer(raw_data_size);
 
-        const auto result = decompress_zip(
+        const auto result = decomp_zip(
             buffer.data(),
             buffer.size(),
             src + HEADER_SIZE,

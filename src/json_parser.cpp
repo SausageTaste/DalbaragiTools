@@ -58,7 +58,7 @@ namespace {
 
             if (json_data.contains("compressed size")) {
                 this->m_data.resize(raw_size);
-                const auto result = dal::decompress_zip(
+                const auto result = dal::decomp_zip(
                     m_data.data(), m_data.size(), data, size
                 );
                 if (dal::CompressResult::success != result.m_result) {
@@ -83,7 +83,7 @@ namespace {
 
             if (json_data.contains("compressed size")) {
                 this->m_data.resize(raw_size);
-                const auto result = dal::decompress_zip(
+                const auto result = dal::decomp_zip(
                     this->m_data.data(),
                     this->m_data.size(),
                     base64_decoded.data(),

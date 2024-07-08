@@ -8,8 +8,9 @@ namespace {
     dal::uint8vec_t gen_test_data() {
         dal::uint8vec_t output;
         output.reserve(1024);
+        constexpr auto data_size = 1024 * 1024;
 
-        for (int i = 0; i < 1024; ++i) {
+        for (int i = 0; i < data_size; ++i) {
             output.push_back(static_cast<uint8_t>(i % 256));
         }
 
@@ -26,8 +27,12 @@ namespace {
         ASSERT_TRUE(zip_comp.has_value());
         ASSERT_TRUE(bro_comp.has_value());
 
-        const auto zip_decomp = dal::decompress_zip(zip_comp.value());
-        const auto bro_decomp = dal::decompress_bro(bro_comp.value());
+        const auto zip_decomp = dal::decomp_zip(
+            zip_comp.value(), test_data.size()
+        );
+        const auto bro_decomp = dal::decomp_bro(
+            bro_comp.value(), test_data.size()
+        );
 
         ASSERT_TRUE(zip_decomp.has_value());
         ASSERT_TRUE(bro_decomp.has_value());

@@ -32,17 +32,17 @@ namespace dal {
     );
     std::optional<uint8vec_t> compress_zip(const uint8vec_t& src);
 
-    CompressResultData decompress_zip(
+    CompressResultData decomp_zip(
         uint8_t* const dst,
         const size_t dst_size,
         const uint8_t* const src,
         const size_t src_size
     );
-    std::optional<uint8vec_t> decompress_zip(const uint8vec_t& src);
+    std::optional<uint8vec_t> decomp_zip(const uint8vec_t& src, size_t hint);
 
 
     std::optional<uint8vec_t> compress_bro(const uint8vec_t& src);
-    std::optional<uint8vec_t> decompress_bro(const uint8vec_t& src);
+    std::optional<uint8vec_t> decomp_bro(const uint8vec_t& src, size_t hint);
 
 
     std::optional<std::vector<uint8_t>> compress_with_header(

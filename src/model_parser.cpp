@@ -15,7 +15,7 @@ namespace {
         const auto zipped_data_offset = dalp::MAGIC_NUMBER_SIZE + 4;
 
         std::vector<uint8_t> unzipped(expected_unzipped_size);
-        const auto decomp_result = dal::decompress_zip(unzipped.data(), unzipped.size(), buf + zipped_data_offset, buf_size - zipped_data_offset);
+        const auto decomp_result = dal::decomp_zip(unzipped.data(), unzipped.size(), buf + zipped_data_offset, buf_size - zipped_data_offset);
         if (dal::CompressResult::success != decomp_result.m_result) {
             return std::nullopt;
         }
