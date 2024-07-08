@@ -8,6 +8,7 @@
 #include "daltools/model_exporter.h"
 #include "daltools/model_parser.h"
 #include "daltools/modifier.h"
+#include "daltools/util.h"
 
 
 namespace fs = std::filesystem;
@@ -102,12 +103,16 @@ namespace {
             ASSERT_TRUE(file_content.has_value())
                 << "Failed to read file: " << json_path.u8string();
 
+            fmt::print("Testing: {}\n", json_path.u8string());
+            dal::Timer timer;
+
             // Replace extension from .json to .bin
             auto bin_path = json_path;
             bin_path.replace_extension(".bin");
             const auto bin_file_content = ::read_file<std::vector<uint8_t>>(
                 bin_path
             );
+            fmt::print(" - Read file ({:.2f})\n", timer.check_get_elapsed());
 
             std::vector<dal::parser::SceneIntermediate> scenes;
             dal::parser::JsonParseResult result;
@@ -125,28 +130,35 @@ namespace {
                 );
             }
             ASSERT_EQ(scenes.size(), 1);
+            fmt::print(" - Json parsed ({:.2f})\n", timer.check_get_elapsed());
 
             for (auto& scene : scenes) {
                 dal::parser::flip_uv_vertically(scene);
                 dal::parser::clear_collection_info(scene);
                 dal::parser::optimize_scene(scene);
             }
+            fmt::print(" - Optimzied ({:.2f})\n", timer.check_get_elapsed());
 
             const auto model1 = dal::parser::convert_to_model_dmd(scenes.at(0));
+            fmt::print(" - Model built ({:.2f})\n", timer.check_get_elapsed());
+
             const auto binary1 = dal::parser::build_binary_model(
                 model1, nullptr, nullptr
             );
             ASSERT_TRUE(binary1.has_value());
+            fmt::print(" - DMD built ({:.2f})\n", timer.check_get_elapsed());
 
             const auto model2 = dal::parser::parse_dmd(
                 binary1->data(), binary1->size()
             );
             ASSERT_TRUE(model2.has_value());
+            fmt::print(" - DMD parsed ({:.2f})\n", timer.check_get_elapsed());
 
             const auto binary2 = dal::parser::build_binary_model(
                 model2.value(), nullptr, nullptr
             );
             ASSERT_TRUE(binary2.has_value());
+            fmt::print(" - DMD again ({:.2f})\n", timer.check_get_elapsed());
 
             const auto similarity = compare_binary_buffers(*binary1, *binary2);
             ASSERT_DOUBLE_EQ(1.0, similarity) << fmt::format(
