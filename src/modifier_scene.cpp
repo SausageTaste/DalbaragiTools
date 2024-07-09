@@ -21,7 +21,9 @@ namespace {
     public:
         void add(const T& key, const T& value) {
             if (this->m_map.end() != this->m_map.find(key)) {
-                throw std::runtime_error{"Trying to add a 'key' which already exists"};
+                throw std::runtime_error{
+                    "Trying to add a 'key' which already exists"
+                };
             }
 
             this->m_map[key] = value;
@@ -31,12 +33,10 @@ namespace {
             const auto found = this->m_map.find(key);
             if (this->m_map.end() != found) {
                 return found->second;
-            }
-            else {
+            } else {
                 return key;
             }
         }
-
     };
 
 
@@ -48,7 +48,9 @@ namespace {
     public:
         void add(const std::string& froname_, const std::string& to_name) {
             if (froname_ == to_name) {
-                throw std::runtime_error{"froname_ and to_name are identical, maybe ill-formed data"};
+                throw std::runtime_error{
+                    "froname_ and to_name are identical, maybe ill-formed data"
+                };
             }
 
             this->m_map.add(froname_, to_name);
@@ -57,10 +59,9 @@ namespace {
         auto& get(const std::string& froname_) const {
             return this->m_map.get(froname_);
         }
-
     };
 
-}
+}  // namespace
 
 
 // apply_root_transform
@@ -88,16 +89,13 @@ namespace {
         if (only_abs_value < ZERO) {
             if (only_sign < ZERO) {
                 return only_abs_value;
-            }
-            else {
+            } else {
                 return -only_abs_value;
             }
-        }
-        else {
+        } else {
             if (only_sign < ZERO) {
                 return -only_abs_value;
-            }
-            else {
+            } else {
                 return only_abs_value;
             }
         }
@@ -112,20 +110,25 @@ namespace {
         };
     }
 
-    void apply_transform(const glm::mat4& m4, const glm::mat3& m3, scene_t::Transform& t) {
+    void apply_transform(
+        const glm::mat4& m4, const glm::mat3& m3, scene_t::Transform& t
+    ) {
         ::apply_transform(m4, t.pos_);
         ::apply_transform(m3, t.quat_);
         ::rotate_scale_factors(m3, t.scale_);
     }
 
-}
+}  // namespace
 
 
 // convert_to_model_dmd
 namespace {
 
     template <typename T>
-    dalp::RenderUnit<T>& find_or_create_render_unit_by_material(std::vector<dalp::RenderUnit<T>>& units, const scene_t::Material& criterion) {
+    dalp::RenderUnit<T>& find_or_create_render_unit_by_material(
+        std::vector<dalp::RenderUnit<T>>& units,
+        const scene_t::Material& criterion
+    ) {
         for (auto& unit : units) {
             if (unit.material_.is_physically_same(criterion)) {
                 return unit;
@@ -134,24 +137,34 @@ namespace {
         return units.emplace_back();
     }
 
-    void convert_meshes(dalp::Model& output, const dalp::SceneIntermediate& scene) {
+    void convert_meshes(
+        dalp::Model& output, const dalp::SceneIntermediate& scene
+    ) {
         for (auto& src_mesh_actor : scene.mesh_actors_) {
-            const auto actor_mat4 = scene.make_hierarchy_transform(src_mesh_actor);
-            const auto actor_mat3 = glm::mat3{actor_mat4};
+            const auto actor_mat4 = scene.make_hierarchy_transform(
+                src_mesh_actor
+            );
+            const auto actor_mat3 = glm::mat3{ actor_mat4 };
 
             for (auto& pair : src_mesh_actor.render_pairs_) {
                 const auto src_mesh = scene.find_mesh_by_name(pair.mesh_name_);
                 if (nullptr == src_mesh) {
-                    throw std::runtime_error{""};
+                    throw std::runtime_error{ "" };
                 }
-                const auto src_material = scene.find_material_by_name(pair.material_name_);
+                const auto src_material = scene.find_material_by_name(
+                    pair.material_name_
+                );
                 if (nullptr == src_material) {
-                    std::cout << "Failed to find a material: " << pair.material_name_ << '\n';
+                    std::cout
+                        << "Failed to find a material: " << pair.material_name_
+                        << '\n';
                     continue;
                 }
 
                 if (src_mesh->skeleton_name_.empty()) {
-                    auto& dst_pair = ::find_or_create_render_unit_by_material(output.units_indexed_, *src_material);
+                    auto& dst_pair = ::find_or_create_render_unit_by_material(
+                        output.units_indexed_, *src_material
+                    );
 
                     dst_pair.name_ = src_mesh->name_;
                     dst_pair.material_ = *src_material;
@@ -160,14 +173,16 @@ namespace {
                         auto& src_vert = src_mesh->vertices_[src_index];
 
                         dalp::Vertex vertex;
-                        vertex.pos_ = actor_mat4 * glm::vec4{src_vert.pos_, 1};
+                        vertex.pos_ = actor_mat4 *
+                                      glm::vec4{ src_vert.pos_, 1 };
                         vertex.uv_ = src_vert.uv_;
                         vertex.normal_ = actor_mat3 * src_vert.normal_;
                         dst_pair.mesh_.add_vertex(vertex);
                     }
-                }
-                else {
-                    auto& dst_pair = ::find_or_create_render_unit_by_material(output.units_indexed_joint_, *src_material);
+                } else {
+                    auto& dst_pair = ::find_or_create_render_unit_by_material(
+                        output.units_indexed_joint_, *src_material
+                    );
 
                     dst_pair.name_ = src_mesh->name_;
                     dst_pair.material_ = *src_material;
@@ -176,16 +191,23 @@ namespace {
                         auto& src_vert = src_mesh->vertices_[src_index];
 
                         dalp::VertexJoint vertex;
-                        vertex.pos_ = actor_mat4 * glm::vec4{src_vert.pos_, 1};
+                        vertex.pos_ = actor_mat4 *
+                                      glm::vec4{ src_vert.pos_, 1 };
                         vertex.uv_ = src_vert.uv_;
                         vertex.normal_ = actor_mat3 * src_vert.normal_;
 
-                        const int valid_joint_count = std::min<int>(4, src_vert.joints_.size());
+                        const int valid_joint_count = std::min<int>(
+                            4, src_vert.joints_.size()
+                        );
                         for (int i = 0; i < valid_joint_count; ++i) {
-                            vertex.joint_indices_[i] = src_vert.joints_[i].index_;
-                            vertex.joint_weights_[i] = src_vert.joints_[i].weight_;
+                            vertex.joint_indices_[i] =
+                                src_vert.joints_[i].index_;
+                            vertex.joint_weights_[i] =
+                                src_vert.joints_[i].weight_;
                         }
-                        for (int i = valid_joint_count; i < dalp::NUM_JOINTS_PER_VERTEX; ++i) {
+                        for (int i = valid_joint_count;
+                             i < dalp::NUM_JOINTS_PER_VERTEX;
+                             ++i) {
                             vertex.joint_indices_[i] = dalp::NULL_JID;
                         }
 
@@ -196,7 +218,9 @@ namespace {
         }
     }
 
-    void convert_skeleton(dalp::Skeleton& dst, const dalp::SceneIntermediate::Skeleton& src) {
+    void convert_skeleton(
+        dalp::Skeleton& dst, const dalp::SceneIntermediate::Skeleton& src
+    ) {
         const auto root_mat = src.root_transform_.make_mat4();
 
         for (auto& src_joint : src.joints_) {
@@ -209,13 +233,16 @@ namespace {
         }
     }
 
-}
+}  // namespace
 
 
 // remove_duplicate_materials
 namespace {
 
-    const scene_t::Material* find_material_with_same_physical_properties(const scene_t::Material& material, const std::vector<scene_t::Material>& list) {
+    const scene_t::Material* find_material_with_same_physical_properties(
+        const scene_t::Material& material,
+        const std::vector<scene_t::Material>& list
+    ) {
         for (auto& x : list) {
             if (x.is_physically_same(material)) {
                 return &x;
@@ -224,7 +251,7 @@ namespace {
         return nullptr;
     }
 
-}
+}  // namespace
 
 
 // reduce_joints
@@ -239,13 +266,16 @@ namespace {
         return output;
     }
 
-    ::str_set_t make_set_intersection(const ::str_set_t& a, const ::str_set_t& b) {
+    ::str_set_t make_set_intersection(
+        const ::str_set_t& a, const ::str_set_t& b
+    ) {
         ::str_set_t output;
 
         auto& smaller_set = a.size() < b.size() ? a : b;
         auto& larger_set = a.size() < b.size() ? b : a;
 
-        for (auto iter = smaller_set.begin(); iter != smaller_set.end(); ++iter) {
+        for (auto iter = smaller_set.begin(); iter != smaller_set.end();
+             ++iter) {
             if (larger_set.end() != larger_set.find(*iter)) {
                 output.insert(*iter);
             }
@@ -254,7 +284,9 @@ namespace {
         return output;
     }
 
-    ::str_set_t make_set_difference(const ::str_set_t& a, const ::str_set_t& b) {
+    ::str_set_t make_set_difference(
+        const ::str_set_t& a, const ::str_set_t& b
+    ) {
         ::str_set_t output;
 
         for (auto iter = a.begin(); iter != a.end(); ++iter) {
@@ -303,7 +335,8 @@ namespace {
             if (-1 == found_index)
                 return;
 
-            const auto parent_of_victim = this->m_data[found_index].parent_name_;
+            const auto parent_of_victim =
+                this->m_data[found_index].parent_name_;
             this->m_data.erase(this->m_data.begin() + found_index);
 
             for (auto& joint : this->m_data) {
@@ -320,7 +353,9 @@ namespace {
         }
 
         void remove_except(const ::str_set_t& survivor_names) {
-            const auto names_to_remove = ::make_set_difference(this->make_names_set(), survivor_names);
+            const auto names_to_remove = ::make_set_difference(
+                this->make_names_set(), survivor_names
+            );
 
             for (auto& name : names_to_remove) {
                 this->remove_joint(name);
@@ -340,8 +375,7 @@ namespace {
         const std::string& get_replaced_name(const std::string& name) const {
             if (name == this->NO_PARENT_NAME) {
                 return this->NO_PARENT_NAME;
-            }
-            else {
+            } else {
                 return this->m_replace_map.find(name)->second;
             }
         }
@@ -359,11 +393,12 @@ namespace {
 
             return -1;
         }
-
     };
 
 
-    bool are_skel_anim_compatible(const scene_t::Skeleton& skeleton, const scene_t::Animation& anim) {
+    bool are_skel_anim_compatible(
+        const scene_t::Skeleton& skeleton, const scene_t::Animation& anim
+    ) {
         for (auto& joint : skeleton.joints_) {
             if (dal::parser::NULL_JID != anim.find_index_by_name(joint.name_)) {
                 return true;
@@ -372,7 +407,10 @@ namespace {
         return false;
     }
 
-    std::vector<const scene_t::Animation*> make_compatible_anim_list(const scene_t::Skeleton& skeleton, const std::vector<scene_t::Animation>& animations) {
+    std::vector<const scene_t::Animation*> make_compatible_anim_list(
+        const scene_t::Skeleton& skeleton,
+        const std::vector<scene_t::Animation>& animations
+    ) {
         std::vector<const scene_t::Animation*> output;
         for (auto& anim : animations) {
             if (::are_skel_anim_compatible(skeleton, anim)) {
@@ -389,13 +427,14 @@ namespace {
         for (auto& joint : skeleton.joints_) {
             if (joint.is_root()) {
                 output.insert(joint.name_);
-            }
-            else if (dal::parser::JointType::hair_root == joint.joint_type_ || dal::parser::JointType::skirt_root == joint.joint_type_) {
+            } else if (dal::parser::JointType::hair_root == joint.joint_type_ ||
+                       dal::parser::JointType::skirt_root ==
+                           joint.joint_type_) {
                 super_parents.insert(joint.name_);
                 output.insert(joint.name_);
-            }
-            else {
-                if (super_parents.end() != super_parents.find(joint.parent_name_)) {
+            } else {
+                if (super_parents.end() !=
+                    super_parents.find(joint.parent_name_)) {
                     super_parents.insert(joint.name_);
                     output.insert(joint.name_);
                 }
@@ -405,7 +444,10 @@ namespace {
         return output;
     }
 
-    ::str_set_t get_joint_names_with_non_identity_transform(const scene_t::Skeleton& skeleton, const std::vector<scene_t::Animation>& animations) {
+    ::str_set_t get_joint_names_with_non_identity_transform(
+        const scene_t::Skeleton& skeleton,
+        const std::vector<scene_t::Animation>& animations
+    ) {
         ::str_set_t output;
 
         if (skeleton.joints_.empty())
@@ -430,7 +472,10 @@ namespace {
         return output;
     }
 
-    scene_t::Skeleton make_new_skeleton(const scene_t::Skeleton& src_skeleton, const ::JointParentNameManager& jname_manager) {
+    scene_t::Skeleton make_new_skeleton(
+        const scene_t::Skeleton& src_skeleton,
+        const ::JointParentNameManager& jname_manager
+    ) {
         scene_t::Skeleton output;
         output.name_ = src_skeleton.name_;
         output.root_transform_ = src_skeleton.root_transform_;
@@ -440,8 +485,12 @@ namespace {
             if (survivor_joints.end() == survivor_joints.find(src_joint.name_))
                 continue;
 
-            const std::string& parent_name = src_joint.has_parent() ? src_joint.parent_name_ : jname_manager.NO_PARENT_NAME;
-            const auto& parent_replace_name = jname_manager.get_replaced_name(parent_name);
+            const auto& parent_name = src_joint.has_parent()
+                                          ? src_joint.parent_name_
+                                          : jname_manager.NO_PARENT_NAME;
+            const auto& parent_replace_name = jname_manager.get_replaced_name(
+                parent_name
+            );
             output.joints_.push_back(src_joint);
         }
 
@@ -450,11 +499,12 @@ namespace {
                 continue;
 
             const auto& original_parent_name = joint.parent_name_;
-            const auto& new_parent_name = jname_manager.get_replaced_name(original_parent_name);
+            const auto& new_parent_name = jname_manager.get_replaced_name(
+                original_parent_name
+            );
             if (jname_manager.NO_PARENT_NAME != new_parent_name) {
                 joint.parent_name_ = new_parent_name;
-            }
-            else {
+            } else {
                 joint.parent_name_.clear();
             }
         }
@@ -486,7 +536,9 @@ namespace {
         const std::vector<scene_t::Animation>& animations,
         std::vector<scene_t::Mesh>& meshes
     ) {
-        const auto compatible_animations = ::make_compatible_anim_list(skeleton, animations);
+        const auto compatible_animations = ::make_compatible_anim_list(
+            skeleton, animations
+        );
         if (compatible_animations.empty())
             return std::nullopt;
 
@@ -499,14 +551,22 @@ namespace {
         joint_parent_names.fill_joints(skeleton);
         joint_parent_names.remove_except(needed_joint_names);
 
-        const auto new_skeleton = ::make_new_skeleton(skeleton, joint_parent_names);
-        const auto index_replace_map = ::make_index_replace_map(skeleton, new_skeleton, joint_parent_names);
+        const auto new_skeleton = ::make_new_skeleton(
+            skeleton, joint_parent_names
+        );
+        const auto index_replace_map = ::make_index_replace_map(
+            skeleton, new_skeleton, joint_parent_names
+        );
 
         for (auto& mesh : meshes) {
             for (auto& vertex : mesh.vertices_) {
                 for (auto& joint : vertex.joints_) {
-                    const auto new_index = index_replace_map.find(joint.index_)->second;
-                    assert(-1 <= new_index && new_index < static_cast<int64_t>(new_skeleton.joints_.size()));
+                    const auto new_index =
+                        index_replace_map.find(joint.index_)->second;
+                    assert(-1 <= new_index);
+                    assert(
+                        new_index < (dalp::jointID_t)new_skeleton.joints_.size()
+                    );
                     joint.index_ = new_index;
                 }
             }
@@ -515,7 +575,7 @@ namespace {
         return new_skeleton;
     }
 
-}
+}  // namespace
 
 
 namespace dal::parser {
@@ -568,7 +628,7 @@ namespace dal::parser {
             ::apply_transform(root_m4, root_m3, light.transform_);
         }
 
-        scene.root_transform_ = glm::mat4{1};
+        scene.root_transform_ = glm::mat4{ 1 };
     }
 
     void reduce_indexed_vertices(SceneIntermediate& scene) {
@@ -589,12 +649,14 @@ namespace dal::parser {
             std::vector<::scene_t::Material> new_materials;
 
             for (auto& mat : scene.materials_) {
-                const auto found = ::find_material_with_same_physical_properties(mat, new_materials);
+                const auto found =
+                    ::find_material_with_same_physical_properties(
+                        mat, new_materials
+                    );
                 if (nullptr != found) {
                     assert(mat.name_ != found->name_);
                     replace_map.add(mat.name_, found->name_);
-                }
-                else {
+                } else {
                     new_materials.push_back(mat);
                 }
             }
@@ -604,14 +666,18 @@ namespace dal::parser {
 
         for (auto& mesh_actor : scene.mesh_actors_) {
             for (auto& render_pair : mesh_actor.render_pairs_) {
-                render_pair.material_name_ = replace_map.get(render_pair.material_name_);
+                render_pair.material_name_ = replace_map.get(
+                    render_pair.material_name_
+                );
             }
         }
     }
 
     void reduce_joints(SceneIntermediate& scene) {
         for (auto& skel : scene.skeletons_) {
-            const auto result = ::reduce_joints(skel, scene.animations_, scene.meshes_);
+            const auto result = ::reduce_joints(
+                skel, scene.animations_, scene.meshes_
+            );
             if (result.has_value()) {
                 skel = result.value();
             }
@@ -652,14 +718,10 @@ namespace dal::parser {
     }
 
     void clear_collection_info(SceneIntermediate& scene) {
-        for (auto& actor : scene.mesh_actors_)
-            actor.collections_.clear();
-        for (auto& actor : scene.dlights_)
-            actor.collections_.clear();
-        for (auto& actor : scene.plights_)
-            actor.collections_.clear();
-        for (auto& actor : scene.slights_)
-            actor.collections_.clear();
+        for (auto& actor : scene.mesh_actors_) actor.collections_.clear();
+        for (auto& actor : scene.dlights_) actor.collections_.clear();
+        for (auto& actor : scene.plights_) actor.collections_.clear();
+        for (auto& actor : scene.slights_) actor.collections_.clear();
     }
 
     // Convert
@@ -670,9 +732,8 @@ namespace dal::parser {
         ::convert_meshes(output, scene);
 
         if (scene.skeletons_.size() > 1) {
-            throw std::runtime_error{"Multiple skeletons are not supported"};
-        }
-        else if (scene.skeletons_.size() == 1) {
+            throw std::runtime_error{ "Multiple skeletons are not supported" };
+        } else if (scene.skeletons_.size() == 1) {
             ::convert_skeleton(output.skeleton_, scene.skeletons_.back());
         }
 
@@ -683,4 +744,4 @@ namespace dal::parser {
         return output;
     }
 
-}
+}  // namespace dal::parser

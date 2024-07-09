@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vector>
 #include <optional>
+#include <vector>
 
-#include "daltools/struct.h"
 #include "daltools/crypto.h"
+#include "daltools/struct.h"
 
 
 namespace dal::parser {
@@ -12,7 +12,7 @@ namespace dal::parser {
     using binary_buffer_t = std::vector<uint8_t>;
 
 
-    enum class ModelExportResult{
+    enum class ModelExportResult {
         success,
         compression_failure,
         unknown_error,
@@ -32,4 +32,4 @@ namespace dal::parser {
         crypto::PublicKeySignature* const sign_mgr
     );
 
-}
+}  // namespace dal::parser
