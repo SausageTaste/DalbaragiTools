@@ -476,4 +476,8 @@ namespace dal::parser {
             return output;
     }
 
+    std::optional<Model> parse_dmd(const BinDataView& src) {
+        return dalp::parse_dmd(src.data(), src.size());
+    }
+
 }  // namespace dal::parser

@@ -2,6 +2,7 @@
 
 #include <optional>
 
+#include "daltools/common/bin_data.h"
 #include "daltools/scene/struct.h"
 
 
@@ -23,5 +24,7 @@ namespace dal::parser {
     std::optional<Model> parse_dmd(
         const uint8_t* const file_content, const size_t content_size
     );
+
+    std::optional<Model> parse_dmd(const BinDataView& src);
 
 }  // namespace dal::parser

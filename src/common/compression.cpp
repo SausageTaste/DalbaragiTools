@@ -40,8 +40,8 @@ namespace dal {
         return output;
     }
 
-    std::optional<uint8vec_t> compress_zip(const uint8vec_t& src) {
-        uint8vec_t output;
+    std::optional<binvec_t> compress_zip(const BinDataView& src) {
+        binvec_t output;
         output.resize(src.size() * 2);
 
         const auto res = compress_zip(
@@ -90,8 +90,8 @@ namespace dal {
         return output;
     }
 
-    std::optional<uint8vec_t> decomp_zip(const uint8vec_t& src, size_t hint) {
-        uint8vec_t output;
+    std::optional<binvec_t> decomp_zip(const BinDataView& src, size_t hint) {
+        binvec_t output;
         if (0 != hint)
             output.resize(hint);
         else
@@ -109,12 +109,12 @@ namespace dal {
     }
 
 
-    std::optional<uint8vec_t> compress_bro(
+    std::optional<binvec_t> compress_bro(
         const uint8_t* const src, const size_t src_size
     ) {
         auto instance = BrotliEncoderCreateInstance(nullptr, nullptr, nullptr);
         std::vector<uint8_t> buffer(BROTLI_BUFFER_SIZE);
-        uint8vec_t result;
+        binvec_t result;
 
         auto available_in = src_size;
         auto available_out = buffer.size();
@@ -142,16 +142,16 @@ namespace dal {
         return result;
     }
 
-    std::optional<uint8vec_t> compress_bro(const uint8vec_t& src) {
+    std::optional<binvec_t> compress_bro(const BinDataView& src) {
         return compress_bro(src.data(), src.size());
     }
 
-    std::optional<uint8vec_t> decomp_bro(
+    std::optional<binvec_t> decomp_bro(
         const uint8_t* src, size_t src_size, size_t hint
     ) {
         auto instance = BrotliDecoderCreateInstance(nullptr, nullptr, nullptr);
         std::vector<uint8_t> buffer(BROTLI_BUFFER_SIZE);
-        uint8vec_t result;
+        binvec_t result;
         result.reserve(hint);
 
         auto available_in = src_size;
@@ -182,43 +182,43 @@ namespace dal {
         return result;
     }
 
-    std::optional<uint8vec_t> decomp_bro(const uint8vec_t& src, size_t hint) {
+    std::optional<binvec_t> decomp_bro(const BinDataView& src, size_t hint) {
         return decomp_bro(src.data(), src.size(), hint);
     }
 
 
     std::optional<std::vector<uint8_t>> compress_with_header(
-        const uint8_t* const src, const size_t src_size
+        const BinDataView& src
     ) {
-        std::vector<uint8_t> buffer(src_size * 2);
+        std::vector<uint8_t> buffer(src.size() * 2);
         const auto result = compress_zip(
-            buffer.data(), buffer.size(), src, src_size
+            buffer.data(), buffer.size(), src.data(), src.size()
         );
 
         if (result.m_result != CompressResult::success) {
             return std::nullopt;
         } else {
             dal::parser::BinaryDataArray output;
-            output.append_int64(src_size);
+            output.append_int64(src.size());
             output.append_array(buffer.data(), result.m_output_size);
             return output.release();
         }
     }
 
     std::optional<std::vector<uint8_t>> decompress_with_header(
-        const uint8_t* const src, const size_t src_size
+        const BinDataView& src
     ) {
         constexpr size_t HEADER_SIZE = sizeof(int64_t);
 
-        dal::parser::BinaryArrayParser parser(src, src_size);
+        dal::parser::BinaryArrayParser parser(src.data(), src.size());
         const auto raw_data_size = parser.parse_int64();
         std::vector<uint8_t> buffer(raw_data_size);
 
         const auto result = decomp_zip(
             buffer.data(),
             buffer.size(),
-            src + HEADER_SIZE,
-            src_size - HEADER_SIZE
+            src.data() + HEADER_SIZE,
+            src.size() - HEADER_SIZE
         );
         if (result.m_result != CompressResult::success) {
             return std::nullopt;
@@ -230,14 +230,14 @@ namespace dal {
     }
 
 
-    std::string encode_base64(const uint8_t* const src, const size_t src_size) {
+    std::string encode_base64(const BinDataView& src) {
         std::string output;
-        output.resize(src_size * 2);
+        output.resize(src.size() * 2);
         size_t output_size = output.size();
 
         base64_encode(
-            reinterpret_cast<const char*>(src),
-            src_size,
+            reinterpret_cast<const char*>(src.data()),
+            src.size(),
             reinterpret_cast<char*>(output.data()),
             &output_size,
             0

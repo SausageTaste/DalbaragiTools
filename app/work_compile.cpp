@@ -50,15 +50,9 @@ namespace {
         std::vector<SceneIntermediate> scenes;
         JsonParseResult result;
         if (const auto bin_data = ::read_file(bin_path)) {
-            result = parse_json_bin(
-                scenes,
-                json_data->data(),
-                json_data->size(),
-                bin_data->data(),
-                bin_data->size()
-            );
+            result = parse_json_bin(scenes, *json_data, *bin_data);
         } else {
-            result = parse_json(scenes, json_data->data(), json_data->size());
+            result = parse_json(scenes, *json_data);
         }
 
         for (auto& scene : scenes) {

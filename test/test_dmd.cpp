@@ -145,7 +145,7 @@ namespace {
         std::cout << "< " << model_path << " >" << std::endl;
 
         const auto file_content = ::read_file(model_path);
-        const auto model = dal::parser::parse_dmd(file_content.data(), file_content.size());
+        const auto model = dal::parser::parse_dmd(file_content);
 
         std::cout << "    * Loaded and parsed" << std::endl;
         std::cout << "        render units straight:       " << model->units_straight_.size() << std::endl;
@@ -157,7 +157,7 @@ namespace {
 
         {
             const auto binary = dal::parser::build_binary_model(*model);
-            const auto model_second = dal::parser::parse_dmd(binary->data(), binary->size());
+            const auto model_second = dal::parser::parse_dmd(*binary);
 
             std::cout << "    * Second model parsed" << std::endl;
             std::cout << "        render units straight:       " << model_second->units_straight_.size() << std::endl;
@@ -205,7 +205,7 @@ namespace {
             size_t process_count = 0;
 
             while (::get_cur_sec() - start_time < TEST_DURATION) {
-                const auto model = dal::parser::parse_dmd(file_content.data(), file_content.size());
+                const auto model = dal::parser::parse_dmd(file_content);
                 ++process_count;
             }
 
@@ -235,7 +235,7 @@ namespace {
         std::cout << "Convert " << src_path << " to indexed model to " << dst_path;
 
         const auto model_data = ::read_file(dst_path);
-        auto model = dal::parser::parse_dmd(model_data.data(), model_data.size());
+        auto model = dal::parser::parse_dmd(model_data);
 
         for (const auto& unit : model->units_straight_) {
             dalp::RenderUnit<dalp::Mesh_Indexed> new_unit;

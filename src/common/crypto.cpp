@@ -243,8 +243,8 @@ namespace dal::crypto {
 
     std::string build_key_store(const IKey& key, const KeyAttrib& attrib) {
         const auto data = build_key_binary(key, attrib);
-        const auto compressed = dal::compress_with_header(data.data(), data.size());  // If it fails, it's a bug
-        const auto base64 = dal::encode_base64(compressed->data(), compressed->size());
+        const auto compressed = dal::compress_with_header(data);  // If it fails, it's a bug
+        const auto base64 = dal::encode_base64(*compressed);
         return ::add_line_breaks(base64, 40);
     }
 
@@ -292,7 +292,7 @@ namespace dal::crypto {
         if (!compressed)
             throw std::runtime_error{fmt::format("Failed to decode a key file: \"{}\"\n", key_path)};
 
-        const auto key_data = dal::decompress_with_header(compressed->data(), compressed->size());
+        const auto key_data = dal::decompress_with_header(*compressed);
         if (!key_data)
             throw std::runtime_error{fmt::format("Failed to uncompress a key file: \"{}\"\n", key_path)};
 

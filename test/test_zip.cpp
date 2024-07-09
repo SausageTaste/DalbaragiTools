@@ -5,8 +5,8 @@
 
 namespace {
 
-    dal::uint8vec_t gen_test_data() {
-        dal::uint8vec_t output;
+    dal::binvec_t gen_test_data() {
+        dal::binvec_t output;
         output.reserve(1024);
         constexpr auto data_size = 1024 * 1024;
 

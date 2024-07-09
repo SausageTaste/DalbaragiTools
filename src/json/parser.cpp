@@ -587,6 +587,12 @@ namespace dal::parser {
         return JsonParseResult::success;
     }
 
+    JsonParseResult parse_json(
+        std::vector<SceneIntermediate>& scenes, const BinDataView& json_src
+    ) {
+        return parse_json(scenes, json_src.data(), json_src.size());
+    }
+
     JsonParseResult parse_json_bin(
         std::vector<SceneIntermediate>& scenes,
         const uint8_t* const json_file_data,
@@ -608,6 +614,20 @@ namespace dal::parser {
         }
 
         return JsonParseResult::success;
+    }
+
+    JsonParseResult parse_json_bin(
+        std::vector<SceneIntermediate>& scenes,
+        const BinDataView& json_src,
+        const BinDataView& bin_src
+    ) {
+        return parse_json_bin(
+            scenes,
+            json_src.data(),
+            json_src.size(),
+            bin_src.data(),
+            bin_src.size()
+        );
     }
 
 }  // namespace dal::parser

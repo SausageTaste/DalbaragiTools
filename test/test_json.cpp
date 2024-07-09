@@ -119,16 +119,10 @@ namespace {
             dal::parser::JsonParseResult result;
             if (bin_file_content) {
                 result = dal::parser::parse_json_bin(
-                    scenes,
-                    file_content->data(),
-                    file_content->size(),
-                    bin_file_content->data(),
-                    bin_file_content->size()
+                    scenes, *file_content, *bin_file_content
                 );
             } else {
-                result = dal::parser::parse_json(
-                    scenes, file_content->data(), file_content->size()
-                );
+                result = dal::parser::parse_json(scenes, *file_content);
             }
             ASSERT_EQ(scenes.size(), 1);
             fmt::print(" - Json parsed ({:.2f})\n", timer.check_get_elapsed());
@@ -147,9 +141,7 @@ namespace {
             ASSERT_TRUE(binary1.has_value());
             fmt::print(" - DMD built ({:.2f})\n", timer.check_get_elapsed());
 
-            const auto model2 = dal::parser::parse_dmd(
-                binary1->data(), binary1->size()
-            );
+            const auto model2 = dal::parser::parse_dmd(*binary1);
             ASSERT_TRUE(model2.has_value());
             fmt::print(" - DMD parsed ({:.2f})\n", timer.check_get_elapsed());
 
