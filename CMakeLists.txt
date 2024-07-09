@@ -94,25 +94,21 @@ endif()
 # ----------------------------------------------------------------------------------
 
 add_library(libdaltools STATIC
-    ${source_dir}/model_parser.cpp
-    ${source_dir}/struct.cpp
-    ${source_dir}/byte_tool.cpp
-    ${source_dir}/modifier.cpp
-    ${source_dir}/model_exporter.cpp
-    ${source_dir}/crypto.cpp
-    ${source_dir}/compression.cpp
-    ${source_dir}/util.cpp
-    ${source_dir}/json_parser.cpp
-    ${source_dir}/modifier_scene.cpp
+    ${source_dir}/common/byte_tool.cpp
+    ${source_dir}/common/compression.cpp
+    ${source_dir}/common/crypto.cpp
+    ${source_dir}/common/util.cpp
+    ${source_dir}/dmd/exporter.cpp
+    ${source_dir}/dmd/parser.cpp
+    ${source_dir}/json/parser.cpp
+    ${source_dir}/scene/modifier_scene.cpp
+    ${source_dir}/scene/modifier.cpp
+    ${source_dir}/scene/struct.cpp
 )
-
-target_include_directories(libdaltools PUBLIC ./include
-    INTERFACE
-        ${PROJECT_SOURCE_DIR}/include
+target_include_directories(libdaltools PUBLIC
+    ${PROJECT_SOURCE_DIR}/include
 )
-
 target_compile_features(libdaltools PUBLIC cxx_std_17)
-
 add_library(dalbaragi::daltools ALIAS libdaltools)
 
 

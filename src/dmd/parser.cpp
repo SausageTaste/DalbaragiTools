@@ -1,8 +1,8 @@
-#include "daltools/model_parser.h"
+#include "daltools/dmd/parser.h"
 
-#include "daltools/byte_tool.h"
-#include "daltools/compression.h"
-#include "daltools/konst.h"
+#include "daltools/common/byte_tool.h"
+#include "daltools/common/compression.h"
+#include "daltools/common/konst.h"
 
 
 namespace dalp = dal::parser;

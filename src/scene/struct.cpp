@@ -1,4 +1,4 @@
-#include "daltools/struct.h"
+#include "daltools/scene/struct.h"
 
 #include <stdexcept>
 

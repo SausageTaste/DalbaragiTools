@@ -1,4 +1,4 @@
-#include "daltools/crypto.h"
+#include "daltools/common/crypto.h"
 
 #include <algorithm>
 #include <mutex>
@@ -9,8 +9,8 @@
 #include "hydrogen.h"
 #include <fmt/format.h>
 
-#include "daltools/byte_tool.h"
-#include "daltools/compression.h"
+#include "daltools/common/byte_tool.h"
+#include "daltools/common/compression.h"
 
 
 namespace {

@@ -1,4 +1,4 @@
-#include "daltools/compression.h"
+#include "daltools/common/compression.h"
 
 #include <array>
 
@@ -7,7 +7,7 @@
 #include <libbase64.h>
 #include <zlib.h>
 
-#include "daltools/byte_tool.h"
+#include "daltools/common/byte_tool.h"
 
 
 namespace {

@@ -5,10 +5,11 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include "daltools/model_exporter.h"
-#include "daltools/model_parser.h"
-#include "daltools/modifier.h"
-#include "daltools/util.h"
+#include "daltools/common/util.h"
+#include "daltools/dmd/exporter.h"
+#include "daltools/dmd/parser.h"
+#include "daltools/json/parser.h"
+#include "daltools/scene/modifier.h"
 
 
 namespace fs = std::filesystem;

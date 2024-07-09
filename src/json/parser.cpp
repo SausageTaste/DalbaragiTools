@@ -1,4 +1,4 @@
-#include "daltools/model_parser.h"
+#include "daltools/json/parser.h"
 
 #include <optional>
 #include <set>
@@ -7,9 +7,9 @@
 #include <libbase64.h>
 #include <nlohmann/json.hpp>
 
-#include "daltools/byte_tool.h"
-#include "daltools/compression.h"
-#include "daltools/konst.h"
+#include "daltools/common/byte_tool.h"
+#include "daltools/common/compression.h"
+#include "daltools/common/konst.h"
 
 
 namespace {

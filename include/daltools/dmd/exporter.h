@@ -3,7 +3,7 @@
 #include <optional>
 #include <vector>
 
-#include "daltools/struct.h"
+#include "daltools/scene/struct.h"
 
 
 namespace dal::parser {

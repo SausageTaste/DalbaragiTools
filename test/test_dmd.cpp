@@ -3,10 +3,10 @@
 #include <sstream>
 #include <filesystem>
 
-#include "daltools/model_parser.h"
-#include "daltools/modifier.h"
-#include "daltools/byte_tool.h"
-#include "daltools/model_exporter.h"
+#include "daltools/dmd/parser.h"
+#include "daltools/scene/modifier.h"
+#include "daltools/common/byte_tool.h"
+#include "daltools/dmd/exporter.h"
 
 
 #define STRINGIFY(x) #x

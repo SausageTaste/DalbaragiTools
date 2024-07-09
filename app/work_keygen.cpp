@@ -3,9 +3,9 @@
 #include <fmt/format.h>
 #include <argparse/argparse.hpp>
 
-#include "daltools/crypto.h"
-#include "daltools/konst.h"
-#include "daltools/util.h"
+#include "daltools/common/crypto.h"
+#include "daltools/common/konst.h"
+#include "daltools/common/util.h"
 
 
 namespace dal {

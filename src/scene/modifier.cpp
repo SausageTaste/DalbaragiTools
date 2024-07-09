@@ -1,4 +1,4 @@
-#include "daltools/modifier.h"
+#include "daltools/scene/modifier.h"
 
 #include <unordered_map>
 #include <unordered_set>

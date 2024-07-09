@@ -6,11 +6,12 @@
 #include <fmt/format.h>
 #include <argparse/argparse.hpp>
 
-#include "daltools/crypto.h"
-#include "daltools/konst.h"
-#include "daltools/model_exporter.h"
-#include "daltools/model_parser.h"
-#include "daltools/modifier.h"
+#include "daltools/common/crypto.h"
+#include "daltools/common/konst.h"
+#include "daltools/dmd/exporter.h"
+#include "daltools/dmd/parser.h"
+#include "daltools/json/parser.h"
+#include "daltools/scene/modifier.h"
 
 
 namespace {

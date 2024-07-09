@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "daltools/compression.h"
+#include "daltools/common/compression.h"
 
 
 namespace {
