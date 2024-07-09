@@ -154,10 +154,9 @@ namespace {
         std::cout << "        render units indexed joint:  " << model->units_indexed_joint_.size() << std::endl;
         std::cout << "        joints: " << model->skeleton_.joints_.size() << std::endl;
         std::cout << "        animations: " << model->animations_.size() << std::endl;
-        std::cout << "        signature: " << model->signature_hex_ << std::endl;
 
         {
-            const auto binary = dal::parser::build_binary_model(*model, nullptr, nullptr);
+            const auto binary = dal::parser::build_binary_model(*model);
             const auto model_second = dal::parser::parse_dmd(binary->data(), binary->size());
 
             std::cout << "    * Second model parsed" << std::endl;
@@ -167,7 +166,6 @@ namespace {
             std::cout << "        render units indexed joint:  " << model_second->units_indexed_joint_.size() << std::endl;
             std::cout << "        joints: " << model_second->skeleton_.joints_.size() << std::endl;
             std::cout << "        animations: " << model_second->animations_.size() << std::endl;
-            std::cout << "        signature: " << model_second->signature_hex_ << std::endl;
 
             std::cout << "    * Built binary" << std::endl;
             std::cout << "        original binary size: " << file_content.size() << std::endl;
@@ -221,7 +219,7 @@ namespace {
             size_t process_count = 0;
 
             while (::get_cur_sec() - start_time < TEST_DURATION) {
-                const auto binary = dal::parser::build_binary_model(*model, nullptr, nullptr);
+                const auto binary = dal::parser::build_binary_model(*model);
                 ++process_count;
             }
 
@@ -257,7 +255,7 @@ namespace {
         }
         model->units_straight_joint_.clear();
 
-        const auto binary_built = dalp::build_binary_model(*model, nullptr, nullptr);
+        const auto binary_built = dalp::build_binary_model(*model);
 
         std::ofstream file(src_path, std::ios::binary);
         file.write(reinterpret_cast<const char*>(binary_built->data()), binary_built->size());

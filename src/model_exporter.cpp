@@ -190,7 +190,7 @@ namespace {
         assert(mesh.vertices_.size() % 3 == 0);
         const auto nuvertices_ = mesh.vertices_.size() / 3;
 
-        output.append_int32(nuvertices_);
+        output.append_int64(nuvertices_);
         output.append_float32_vector(mesh.vertices_);
         output.append_float32_vector(mesh.uv_coordinates_);
         output.append_float32_vector(mesh.normals_);
@@ -226,7 +226,7 @@ namespace {
         ::BinaryBuildBuffer output;
         static_assert(32 == sizeof(dalp::Mesh_Indexed::VERT_TYPE));
 
-        output.append_int32(mesh.vertices_.size());
+        output.append_int64(mesh.vertices_.size());
         for (auto& vert : mesh.vertices_) {
             output.append_float32(vert.pos_.x);
             output.append_float32(vert.pos_.y);
@@ -240,7 +240,7 @@ namespace {
             output.append_float32(vert.uv_.y);
         }
 
-        output.append_int32(mesh.indices_.size());
+        output.append_int64(mesh.indices_.size());
         for (auto index : mesh.indices_) {
             output.append_int32(index);
         }
@@ -254,7 +254,7 @@ namespace {
         ::BinaryBuildBuffer output;
         static_assert(64 == sizeof(dalp::Mesh_IndexedJoint::VERT_TYPE));
 
-        output.append_int32(mesh.vertices_.size());
+        output.append_int64(mesh.vertices_.size());
         for (auto& vert : mesh.vertices_) {
             output.append_float32(vert.pos_.x);
             output.append_float32(vert.pos_.y);
@@ -278,7 +278,7 @@ namespace {
             output.append_int32(vert.joint_indices_.w);
         }
 
-        output.append_int32(mesh.indices_.size());
+        output.append_int64(mesh.indices_.size());
         for (auto index : mesh.indices_) {
             output.append_int32(index);
         }
@@ -292,10 +292,7 @@ namespace {
 namespace dal::parser {
 
     ModelExportResult build_binary_model(
-        binary_buffer_t& output,
-        const Model& input,
-        const crypto::PublicKeySignature::SecretKey* const sign_key,
-        crypto::PublicKeySignature* const sign_mgr
+        std::vector<uint8_t>& output, const Model& input
     ) {
         BinaryBuildBuffer buffer;
 
@@ -303,45 +300,32 @@ namespace dal::parser {
         buffer += ::build_bin_skeleton(input.skeleton_);
         buffer += ::build_bin_animation(input.animations_);
 
-        buffer.append_int32(input.units_straight_.size());
+        buffer.append_int64(input.units_straight_.size());
         for (auto& unit : input.units_straight_) {
             buffer.append_str(unit.name_);
             buffer += ::build_bin_material(unit.material_);
             buffer += ::build_bin_mesh_straight(unit.mesh_);
         }
 
-        buffer.append_int32(input.units_straight_joint_.size());
+        buffer.append_int64(input.units_straight_joint_.size());
         for (auto& unit : input.units_straight_joint_) {
             buffer.append_str(unit.name_);
             buffer += ::build_bin_material(unit.material_);
             buffer += ::build_bin_mesh_straight_joint(unit.mesh_);
         }
 
-        buffer.append_int32(input.units_indexed_.size());
+        buffer.append_int64(input.units_indexed_.size());
         for (auto& unit : input.units_indexed_) {
             buffer.append_str(unit.name_);
             buffer += ::build_bin_material(unit.material_);
             buffer += ::build_bin_mesh_indexed(unit.mesh_);
         }
 
-        buffer.append_int32(input.units_indexed_joint_.size());
+        buffer.append_int64(input.units_indexed_joint_.size());
         for (auto& unit : input.units_indexed_joint_) {
             buffer.append_str(unit.name_);
             buffer += ::build_bin_material(unit.material_);
             buffer += ::build_bin_mesh_indexed_joint(unit.mesh_);
-        }
-
-        // Null terminated signature
-        if (nullptr != sign_key && nullptr != sign_key) {
-            const auto signature = sign_mgr->create_signature(
-                buffer.data(), buffer.size(), *sign_key
-            );
-            if (!signature.has_value())
-                return ModelExportResult::unknown_error;
-
-            buffer.append_str(signature->make_hex_str());
-        } else {
-            buffer.append_char('\0');
         }
 
         auto zipped = ::compress_dal_model(buffer.data(), buffer.size());
@@ -352,13 +336,9 @@ namespace dal::parser {
         return ModelExportResult::success;
     }
 
-    std::optional<binary_buffer_t> build_binary_model(
-        const Model& input,
-        const crypto::PublicKeySignature::SecretKey* const sign_key,
-        crypto::PublicKeySignature* const sign_mgr
-    ) {
-        binary_buffer_t result;
-        const auto res = build_binary_model(result, input, sign_key, sign_mgr);
+    std::optional<std::vector<uint8_t>> build_binary_model(const Model& input) {
+        std::vector<uint8_t> result;
+        const auto res = build_binary_model(result, input);
         if (ModelExportResult::success != res)
             return std::nullopt;
         else

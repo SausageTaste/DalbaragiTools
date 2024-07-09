@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 
+#include <fmt/format.h>
 #include <argparse/argparse.hpp>
 
 #include "daltools/crypto.h"
@@ -35,10 +36,7 @@ namespace {
     }
 
 
-    void do_file(
-        const std::filesystem::path& src_path,
-        const std::optional<std::filesystem::path> key_path
-    ) {
+    void do_file(const std::filesystem::path& src_path) {
         using namespace dal::crypto;
         using namespace dal::parser;
         using SecretKey = PublicKeySignature::SecretKey;
@@ -69,16 +67,7 @@ namespace {
         }
 
         const auto model = convert_to_model_dmd(scenes.at(0));
-        std::optional<binary_buffer_t> bin_built;
-
-        if (key_path.has_value()) {
-            PublicKeySignature sign_mgr{ CONTEXT_PARSER };
-            const auto key_path_str = key_path->u8string().c_str();
-            const auto [key, attrib] = load_key<SecretKey>(key_path_str);
-            bin_built = build_binary_model(model, &key, &sign_mgr);
-        } else {
-            bin_built = build_binary_model(model, nullptr, nullptr);
-        }
+        const auto bin_built = build_binary_model(model);
 
         std::filesystem::path output_path = src_path;
         output_path.replace_extension("dmd");
@@ -96,19 +85,13 @@ namespace dal {
     void work_compile(int argc, char* argv[]) {
         argparse::ArgumentParser parser{ "daltools" };
         parser.add_argument("operation").help("Operation name");
-        parser.add_argument("-k", "--key").help("Path to a secret key file");
         parser.add_argument("files").help("Input model file paths").remaining();
         parser.parse_args(argc, argv);
 
         const auto files = parser.get<std::vector<std::string>>("files");
         for (const auto& src_path_str : files) {
-            std::filesystem::path src_path{ src_path_str };
-
-            std::optional<std::filesystem::path> key_path = std::nullopt;
-            if (const auto key_path_str = parser.present("--key"))
-                key_path = key_path_str.value();
-
-            ::do_file(src_path, key_path);
+            const std::filesystem::path src_path{ src_path_str };
+            ::do_file(src_path);
         }
     }
 

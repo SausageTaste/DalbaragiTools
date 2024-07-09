@@ -64,8 +64,8 @@ namespace {
         float fbuf[16];
         header = dalp::assemble_4_bytes_array<float>(header, fbuf, 16);
 
-        for (size_t row = 0; row < 4; ++row) {
-            for (size_t col = 0; col < 4; ++col) {
+        for (glm::mat4::length_type row = 0; row < 4; ++row) {
+            for (glm::mat4::length_type col = 0; col < 4; ++col) {
                 mat[col][row] = fbuf[4 * row + col];
             }
         }
@@ -237,8 +237,8 @@ namespace {
         const uint8_t* const end,
         dalp::Mesh_Straight& mesh
     ) {
-        const auto vert_count = dalp::make_int32(header);
-        header += 4;
+        const auto vert_count = dalp::make_int64(header);
+        header += 8;
 
         const auto vert_count_times_3 = vert_count * 3;
         const auto vert_count_times_2 = vert_count * 2;
@@ -266,8 +266,8 @@ namespace {
         const uint8_t* const end,
         dalp::Mesh_StraightJoint& mesh
     ) {
-        const auto vert_count = dalp::make_int32(header);
-        header += 4;
+        const auto vert_count = dalp::make_int64(header);
+        header += 8;
         const auto vert_count_times_3 = vert_count * 3;
         const auto vert_count_times_2 = vert_count * 2;
         const auto vert_count_times_joint_count =
@@ -306,9 +306,9 @@ namespace {
         const uint8_t* const end,
         dalp::Mesh_Indexed& mesh
     ) {
-        const auto vertex_count = dalp::make_int32(header);
-        header += 4;
-        for (int32_t i = 0; i < vertex_count; ++i) {
+        const auto vertex_count = dalp::make_int64(header);
+        header += 8;
+        for (int64_t i = 0; i < vertex_count; ++i) {
             auto& vert = mesh.vertices_.emplace_back();
 
             float fbuf[8];
@@ -319,9 +319,9 @@ namespace {
             vert.uv_ = glm::vec2{ fbuf[6], fbuf[7] };
         }
 
-        const auto index_count = dalp::make_int32(header);
-        header += 4;
-        for (int32_t i = 0; i < index_count; ++i) {
+        const auto index_count = dalp::make_int64(header);
+        header += 8;
+        for (int64_t i = 0; i < index_count; ++i) {
             mesh.indices_.push_back(dalp::make_int32(header));
             header += 4;
         }
@@ -334,9 +334,9 @@ namespace {
         const uint8_t* const end,
         dalp::Mesh_IndexedJoint& mesh
     ) {
-        const auto vertex_count = dalp::make_int32(header);
-        header += 4;
-        for (int32_t i = 0; i < vertex_count; ++i) {
+        const auto vertex_count = dalp::make_int64(header);
+        header += 8;
+        for (int64_t i = 0; i < vertex_count; ++i) {
             auto& vert = mesh.vertices_.emplace_back();
 
             float fbuf[8];
@@ -373,9 +373,9 @@ namespace {
             );
         }
 
-        const auto index_count = dalp::make_int32(header);
-        header += 4;
-        for (int32_t i = 0; i < index_count; ++i) {
+        const auto index_count = dalp::make_int64(header);
+        header += 8;
+        for (int64_t i = 0; i < index_count; ++i) {
             mesh.indices_.push_back(dalp::make_int32(header));
             header += 4;
         }
@@ -409,32 +409,29 @@ namespace {
         header = ::parse_skeleton(header, end, output.skeleton_);
         header = ::parse_animations(header, end, output.animations_);
 
-        output.units_straight_.resize(dalp::make_int32(header));
-        header += 4;
+        output.units_straight_.resize(dalp::make_int64(header));
+        header += 8;
         for (auto& unit : output.units_straight_) {
             header = ::parse_render_unit(header, end, unit);
         }
 
-        output.units_straight_joint_.resize(dalp::make_int32(header));
-        header += 4;
+        output.units_straight_joint_.resize(dalp::make_int64(header));
+        header += 8;
         for (auto& unit : output.units_straight_joint_) {
             header = ::parse_render_unit(header, end, unit);
         }
 
-        output.units_indexed_.resize(dalp::make_int32(header));
-        header += 4;
+        output.units_indexed_.resize(dalp::make_int64(header));
+        header += 8;
         for (auto& unit : output.units_indexed_) {
             header = ::parse_render_unit(header, end, unit);
         }
 
-        output.units_indexed_joint_.resize(dalp::make_int32(header));
-        header += 4;
+        output.units_indexed_joint_.resize(dalp::make_int64(header));
+        header += 8;
         for (auto& unit : output.units_indexed_joint_) {
             header = ::parse_render_unit(header, end, unit);
         }
-
-        output.signature_hex_ = reinterpret_cast<const char*>(header);
-        header += output.signature_hex_.size() + 1;
 
         if (header != end)
             return dalp::ModelParseResult::corrupted_content;
@@ -465,51 +462,6 @@ namespace dal::parser {
         return ::parse_all(
             output, unzipped->data(), unzipped->data() + unzipped->size()
         );
-    }
-
-    ModelParseResult parse_verify_dmd(
-        Model& output,
-        const uint8_t* const file_content,
-        const size_t content_size,
-        const crypto::PublicKeySignature::PublicKey& public_key,
-        crypto::PublicKeySignature& sign_mgr
-    ) {
-        // Check magic numbers
-        if (!::is_magic_numbers_correct(file_content))
-            return dalp::ModelParseResult::magic_numbers_dont_match;
-
-        // Decompress
-        const auto unzipped = ::unzip_dal_model(file_content, content_size);
-        if (!unzipped)
-            return dalp::ModelParseResult::decompression_failed;
-
-        // Parse
-        {
-            const auto parse_result = ::parse_all(
-                output, unzipped->data(), unzipped->data() + unzipped->size()
-            );
-            if (dalp::ModelParseResult::success != parse_result)
-                return parse_result;
-        }
-
-        // Varify
-        {
-            const dal::crypto::PublicKeySignature::Signature signature{
-                output.signature_hex_
-            };
-
-            const auto varify_result = sign_mgr.verify(
-                unzipped->data(),
-                unzipped->size() - output.signature_hex_.size() - 1,
-                public_key,
-                signature
-            );
-
-            if (!varify_result)
-                return ModelParseResult::invalid_signature;
-        }
-
-        return ModelParseResult::success;
     }
 
     std::optional<Model> parse_dmd(

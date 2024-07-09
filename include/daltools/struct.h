@@ -365,8 +365,6 @@ namespace dal::parser {
         std::vector<Animation> animations_;
         Skeleton skeleton_;
         AABB3 aabb_;
-
-        std::string signature_hex_;
     };
 
 }  // namespace dal::parser

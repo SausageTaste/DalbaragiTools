@@ -142,9 +142,7 @@ namespace {
             const auto model1 = dal::parser::convert_to_model_dmd(scenes.at(0));
             fmt::print(" - Model built ({:.2f})\n", timer.check_get_elapsed());
 
-            const auto binary1 = dal::parser::build_binary_model(
-                model1, nullptr, nullptr
-            );
+            const auto binary1 = dal::parser::build_binary_model(model1);
             ASSERT_TRUE(binary1.has_value());
             fmt::print(" - DMD built ({:.2f})\n", timer.check_get_elapsed());
 
@@ -154,9 +152,7 @@ namespace {
             ASSERT_TRUE(model2.has_value());
             fmt::print(" - DMD parsed ({:.2f})\n", timer.check_get_elapsed());
 
-            const auto binary2 = dal::parser::build_binary_model(
-                model2.value(), nullptr, nullptr
-            );
+            const auto binary2 = dal::parser::build_binary_model(*model2);
             ASSERT_TRUE(binary2.has_value());
             fmt::print(" - DMD again ({:.2f})\n", timer.check_get_elapsed());
 
