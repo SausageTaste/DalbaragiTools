@@ -50,9 +50,9 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
-    fetch_fmt
-    GIT_REPOSITORY https://github.com/fmtlib/fmt
-    GIT_TAG        10.2.1
+    fetch_spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog
+    GIT_TAG        v1.14.1
 )
 
 FetchContent_Declare(
@@ -71,7 +71,7 @@ FetchContent_MakeAvailable(fetch_glm)
 FetchContent_MakeAvailable(fetch_libhydrogen)
 FetchContent_MakeAvailable(fetch_argparse)
 FetchContent_MakeAvailable(fetch_json)
-FetchContent_MakeAvailable(fetch_fmt)
+FetchContent_MakeAvailable(fetch_spdlog)
 FetchContent_MakeAvailable(fetch_base64)
 FetchContent_MakeAvailable(fetch_brotli)
 
@@ -131,7 +131,7 @@ target_link_libraries(libdaltools
         hydrogen
         nlohmann_json::nlohmann_json
         base64
-        fmt::fmt
+        spdlog::spdlog
         brotlidec
         brotlienc
 )
