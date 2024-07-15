@@ -1,13 +1,13 @@
 #include "daltools/common/crypto.h"
 
 #include <algorithm>
-#include <mutex>
-#include <fstream>
 #include <cassert>
+#include <fstream>
+#include <mutex>
 #include <stdexcept>
 
-#include "hydrogen.h"
-#include <fmt/format.h>
+#include <hydrogen.h>
+#include <spdlog/fmt/fmt.h>
 
 #include "daltools/common/byte_tool.h"
 #include "daltools/common/compression.h"

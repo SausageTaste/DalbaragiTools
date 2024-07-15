@@ -2,7 +2,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <fmt/format.h>
+#include <spdlog/fmt/fmt.h>
 
 #include "work_functions.hpp"
 

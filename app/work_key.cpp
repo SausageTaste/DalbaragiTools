@@ -1,7 +1,7 @@
 #include "work_functions.hpp"
 
-#include <fmt/chrono.h>
-#include <fmt/format.h>
+#include <spdlog/fmt/chrono.h>
+#include <spdlog/fmt/fmt.h>
 #include <argparse/argparse.hpp>
 
 #include "daltools/common/crypto.h"

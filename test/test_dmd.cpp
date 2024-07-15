@@ -1,12 +1,12 @@
-#include <iostream>
-#include <fstream>
-#include <sstream>
 #include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 
-#include "daltools/dmd/parser.h"
-#include "daltools/scene/modifier.h"
 #include "daltools/common/byte_tool.h"
 #include "daltools/dmd/exporter.h"
+#include "daltools/dmd/parser.h"
+#include "daltools/scene/modifier.h"
 
 
 #define STRINGIFY(x) #x

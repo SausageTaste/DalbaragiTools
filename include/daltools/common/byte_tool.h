@@ -1,9 +1,9 @@
 #pragma once
 
-#include <vector>
-#include <string>
 #include <cstdint>
 #include <cstring>
+#include <string>
+#include <vector>
 
 
 namespace dal::parser {

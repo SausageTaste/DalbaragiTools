@@ -1,6 +1,6 @@
 #include "work_functions.hpp"
 
-#include <fmt/format.h>
+#include <spdlog/fmt/fmt.h>
 #include <argparse/argparse.hpp>
 
 #include "daltools/common/crypto.h"

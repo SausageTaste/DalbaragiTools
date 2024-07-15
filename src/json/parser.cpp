@@ -3,8 +3,8 @@
 #include <optional>
 #include <set>
 
-#include <fmt/format.h>
 #include <libbase64.h>
+#include <spdlog/fmt/fmt.h>
 #include <nlohmann/json.hpp>
 
 #include "daltools/common/byte_tool.h"
