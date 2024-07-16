@@ -19,3 +19,7 @@ add_test                  (daltest_json daltest_json)
 add_executable(daltest_zip test_zip.cpp)
 add_test(daltest_zip daltest_zip)
 target_link_libraries(daltest_zip GTest::gtest_main dalbaragi::daltools)
+
+add_executable(daltest_ktx test_ktx.cpp)
+add_test(daltest_ktx daltest_ktx)
+target_link_libraries(daltest_ktx GTest::gtest_main dalbaragi::daltools)
