@@ -12,7 +12,7 @@
 
 namespace {
 
-    constexpr int BROTLI_BUFFER_SIZE = 1024 * 1024 * 32;
+    constexpr int BROTLI_BUFFER_SIZE = 1024 * 1024 * 1;
 
 }
 
@@ -113,6 +113,8 @@ namespace dal {
         const uint8_t* const src, const size_t src_size
     ) {
         auto instance = BrotliEncoderCreateInstance(nullptr, nullptr, nullptr);
+        BrotliEncoderSetParameter(instance, BROTLI_PARAM_QUALITY, 6);
+
         std::vector<uint8_t> buffer(BROTLI_BUFFER_SIZE);
         binvec_t result;
 
