@@ -1,4 +1,4 @@
-#include "daltools/img/ktx/img.hpp"
+#include "daltools/backend/ktx.hpp"
 
 
 namespace dal {

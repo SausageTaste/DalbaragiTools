@@ -1,6 +1,6 @@
 #include "daltools/img/img.hpp"
 
-#include "daltools/img/ktx/img.hpp"
+#include "daltools/img/backend/ktx.hpp"
 
 
 namespace dal {
