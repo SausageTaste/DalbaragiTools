@@ -83,6 +83,14 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
+    fetch_stb
+    GIT_REPOSITORY    https://github.com/nothings/stb
+    GIT_TAG           013ac3beddff3dbffafd5177e7972067cd2b5083
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND     ""
+)
+
+FetchContent_Declare(
     fetch_ktx
     GIT_REPOSITORY https://github.com/KhronosGroup/KTX-Software
     GIT_TAG        v4.3.2
@@ -101,6 +109,7 @@ FetchContent_MakeAvailable(
     fetch_spdlog
     fetch_base64
     fetch_brotli
+    fetch_stb
     fetch_ktx
 )
 
@@ -115,7 +124,8 @@ add_library(libdaltools STATIC
     ${source_dir}/common/util.cpp
     ${source_dir}/dmd/exporter.cpp
     ${source_dir}/dmd/parser.cpp
-    ${source_dir}/img/ktx/img.cpp
+    ${source_dir}/img/backend/ktx.cpp
+    ${source_dir}/img/backend/stb.cpp
     ${source_dir}/img/img.cpp
     ${source_dir}/json/parser.cpp
     ${source_dir}/scene/modifier_scene.cpp
@@ -124,6 +134,7 @@ add_library(libdaltools STATIC
 )
 target_include_directories(libdaltools PUBLIC
     ${PROJECT_SOURCE_DIR}/include
+    ${fetch_stb_SOURCE_DIR}
 )
 target_compile_features(libdaltools PUBLIC cxx_std_17)
 add_library(dalbaragi::daltools ALIAS libdaltools)

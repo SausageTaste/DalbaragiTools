@@ -20,8 +20,8 @@ namespace dal {
 
         ~KtxImage() { this->destroy(); }
 
-        void destroy();
-        bool is_ready() const;
+        void destroy() override;
+        bool is_ready() const override;
 
         ktxTexture* texture_ = nullptr;
     };

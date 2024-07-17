@@ -1,4 +1,4 @@
-#include "daltools/backend/ktx.hpp"
+#include "daltools/img/backend/ktx.hpp"
 
 
 namespace dal {
@@ -14,9 +14,7 @@ namespace dal {
         }
     }
 
-    KtxImage::KtxImage(KtxImage&& rhs) {
-        std::swap(texture_, rhs.texture_);
-    }
+    KtxImage::KtxImage(KtxImage&& rhs) { std::swap(texture_, rhs.texture_); }
 
     KtxImage& KtxImage::operator=(KtxImage&& rhs) {
         std::swap(texture_, rhs.texture_);
