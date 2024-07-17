@@ -1,19 +1,14 @@
-#pragma once
+#include "daltools/img/img.hpp"
 
-#include <memory>
+#include "daltools/img/ktx/img.hpp"
 
 
 namespace dal {
 
-    class IImage {
-
-    public:
-        virtual ~IImage() = default;
-    };
-
-
     std::unique_ptr<IImage> parse_img(
         const uint8_t* data, size_t size, const char* file_path
-    );
+    ) {
+        return nullptr;
+    }
 
 }  // namespace dal

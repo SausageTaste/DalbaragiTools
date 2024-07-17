@@ -115,6 +115,8 @@ add_library(libdaltools STATIC
     ${source_dir}/common/util.cpp
     ${source_dir}/dmd/exporter.cpp
     ${source_dir}/dmd/parser.cpp
+    ${source_dir}/img/ktx/img.cpp
+    ${source_dir}/img/img.cpp
     ${source_dir}/json/parser.cpp
     ${source_dir}/scene/modifier_scene.cpp
     ${source_dir}/scene/modifier.cpp
