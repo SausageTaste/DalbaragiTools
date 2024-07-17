@@ -4,9 +4,7 @@
 namespace dal {
 
     KtxImage::KtxImage(const uint8_t* data, size_t size) {
-        const auto res = ktxTexture_CreateFromMemory(
-            data, size, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &texture_
-        );
+        const auto res = ktxTexture_CreateFromMemory(data, size, 0, &texture_);
 
         if (KTX_SUCCESS != res) {
             this->destroy();
