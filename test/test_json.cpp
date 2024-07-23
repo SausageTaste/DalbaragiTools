@@ -130,7 +130,7 @@ namespace {
             for (auto& scene : scenes) {
                 dal::parser::flip_uv_vertically(scene);
                 dal::parser::clear_collection_info(scene);
-                dal::parser::optimize_scene(scene);
+                dal::parser::optimize_scene(scene, json_path);
             }
             fmt::print(" - Optimzied ({:.2f})\n", timer.check_get_elapsed());
 

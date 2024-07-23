@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "daltools/img/img.hpp"
+
 
 namespace {
 
@@ -576,6 +578,103 @@ namespace {
     }
 
 }  // namespace
+
+
+namespace {
+
+    std::optional<std::filesystem::path> find_image_path(
+        const std::filesystem::path& path, const std::string& img_name
+    ) {
+        if (img_name.empty())
+            return std::nullopt;
+
+        if (std::filesystem::is_regular_file(img_name))
+            return img_name;
+
+        auto img_path = path;
+        img_path.replace_filename(img_name);
+        if (std::filesystem::is_regular_file(img_path))
+            return img_path;
+
+        return std::nullopt;
+    }
+
+    template <typename T>
+    std::optional<T> read_file(const std::filesystem::path& path) {
+        std::ifstream file{ path,
+                            std::ios::ate | std::ios::binary | std::ios::in };
+
+        if (!file.is_open())
+            return std::nullopt;
+
+        const auto file_size = static_cast<size_t>(file.tellg());
+        T buffer;
+        buffer.resize(file_size);
+
+        file.seekg(0);
+        file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+        file.close();
+
+        return buffer;
+    }
+
+}  // namespace
+namespace dal::parser {
+
+    void split_by_transparency(
+        SceneIntermediate& scene, const std::filesystem::path& path
+    ) {
+        using namespace std;
+
+        unordered_map<string, unordered_set<string>> mesh_mat_map;
+        for (auto& ma : scene.mesh_actors_) {
+            for (auto& ren_pair : ma.render_pairs_) {
+                auto it = mesh_mat_map.find(ren_pair.mesh_name_);
+                if (mesh_mat_map.end() == it)
+                    mesh_mat_map[ren_pair.mesh_name_] = {
+                        ren_pair.material_name_
+                    };
+                else
+                    it->second.insert(ren_pair.material_name_);
+            }
+        }
+
+        for (auto& pair : mesh_mat_map) {
+            auto mesh = scene.find_mesh_by_name(pair.first);
+            if (nullptr == mesh)
+                continue;
+
+            unordered_set<std::filesystem::path> img_paths;
+            for (auto& mat_name : pair.second) {
+                auto mat = scene.find_material_by_name(mat_name);
+                if (nullptr != mat) {
+                    auto img_path = ::find_image_path(path, mat->albedo_map_);
+                    if (img_path)
+                        img_paths.insert(*img_path);
+                }
+            }
+
+            for (auto& img_path : img_paths) {
+                auto img_file_content = ::read_file<vector<uint8_t>>(img_path);
+                if (!img_file_content)
+                    continue;
+
+                dal::ImageParseInfo pinfo;
+                pinfo.file_path_ = img_path.u8string();
+                pinfo.data_ = img_file_content->data();
+                pinfo.size_ = img_file_content->size();
+                auto img = dal::parse_img(pinfo);
+                if (!img->is_ready())
+                    continue;
+            }
+
+            continue;
+        }
+
+        return;
+    }
+
+}  // namespace dal::parser
 
 
 namespace dal::parser {

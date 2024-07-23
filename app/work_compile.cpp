@@ -58,7 +58,7 @@ namespace {
         for (auto& scene : scenes) {
             flip_uv_vertically(scene);
             clear_collection_info(scene);
-            optimize_scene(scene);
+            optimize_scene(scene, src_path);
         }
 
         const auto model = convert_to_model_dmd(scenes.at(0));

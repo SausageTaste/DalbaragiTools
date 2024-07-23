@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #include "daltools/scene/struct.h"
 
 
@@ -40,10 +42,17 @@ namespace dal::parser {
 
     void merge_redundant_mesh_actors(SceneIntermediate& scene);
 
-    inline void optimize_scene(SceneIntermediate& scene) {
+    void split_by_transparency(
+        SceneIntermediate& scene, const std::filesystem::path& path
+    );
+
+    inline void optimize_scene(
+        SceneIntermediate& scene, const std::filesystem::path& path
+    ) {
         reduce_indexed_vertices(scene);
         remove_duplicate_materials(scene);
         merge_redundant_mesh_actors(scene);
+        // split_by_transparency(scene, path);
         reduce_joints(scene);
         apply_root_transform(scene);
     }
