@@ -1,5 +1,6 @@
 #include "daltools/scene/modifier.h"
 
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <unordered_map>
@@ -644,13 +645,13 @@ namespace dal::parser {
             if (nullptr == mesh)
                 continue;
 
-            unordered_set<std::filesystem::path> img_paths;
+            std::unordered_set<std::string> img_paths;
             for (auto& mat_name : pair.second) {
                 auto mat = scene.find_material_by_name(mat_name);
                 if (nullptr != mat) {
                     auto img_path = ::find_image_path(path, mat->albedo_map_);
                     if (img_path)
-                        img_paths.insert(*img_path);
+                        img_paths.insert(img_path->u8string().c_str());
                 }
             }
 
@@ -660,7 +661,7 @@ namespace dal::parser {
                     continue;
 
                 dal::ImageParseInfo pinfo;
-                pinfo.file_path_ = img_path.u8string();
+                pinfo.file_path_ = img_path;
                 pinfo.data_ = img_file_content->data();
                 pinfo.size_ = img_file_content->size();
                 auto img = dal::parse_img(pinfo);
