@@ -383,7 +383,7 @@ namespace {
         output.ticks_per_sec_ = json_data["ticks per seconds"];
 
         const auto joints_data_loc = json_data["joints data loc"];
-        const auto joints_data_size = json_data["joints data size"];
+        const auto joints_data_size = (int64_t)json_data["joints data size"];
 
         const auto begin = binary_data.ptr_at(joints_data_loc);
         const auto end = begin + joints_data_size;
