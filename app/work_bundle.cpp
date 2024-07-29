@@ -126,4 +126,134 @@ namespace dal {
         return;
     }
 
+    void work_bundle_view(int argc, char* argv[]) {
+        argparse::ArgumentParser parser{ "daltools" };
+        parser.add_argument("operation").help("Operation name").required();
+        parser.add_argument("inputs").help("Input paths").remaining();
+        parser.parse_args(argc, argv);
+
+        const auto file_paths = glob::glob(
+            parser.get<std::vector<std::string>>("inputs")
+        );
+        for (const auto& x : file_paths) {
+            std::ifstream file(x, std::ifstream ::binary);
+
+            // Header block
+            dal::BundleHeader header;
+            {
+                std::array<char, sizeof(BundleHeader)> headbuf;
+                file.read(headbuf.data(), headbuf.size());
+                std::streamsize res = file.gcount();
+
+                if (res != headbuf.size()) {
+                    spdlog::error(
+                        "File is too small to be a Dal Bundle file: '{}'",
+                        x.u8string()
+                    );
+                    continue;
+                }
+
+                header = *reinterpret_cast<const BundleHeader*>(headbuf.data());
+                if (!header.is_magic_valid()) {
+                    spdlog::error(
+                        "Magic number is invalid: '{}'", x.u8string()
+                    );
+                    continue;
+                }
+
+                fmt::print("Bundle: '{}'\n", x.u8string());
+                fmt::print("  * Created: '{}'\n", header.created_datetime());
+                fmt::print("  * Version: {}\n", header.version());
+                fmt::print(
+                    "  * Items: size={}, size_z={}, count={}\n",
+                    sung::format_bytes(header.items_size()),
+                    sung::format_bytes(header.items_size_z()),
+                    header.items_count()
+                );
+                fmt::print(
+                    "  * Data: size={}, size_z={}\n",
+                    sung::format_bytes(header.data_size()),
+                    sung::format_bytes(header.data_size_z())
+                );
+            }
+
+            // Items block
+            std::unordered_map<std::string, std::pair<uint64_t, uint64_t>> item;
+            {
+                file.seekg(header.items_offset());
+                std::vector<uint8_t> items_buf(header.items_size_z());
+                file.read((char*)items_buf.data(), items_buf.size());
+                if (file.gcount() != items_buf.size()) {
+                    spdlog::error(
+                        "Failed to read items block: '{}'", x.u8string()
+                    );
+                    continue;
+                }
+
+                const auto item_block = decomp_bro(
+                    items_buf, header.items_size()
+                );
+                if (!item_block.has_value()) {
+                    spdlog::error(
+                        "Failed to decompress items block: '{}'", x.u8string()
+                    );
+                    continue;
+                }
+
+                sung::BytesReader items_reader{ item_block->data(),
+                                                item_block->size() };
+                for (uint64_t i = 0; i < header.items_count(); ++i) {
+                    const auto name = items_reader.read_nt_str();
+                    const auto offset = items_reader.read_uint64().value();
+                    const auto size = items_reader.read_uint64().value();
+                    item[name] = { offset, size };
+
+                    fmt::print(
+                        "    - '{}' ({})\n", name, sung::format_bytes(size)
+                    );
+                }
+
+                if (!items_reader.is_eof()) {
+                    spdlog::warn(
+                        "Items block and item count mismatch: '{}'",
+                        x.u8string()
+                    );
+                }
+            }
+
+            // Data block
+            {
+                file.seekg(header.data_offset());
+                std::vector<uint8_t> data_buf(header.data_size_z());
+                file.read((char*)data_buf.data(), data_buf.size());
+                if (file.gcount() != data_buf.size()) {
+                    spdlog::error(
+                        "Failed to read data block: '{}'", x.u8string()
+                    );
+                    continue;
+                }
+
+                const auto data_block = decomp_bro(
+                    data_buf, header.data_size()
+                );
+                if (!data_block.has_value()) {
+                    spdlog::error(
+                        "Failed to decompress data block: '{}'", x.u8string()
+                    );
+                    continue;
+                }
+
+                for (auto& x : item) {
+                    const auto end_pos = x.second.first + x.second.second;
+                    if (end_pos > data_block->size()) {
+                        spdlog::error("Data block overflow: '{}'", x.first);
+                        continue;
+                    }
+                }
+            }
+
+            continue;
+        }
+    }
+
 }  // namespace dal

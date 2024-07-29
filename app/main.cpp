@@ -14,7 +14,8 @@ int main(int argc, char* argv[]) try {
         { "key"s, dal::work_key },
         { "keygen"s, dal::work_keygen },
         { "compile"s, dal::work_compile },
-        { "bundle"s, dal::work_bundle }
+        { "bundle"s, dal::work_bundle },
+        { "bundleview"s, dal::work_bundle_view },
     };
 
     if (argc < 2)

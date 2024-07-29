@@ -11,6 +11,8 @@ namespace dal {
     public:
         void init();
 
+        bool is_magic_valid() const noexcept;
+
         std::string created_datetime() const noexcept {
             return std::string{ created_datetime_.begin(),
                                 created_datetime_.end() };
@@ -19,10 +21,12 @@ namespace dal {
 
         uint64_t items_offset() const noexcept { return items_offset_; }
         uint64_t items_size() const noexcept { return items_size_; }
+        uint64_t items_size_z() const noexcept { return items_size_z_; }
         uint64_t items_count() const noexcept { return items_count_; }
 
         uint64_t data_offset() const noexcept { return data_offset_; }
         uint64_t data_size() const noexcept { return data_size_; }
+        uint64_t data_size_z() const noexcept { return data_size_z_; }
 
         void set_items_info(
             uint64_t offset, uint64_t size, uint64_t size_z, uint64_t count

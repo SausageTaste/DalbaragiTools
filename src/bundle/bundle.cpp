@@ -29,4 +29,8 @@ namespace dal {
         data_size_ = 0;
     }
 
+    bool BundleHeader::is_magic_valid() const noexcept {
+        return std::memcmp(magic_.data(), "DALBUN", 6) == 0;
+    }
+
 }  // namespace dal
