@@ -3,26 +3,30 @@
 #include <sung/general/time.hpp>
 
 
+// BundleHeader
 namespace dal {
 
-    BundleHeader::BundleHeader()
-        : magic_{ 0 }
-        , version_{ 1 }
-        , num_files_{ 0 }
-        , file_list_size_{ 0 }
-        , created_datetime_{ 0 } {
+    void BundleHeader::init() {
         static_assert(sizeof(char) == 1);
         static_assert(offsetof(BundleHeader, magic_) == 0);
-        static_assert(offsetof(BundleHeader, version_) == 8);
+        static_assert(offsetof(BundleHeader, version_) == 32);
 
-        std::memcpy(this->magic_, "DALBUNDLE", 8);
+        std::memcpy(magic_.data(), "DALBUN", 6);
 
         const auto now = sung::get_time_iso_utc();
+        created_datetime_.fill(0);
         std::memcpy(
-            created_datetime_,
+            created_datetime_.data(),
             now.c_str(),
-            std::min(now.size(), sizeof(this->created_datetime_))
+            std::min(now.size(), sizeof(created_datetime_))
         );
+
+        version_ = 1;
+        items_offset_ = 0;
+        items_size_ = 0;
+        items_count_ = 0;
+        data_offset_ = 0;
+        data_size_ = 0;
     }
 
 }  // namespace dal

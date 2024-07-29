@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <string>
 
 
@@ -8,23 +9,48 @@ namespace dal {
     class BundleHeader {
 
     public:
-        BundleHeader();
+        void init();
 
-        uint64_t version() const noexcept { return version_; }
-        uint64_t num_files() const noexcept { return num_files_; }
-        uint64_t file_list_size() const noexcept { return file_list_size_; }
         std::string created_datetime() const noexcept {
-            return std::string{ created_datetime_, created_datetime_ + 32 };
+            return std::string{ created_datetime_.begin(),
+                                created_datetime_.end() };
+        }
+        uint64_t version() const noexcept { return version_; }
+
+        uint64_t items_offset() const noexcept { return items_offset_; }
+        uint64_t items_size() const noexcept { return items_size_; }
+        uint64_t items_count() const noexcept { return items_count_; }
+
+        uint64_t data_offset() const noexcept { return data_offset_; }
+        uint64_t data_size() const noexcept { return data_size_; }
+
+        void set_items_info(
+            uint64_t offset, uint64_t size, uint64_t size_z, uint64_t count
+        ) {
+            items_offset_ = offset;
+            items_size_ = size;
+            items_size_z_ = size_z;
+            items_count_ = count;
+        }
+        void set_data_info(uint64_t offset, uint64_t size, uint64_t size_z) {
+            data_offset_ = offset;
+            data_size_ = size;
+            data_size_z_ = size_z;
         }
 
-        void set_num_files(const uint64_t num) noexcept { num_files_ = num; }
-
     private:
-        char magic_[8];
-        uint64_t version_;
-        uint64_t num_files_;
-        uint64_t file_list_size_;
-        char created_datetime_[32];
+        std::array<char, 6> magic_;
+        std::array<char, 32 - 6> created_datetime_;
+        uint32_t version_;
+
+        uint64_t items_offset_;
+        uint64_t items_size_;
+        uint64_t items_size_z_;  // Compressed size
+        uint64_t items_count_;
+
+        uint64_t data_offset_;
+        uint64_t data_size_;
+        uint64_t data_size_z_;  // Compressed size
     };
 
 }  // namespace dal
