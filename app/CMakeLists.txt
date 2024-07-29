@@ -1,6 +1,3 @@
-cmake_minimum_required(VERSION 3.4.1)
-
-
 add_executable(daltools
     main.cpp
     work_compile.cpp
@@ -17,4 +14,5 @@ target_link_libraries(daltools
     PRIVATE
         dalbaragi::daltools
         argparse::argparse
+        Glob
 )

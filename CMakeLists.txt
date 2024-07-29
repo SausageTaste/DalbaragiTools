@@ -100,6 +100,13 @@ set(KTX_FEATURE_STATIC_LIBRARY ON CACHE BOOL "" FORCE)
 set(KTX_FEATURE_TESTS OFF CACHE BOOL "" FORCE)
 set(KTX_FEATURE_TOOLS OFF CACHE BOOL "" FORCE)
 
+FetchContent_Declare(
+    fetch_glob
+    GIT_REPOSITORY https://github.com/p-ranav/glob
+    GIT_TAG        d025092c0e1eb1a8b226d3a799fd32680d2fd13f
+    GIT_PROGRESS   TRUE
+)
+
 
 FetchContent_MakeAvailable(
     fetch_glm
@@ -111,6 +118,7 @@ FetchContent_MakeAvailable(
     fetch_brotli
     fetch_stb
     fetch_ktx
+    fetch_glob
 )
 
 
