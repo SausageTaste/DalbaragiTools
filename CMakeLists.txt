@@ -128,6 +128,7 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/extern/SungToolsCpp)
 # ----------------------------------------------------------------------------------
 
 add_library(libdaltools STATIC
+    ${source_dir}/bundle/bundle.cpp
     ${source_dir}/common/byte_tool.cpp
     ${source_dir}/common/compression.cpp
     ${source_dir}/common/crypto.cpp
