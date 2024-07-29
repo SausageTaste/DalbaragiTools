@@ -14,6 +14,7 @@ int main(int argc, char* argv[]) try {
         { "key"s, dal::work_key },
         { "keygen"s, dal::work_keygen },
         { "compile"s, dal::work_compile },
+        { "bundle"s, dal::work_bundle }
     };
 
     if (argc < 2)
@@ -23,7 +24,7 @@ int main(int argc, char* argv[]) try {
     if (found != arg_map.end())
         found->second(argc, argv);
     else
-        throw std::runtime_error{ "Unknown operation ("s + argv[1] + "). It must be one of { key, keygen, compile }" };
+        throw std::runtime_error{ "Unknown operation ("s + argv[1] + "). It must be one of { key, keygen, compile, bundle }" };
 }
 catch (const std::runtime_error& e) {
     std::cout << "\nstd::runtime_error: " << e.what() << std::endl;

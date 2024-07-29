@@ -1,5 +1,6 @@
 add_executable(daltools
     main.cpp
+    work_bundle.cpp
     work_compile.cpp
     work_key.cpp
     work_keygen.cpp
