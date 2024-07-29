@@ -121,6 +121,8 @@ FetchContent_MakeAvailable(
     fetch_glob
 )
 
+add_subdirectory(${PROJECT_SOURCE_DIR}/extern/SungToolsCpp)
+
 
 # Define project library
 # ----------------------------------------------------------------------------------
@@ -173,6 +175,7 @@ target_link_libraries(libdaltools PUBLIC
     brotlidec
     brotlienc
     ktx
+    sungtools::general
 )
 
 
