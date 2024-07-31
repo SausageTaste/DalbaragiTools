@@ -16,6 +16,10 @@ target_include_directories(daltest_json PRIVATE .)
 target_link_libraries     (daltest_json PRIVATE GTest::gtest_main dalbaragi::daltools hydrogen)
 add_test                  (daltest_json daltest_json)
 
+add_executable(daltest_filesys test_filesys.cpp)
+add_test(daltest_filesys daltest_filesys)
+target_link_libraries(daltest_filesys GTest::gtest_main dalbaragi::daltools)
+
 add_executable(daltest_zip test_zip.cpp)
 add_test(daltest_zip daltest_zip)
 target_link_libraries(daltest_zip GTest::gtest_main dalbaragi::daltools)

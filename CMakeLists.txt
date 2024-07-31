@@ -135,6 +135,7 @@ add_library(libdaltools STATIC
     ${source_dir}/common/util.cpp
     ${source_dir}/dmd/exporter.cpp
     ${source_dir}/dmd/parser.cpp
+    ${source_dir}/filesys/filesys.cpp
     ${source_dir}/img/backend/ktx.cpp
     ${source_dir}/img/backend/stb.cpp
     ${source_dir}/img/img.cpp
