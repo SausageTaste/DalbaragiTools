@@ -1,12 +1,80 @@
 #include "daltools/filesys/filesys.hpp"
 
 #include <fstream>
+#include <sung/general/bytes.hpp>
+
+#include "daltools/bundle/bundle.hpp"
+#include "daltools/common/compression.h"
 
 
 namespace {
 
     namespace fs = std::filesystem;
 
+
+    bool walk_bundle(
+        const fs::path& file_path,
+        dal::IDirWalker& walker,
+        dal::IFileSubsys& subsys,
+        size_t depth
+    ) {
+        dal::BundleHeader header;
+        {
+            const auto res = subsys.read_file(
+                file_path,
+                reinterpret_cast<uint8_t*>(&header),
+                sizeof(dal::BundleHeader)
+            );
+            if (res != sizeof(dal::BundleHeader))
+                return false;
+            if (!header.is_magic_valid())
+                return false;
+        }
+
+        std::vector<uint8_t> file_content;
+        {
+            const auto items_buf_size = sizeof(dal::BundleHeader) +
+                                        header.items_size_z();
+            file_content.resize(items_buf_size);
+            const auto res = subsys.read_file(
+                file_path, file_content.data(), file_content.size()
+            );
+            if (res != items_buf_size)
+                return false;
+        }
+
+        const auto item_block = dal::decomp_bro(
+            file_content.data() + header.items_offset(),
+            header.items_size_z(),
+            header.items_size()
+        );
+        if (!item_block.has_value())
+            return false;
+
+        std::vector<std::string> item_names;
+        {
+            sung::BytesReader items_reader{ item_block->data(),
+                                            item_block->size() };
+            for (uint64_t i = 0; i < header.items_count(); ++i) {
+                const auto name = items_reader.read_nt_str();
+                items_reader.advance(sizeof(uint64_t) * 2);
+                item_names.push_back(name);
+            }
+            if (!items_reader.is_eof())
+                return false;
+        }
+
+        walker.on_bundle(file_path, depth);
+        for (const auto& name : item_names) {
+            walker.on_file(file_path / name, depth + 1);
+        }
+
+        return true;
+    }
+
+}  // namespace
+
+namespace {
 
     class FileSubsysStd : public dal::IFileSubsys {
 
@@ -53,6 +121,17 @@ namespace {
             }
 
             return output;
+        }
+
+        size_t read_file(const fs::path& path, uint8_t* buf, size_t buf_size)
+            override {
+            const auto raw_path = this->make_raw_path(path);
+            if (!raw_path.has_value())
+                return false;
+
+            std::ifstream file(*raw_path, std::ios::binary);
+            file.read(reinterpret_cast<char*>(buf), buf_size);
+            return file.gcount();
         }
 
         bool read_file(const fs::path& i_path, bindata_t& out) override {
@@ -109,6 +188,47 @@ namespace dal {
     class Filesystem::Impl {
 
     public:
+        std::vector<fs::path> list_files(const fs::path& path) {
+            std::vector<fs::path> output;
+
+            for (const auto& subsys : subsys_) {
+                const auto files = subsys->list_files(path);
+                output.insert(output.end(), files.begin(), files.end());
+            }
+
+            return output;
+        }
+
+        std::vector<fs::path> list_folders(const fs::path& path) {
+            std::vector<fs::path> output;
+
+            for (const auto& subsys : subsys_) {
+                const auto folders = subsys->list_folders(path);
+                output.insert(output.end(), folders.begin(), folders.end());
+            }
+
+            return output;
+        }
+
+        void walk(const fs::path& fol_path, IDirWalker& walker, size_t depth) {
+            const auto res = walker.on_folder(fol_path, depth);
+            if (!res)
+                return;
+
+            for (const auto& subsys : subsys_) {
+                for (const auto& file_path : subsys->list_files(fol_path)) {
+                    if (!::walk_bundle(file_path, walker, *subsys, depth + 1))
+                        walker.on_file(file_path, depth + 1);
+                }
+            }
+
+            for (const auto& subsys : subsys_) {
+                for (auto& folder_path : subsys->list_folders(fol_path)) {
+                    this->walk(folder_path, walker, depth + 1);
+                }
+            }
+        }
+
         std::vector<std::unique_ptr<IFileSubsys>> subsys_;
     };
 
@@ -150,6 +270,10 @@ namespace dal {
         }
 
         return output;
+    }
+
+    void Filesystem::walk(const fs::path& root, IDirWalker& visitor) {
+        pimpl_->walk(root, visitor, 0);
     }
 
     bool Filesystem::read_file(

@@ -8,6 +8,8 @@
 
 namespace {
 
+    namespace fs = std::filesystem;
+
     std::filesystem::path find_root_path() {
         namespace fs = std::filesystem;
         constexpr int DEPTH = 10;
@@ -28,6 +30,28 @@ namespace {
     }
 
 
+    class Walker : public dal::IDirWalker {
+
+    public:
+        bool on_folder(const fs::path& path, size_t depth) override {
+            for (size_t i = 0; i < depth; ++i) fmt::print("  ");
+            fmt::print("(Fold) {}\n", path.u8string());
+            return true;
+        }
+
+        bool on_bundle(const fs::path& path, size_t depth) override {
+            for (size_t i = 0; i < depth; ++i) fmt::print("  ");
+            fmt::print("(Bndl) {}\n", path.u8string());
+            return true;
+        }
+
+        void on_file(const fs::path& path, size_t depth) override {
+            for (size_t i = 0; i < depth; ++i) fmt::print("  ");
+            fmt::print("(File) {}\n", path.u8string());
+        }
+    };
+
+
     TEST(DaltestFilesys, FileSubsysStd) {
         system("chcp 65001");
         const auto test_path = ::find_root_path() / "test";
@@ -37,19 +61,8 @@ namespace {
             dal::create_filesubsys_std(":test", test_path.u8string())
         );
 
-        for (auto folder_path : filesys.list_folders(":test")) {
-            fmt::print("* {}\n", folder_path.u8string());
-
-            for (auto file_path : filesys.list_files(folder_path)) {
-                const auto content = filesys.read_file(file_path);
-                ASSERT_TRUE(content.has_value());
-                fmt::print(
-                    "  - {} ({})\n",
-                    file_path.u8string(),
-                    sung::format_bytes(content->size())
-                );
-            }
-        }
+        ::Walker walker;
+        filesys.walk(":test", walker);
     }
 
 }  // namespace
