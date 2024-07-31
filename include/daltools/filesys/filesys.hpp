@@ -5,6 +5,8 @@
 #include <optional>
 #include <vector>
 
+#include "daltools/bundle/repo.hpp"
+
 
 namespace dal {
 
@@ -30,11 +32,6 @@ namespace dal {
     };
 
 
-    std::unique_ptr<IFileSubsys> create_filesubsys_std(
-        const std::string& prefix, const fs::path& root
-    );
-
-
     class IDirWalker {
 
     public:
@@ -52,6 +49,7 @@ namespace dal {
         Filesystem();
         ~Filesystem();
 
+        BundleRepository& bundle_repo();
         void add_subsys(std::unique_ptr<IFileSubsys> subsys);
 
         bool is_file(const fs::path& path);
@@ -68,5 +66,12 @@ namespace dal {
         class Impl;
         std::unique_ptr<Impl> pimpl_;
     };
+
+
+    std::unique_ptr<IFileSubsys> create_filesubsys_std(
+        const std::string& prefix,
+        const fs::path& root,
+        Filesystem& filesys
+    );
 
 }  // namespace dal

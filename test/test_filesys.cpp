@@ -70,7 +70,7 @@ namespace {
 
         dal::Filesystem filesys;
         filesys.add_subsys(
-            dal::create_filesubsys_std(":test", test_path.u8string())
+            dal::create_filesubsys_std(":test", test_path.u8string(), filesys)
         );
 
         ::Walker walker{ filesys };

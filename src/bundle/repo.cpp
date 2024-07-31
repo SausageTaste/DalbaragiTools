@@ -93,4 +93,20 @@ namespace dal {
         return true;
     }
 
+    std::pair<const uint8_t*, size_t> BundleRepository::get_file_data(
+        const std::string& bundle_name, const std::string& file_name
+    ) const {
+        auto it = records_.find(bundle_name);
+        if (records_.end() == it)
+            return { nullptr, 0 };
+
+        for (const auto& entry : it->second.items_) {
+            if (entry.name_ == file_name)
+                return { it->second.data_block_.data() + entry.offset_,
+                         entry.size_ };
+        }
+
+        return { nullptr, 0 };
+    }
+
 }  // namespace dal
