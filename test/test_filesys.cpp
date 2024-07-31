@@ -33,6 +33,8 @@ namespace {
     class Walker : public dal::IDirWalker {
 
     public:
+        Walker(dal::Filesystem& filesys) : filesys_{ filesys } {}
+
         bool on_folder(const fs::path& path, size_t depth) override {
             for (size_t i = 0; i < depth; ++i) fmt::print("  ");
             fmt::print("(Fold) {}\n", path.u8string());
@@ -47,8 +49,18 @@ namespace {
 
         void on_file(const fs::path& path, size_t depth) override {
             for (size_t i = 0; i < depth; ++i) fmt::print("  ");
-            fmt::print("(File) {}\n", path.u8string());
+            if (const auto content = filesys_.read_file(path))
+                fmt::print(
+                    "(File) {} ({})\n",
+                    path.u8string(),
+                    sung::format_bytes(content->size())
+                );
+            else
+                fmt::print("(File) {} (not found)\n", path.u8string());
         }
+
+    private:
+        dal::Filesystem& filesys_;
     };
 
 
@@ -61,7 +73,7 @@ namespace {
             dal::create_filesubsys_std(":test", test_path.u8string())
         );
 
-        ::Walker walker;
+        ::Walker walker{ filesys };
         filesys.walk(":test", walker);
     }
 

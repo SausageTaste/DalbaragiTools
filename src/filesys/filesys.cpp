@@ -1,5 +1,6 @@
 #include "daltools/filesys/filesys.hpp"
 
+#include <spdlog/fmt/fmt.h>
 #include <fstream>
 #include <sung/general/bytes.hpp>
 
@@ -74,6 +75,7 @@ namespace {
 
 }  // namespace
 
+
 namespace {
 
     class FileSubsysStd : public dal::IFileSubsys {
@@ -140,11 +142,84 @@ namespace {
                 return false;
 
             std::ifstream file(*raw_path, std::ios::binary);
-            out.assign(
-                std::istreambuf_iterator<char>(file),
-                std::istreambuf_iterator<char>()
+            if (file.is_open()) {
+                out.assign(
+                    std::istreambuf_iterator<char>(file),
+                    std::istreambuf_iterator<char>()
+                );
+                return true;
+            }
+
+            const auto parent_path = raw_path->parent_path();
+            file.open(parent_path, std::ios::binary);
+            if (!file.is_open())
+                return false;
+
+            dal::BundleHeader header;
+            {
+                file.read((char*)&header, sizeof(dal::BundleHeader));
+                if (file.gcount() != sizeof(dal::BundleHeader))
+                    return false;
+                if (!header.is_magic_valid())
+                    return false;
+            }
+            if (sizeof(dal::BundleHeader) != file.tellg())
+                file.seekg(sizeof(dal::BundleHeader));
+
+            std::vector<uint8_t> file_content;
+            {
+                file_content.resize(
+                    header.items_size_z() + header.data_size_z()
+                );
+                file.read(
+                    reinterpret_cast<char*>(file_content.data()),
+                    file_content.size()
+                );
+                if (file.gcount() != file_content.size())
+                    return false;
+            }
+
+            const auto item_block = dal::decomp_bro(
+                file_content.data() + header.items_offset() -
+                    sizeof(dal::BundleHeader),
+                header.items_size_z(),
+                header.items_size()
             );
-            return true;
+            if (!item_block.has_value())
+                return false;
+
+            sung::BytesReader items_reader{ item_block->data(),
+                                            item_block->size() };
+            for (size_t i = 0; i < header.items_count(); ++i) {
+                const auto name = items_reader.read_nt_str();
+                if (name != raw_path->filename()) {
+                    items_reader.advance(sizeof(uint64_t) * 2);
+                } else {
+                    const auto offset = items_reader.read_uint64();
+                    if (!offset)
+                        return false;
+                    const auto size = items_reader.read_uint64();
+                    if (!size)
+                        return false;
+
+                    const auto data_block = dal::decomp_bro(
+                        file_content.data() + header.data_offset() -
+                            sizeof(dal::BundleHeader),
+                        header.data_size_z(),
+                        header.data_size()
+                    );
+                    if (!data_block.has_value())
+                        return false;
+
+                    out.assign(
+                        data_block->data() + offset.value(),
+                        data_block->data() + offset.value() + size.value()
+                    );
+                    return true;
+                }
+            }
+
+            return false;
         }
 
     private:
@@ -169,7 +244,7 @@ namespace {
         fs::path prefix_;
     };
 
-};  // namespace
+}  // namespace
 
 
 namespace dal {
