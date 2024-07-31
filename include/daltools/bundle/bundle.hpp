@@ -57,4 +57,11 @@ namespace dal {
         uint64_t data_size_z_;  // Compressed size
     };
 
+
+    struct BundleItemEntry {
+        std::string name_;
+        uint64_t offset_;
+        uint64_t size_;
+    };
+
 }  // namespace dal
