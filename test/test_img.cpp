@@ -5,21 +5,12 @@
 #include <gtest/gtest.h>
 #include <spdlog/fmt/fmt.h>
 
+#include "daltools/common/util.h"
 #include "daltools/img/backend/ktx.hpp"
 #include "daltools/img/backend/stb.hpp"
 
 
 namespace {
-
-    auto read_file(const std::filesystem::path& path) {
-        std::ifstream file(path, std::ios::binary);
-        std::vector<uint8_t> content;
-        content.assign(
-            std::istreambuf_iterator<char>(file),
-            std::istreambuf_iterator<char>()
-        );
-        return content;
-    }
 
     std::string format_bytes(size_t bytes) {
         if (bytes < 1024) {
@@ -29,18 +20,22 @@ namespace {
         } else if (bytes < 1024 * 1024 * 1024) {
             return fmt::format("{:.1f} MiB", bytes / (1024.0 * 1024.0));
         } else {
-            return fmt::format("{:.1f} GiB", bytes / (1024.0 * 1024.0 * 1024.0));
+            return fmt::format(
+                "{:.1f} GiB", bytes / (1024.0 * 1024.0 * 1024.0)
+            );
         }
     }
 
 
     TEST(DaltestKtx, SimpleTest) {
-        const auto path = "C:/Users/AORUS/Desktop/refine_output/src";
+        const auto root_path = dal::find_git_repo_root(dal::fs::current_path());
+        ASSERT_TRUE(root_path.has_value());
+        const auto img_path = root_path.value() / "test" / "img";
 
         std::vector<std::unique_ptr<dal::IImage>> images;
 
-        for (const auto& entry : std::filesystem::directory_iterator(path)) {
-            const auto img_data = ::read_file(entry.path());
+        for (const auto& entry : dal::fs::directory_iterator(img_path)) {
+            const auto img_data = dal::read_file(entry.path());
             dal::ImageParseInfo parse_info;
             parse_info.data_ = img_data.data();
             parse_info.size_ = img_data.size();
@@ -53,14 +48,53 @@ namespace {
             ASSERT_TRUE(img->is_ready());
 
             if (auto ktx_img = dynamic_cast<dal::KtxImage*>(img.get())) {
-                fmt::print(
-                    "KtxImage: dim={}x{}, compressed={}, genMipmaps={}, dataSize={}\n",
-                    ktx_img->texture_->baseWidth,
-                    ktx_img->texture_->baseHeight,
-                    ktx_img->texture_->isCompressed,
-                    ktx_img->texture_->generateMipmaps,
-                    ::format_bytes(ktx_img->texture_->dataSize)
-                );
+                if (ktx_img->texture_->classId == ktxTexture1_c) {
+                    auto& tex = *ktx_img->texture_;
+                    auto& te1 = *reinterpret_cast<ktxTexture1*>(&tex);
+                    fmt::print(
+                        "KTX 1: dim={}x{}x{}, levels={}, compressed={}, "
+                        "dataSize={}\n",
+                        tex.baseWidth,
+                        tex.baseHeight,
+                        tex.baseDepth,
+                        tex.numLevels,
+                        tex.isCompressed,
+                        ::format_bytes(tex.dataSize)
+                    );
+                } else if (ktx_img->texture_->classId == ktxTexture2_c) {
+                    auto& tex = *ktx_img->texture_;
+                    auto& te2 = *reinterpret_cast<ktxTexture2*>(&tex);
+
+                    if (ktxTexture_NeedsTranscoding(&tex)) {
+                        ASSERT_EQ(
+                            ktxTexture2_TranscodeBasis(&te2, KTX_TTF_RGBA32, 0),
+                            KTX_SUCCESS
+                        );
+                    }
+
+                    auto data = ktxTexture_GetData(&tex);
+                    ASSERT_NE(data, nullptr);
+
+                    ktx_size_t offset = 0;
+                    ASSERT_EQ(
+                        ktxTexture_GetImageOffset(&tex, 0, 0, 0, &offset),
+                        KTX_SUCCESS
+                    );
+
+                    const auto size = ktxTexture_GetImageSize(&tex, 0);
+
+                    fmt::print(
+                        "KTX 2: dim={}x{}x{}, levels={}, compressed={}, "
+                        "dataSize={}\n",
+                        tex.baseWidth,
+                        tex.baseHeight,
+                        tex.baseDepth,
+                        tex.numLevels,
+                        tex.isCompressed,
+                        ::format_bytes(tex.dataSize)
+                    );
+                    continue;
+                }
             } else if (auto img2d = dynamic_cast<dal::IImage2D*>(img.get())) {
                 fmt::print(
                     "IImage2D: dim={}x{}, ch={}, typeSize={}, dataSize={}\n",
