@@ -1,50 +1,31 @@
 #pragma once
 
 #include <chrono>
+#include <filesystem>
+#include <optional>
+#include <vector>
+
+#include <sung/general/time.hpp>
 
 
 namespace dal {
 
-    double get_cur_sec();
-
-    void sleep_for(const double seconds);
-
-
-    class Timer {
-
-    private:
-        std::chrono::steady_clock::time_point m_last_checked = std::chrono::steady_clock::now();
+    class TimerThatCaps : public sung::MonotonicRealtimeTimer {
 
     public:
-        void check();
-
-        double get_elapsed() const;
-
-        double check_get_elapsed();
-
-    protected:
-        auto& last_checked() const {
-            return this->m_last_checked;
-        }
-
-    };
-
-
-    class TimerThatCaps : public Timer {
-
-    private:
-        uint32_t m_desired_delta_microsec = 0;
-
-    public:
-        bool has_elapsed(const double sec) const;
-
         double check_get_elapsed_cap_fps();
-
         void set_fps_cap(const uint32_t v);
 
     private:
         void wait_to_cap_fps();
 
+        uint32_t desired_delta_ = 0;  // In microseconds
     };
 
-}
+
+    namespace fs = std::filesystem;
+
+    std::optional<fs::path> find_git_repo_root(const fs::path& start_path);
+    std::vector<uint8_t> read_file(const fs::path& path);
+
+}  // namespace dal

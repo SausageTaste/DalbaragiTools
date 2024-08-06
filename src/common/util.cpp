@@ -1,5 +1,6 @@
 #include "daltools/common/util.h"
 
+#include <fstream>
 #include <thread>
 
 
@@ -8,64 +9,62 @@ namespace {
     constexpr unsigned MISCROSEC_PER_SEC = 1000000;
     constexpr unsigned NANOSEC_PER_SEC = 1000000000;
 
+    namespace chr = std::chrono;
+    using SteadyClock = chr::steady_clock;
 
-    void sleep_hot_until(const std::chrono::steady_clock::time_point& until) {
-        while (std::chrono::steady_clock::now() < until) {};
+
+    void sleep_hot_until(const SteadyClock::time_point& until) {
+        while (SteadyClock::now() < until) {
+        }
     }
 
-    void sleep_cold_until(const std::chrono::steady_clock::time_point& until) {
+    void sleep_cold_until(const SteadyClock::time_point& until) {
         std::this_thread::sleep_until(until);
     }
 
-    void sleep_hybrid_until(const std::chrono::steady_clock::time_point& until) {
-        const auto duration_in_ms = std::chrono::duration_cast<std::chrono::microseconds>(
-            until - std::chrono::steady_clock::now()
-        ).count();
-
-        std::this_thread::sleep_for(std::chrono::microseconds{ duration_in_ms / 4 });
+    void sleep_hybrid_until(const SteadyClock::time_point& until) {
+        const auto dur = until - SteadyClock::now();
+        const auto dur_in_ms = chr::duration_cast<chr::microseconds>(dur);
+        std::this_thread::sleep_for(chr::microseconds{ dur_in_ms.count() / 4 });
         ::sleep_hot_until(until);
     }
 
-}
+}  // namespace
 
 
 // Header functions
 namespace dal {
 
-    double get_cur_sec() {
-        return static_cast<double>(std::chrono::steady_clock::now().time_since_epoch().count()) / static_cast<double>(::NANOSEC_PER_SEC);
+    std::optional<fs::path> find_git_repo_root(const fs::path& start_path) {
+        auto current_dir = start_path;
+
+        for (int i = 0; i < 10; ++i) {
+            for (const auto& entry : fs::directory_iterator(current_dir)) {
+                if (entry.path().filename().u8string() == ".git") {
+                    return current_dir;
+                }
+            }
+            current_dir = current_dir.parent_path();
+        }
+
+        return std::nullopt;
     }
 
-    void sleep_for(const double seconds) {
-        auto until = std::chrono::steady_clock::now();
-        until += std::chrono::microseconds{ static_cast<uint64_t>(seconds * static_cast<double>(::MISCROSEC_PER_SEC)) };
-        ::sleep_hot_until(until);
+    std::vector<uint8_t> read_file(const fs::path& path) {
+        std::vector<uint8_t> content;
+
+        std::ifstream file(path, std::ios::binary);
+        if (!file.is_open())
+            return content;
+
+        content.assign(
+            std::istreambuf_iterator<char>(file),
+            std::istreambuf_iterator<char>()
+        );
+        return content;
     }
 
-}
-
-
-// Timer
-namespace dal {
-
-    void Timer::check() {
-        this->m_last_checked = std::chrono::steady_clock::now();
-    }
-
-    double Timer::get_elapsed() const {
-        const auto delta_time_ms = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - this->m_last_checked).count();
-        return static_cast<double>(delta_time_ms) / static_cast<double>(::MISCROSEC_PER_SEC);
-    }
-
-    double Timer::check_get_elapsed() {
-        const auto now = std::chrono::steady_clock::now();
-        const auto delta_time_microsec = std::chrono::duration_cast<std::chrono::microseconds>(now - this->m_last_checked).count();
-        this->m_last_checked = now;
-
-        return static_cast<double>(delta_time_microsec) / static_cast<double>(::MISCROSEC_PER_SEC);
-    }
-
-}
+}  // namespace dal
 
 
 // TimerThatCaps
@@ -76,24 +75,19 @@ namespace dal {
         return this->check_get_elapsed();
     }
 
-    bool TimerThatCaps::has_elapsed(const double sec) const {
-        return this->get_elapsed() >= sec;
-    }
-
     void TimerThatCaps::set_fps_cap(const uint32_t v) {
-        if (0 != v) {
-            this->m_desired_delta_microsec = ::MISCROSEC_PER_SEC / v;
-        }
-        else {
-            this->m_desired_delta_microsec = 0;
-        }
+        if (0 != v)
+            desired_delta_ = ::MISCROSEC_PER_SEC / v;
+        else
+            desired_delta_ = 0;
     }
 
     // Private
 
     void TimerThatCaps::wait_to_cap_fps() {
-        const auto wake_time = this->last_checked() + std::chrono::microseconds{ this->m_desired_delta_microsec };
+        const auto delta = std::chrono::microseconds{ desired_delta_ };
+        const auto wake_time = this->last_checked() + delta;
         ::sleep_hybrid_until(wake_time);
     }
 
-}
+}  // namespace dal

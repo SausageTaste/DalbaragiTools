@@ -11,7 +11,7 @@
 namespace dal {
 
     void work_keygen(int argc, char* argv[]) {
-        dal::Timer timer;
+        sung::MonotonicRealtimeTimer timer;
         argparse::ArgumentParser parser{ "daltools" };
         {
         parser.add_argument("operation")
@@ -65,7 +65,7 @@ namespace dal {
                 fmt::print("    Public key: {}\n", path);
             }
 
-            fmt::print("    took {} seconds\n", timer.get_elapsed());
+            fmt::print("    took {} seconds\n", timer.elapsed());
         }
     }
 
