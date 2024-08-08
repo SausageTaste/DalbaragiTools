@@ -48,40 +48,35 @@ namespace {
             ASSERT_TRUE(img->is_ready());
 
             if (auto ktx_img = dynamic_cast<dal::KtxImage*>(img.get())) {
-                if (ktx_img->texture_->classId == ktxTexture1_c) {
-                    auto& tex = *ktx_img->texture_;
-                    auto& te1 = *reinterpret_cast<ktxTexture1*>(&tex);
+                if (auto ktx1 = ktx_img->ktx1()) {
                     fmt::print(
                         "KTX 1: dim={}x{}x{}, levels={}, compressed={}, "
                         "dataSize={}\n",
-                        tex.baseWidth,
-                        tex.baseHeight,
-                        tex.baseDepth,
-                        tex.numLevels,
-                        tex.isCompressed,
-                        ::format_bytes(tex.dataSize)
+                        ktx1->baseWidth,
+                        ktx1->baseHeight,
+                        ktx1->baseDepth,
+                        ktx1->numLevels,
+                        ktx1->isCompressed,
+                        ::format_bytes(ktx1->dataSize)
                     );
-                } else if (ktx_img->texture_->classId == ktxTexture2_c) {
-                    auto& tex = *ktx_img->texture_;
-                    auto& te2 = *reinterpret_cast<ktxTexture2*>(&tex);
+                } else if (auto ktx2 = ktx_img->ktx2()) {
+                    auto& tex = ktx_img->ktx();
+                    auto& te2 = *ktx2;
 
-                    if (ktxTexture_NeedsTranscoding(&tex)) {
-                        ASSERT_EQ(
-                            ktxTexture2_TranscodeBasis(&te2, KTX_TTF_RGBA32, 0),
-                            KTX_SUCCESS
-                        );
+                    if (ktx_img->need_transcoding()) {
+                        ASSERT_TRUE(ktx_img->transcode(KTX_TTF_RGBA32));
                     }
 
-                    auto data = ktxTexture_GetData(&tex);
-                    ASSERT_NE(data, nullptr);
-
-                    ktx_size_t offset = 0;
-                    ASSERT_EQ(
-                        ktxTexture_GetImageOffset(&tex, 0, 0, 0, &offset),
-                        KTX_SUCCESS
-                    );
-
-                    const auto size = ktxTexture_GetImageSize(&tex, 0);
+                    for (uint32_t y = 0 ; y < ktx_img->base_height(); ++y) {
+                        for (uint32_t x = 0 ; x < ktx_img->base_width(); ++x) {
+                            const auto pixel = ktx_img->get_base_pixel(x, y);
+                            fmt::print(
+                                "Pixel at ({}, {}): rgba=({}, {}, {}, {})\n",
+                                x, y,
+                                pixel->r, pixel->g, pixel->b, pixel->a
+                            );
+                        }
+                    }
 
                     fmt::print(
                         "KTX 2: dim={}x{}x{}, levels={}, compressed={}, "

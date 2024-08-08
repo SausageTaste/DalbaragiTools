@@ -1,8 +1,11 @@
 #pragma once
 
-#include <ktx.h>
+#include <optional>
 
-#include <daltools/img/img.hpp>
+#include <ktx.h>
+#include <glm/glm.hpp>
+
+#include "daltools/img/img.hpp"
 
 
 namespace dal {
@@ -22,6 +25,25 @@ namespace dal {
 
         void destroy() override;
         bool is_ready() const override;
+
+        uint32_t base_width() const;
+        uint32_t base_height() const;
+
+        bool need_transcoding() const;
+        bool transcode(ktx_transcode_fmt_e fmt, ktx_transcode_flags flags = 0);
+
+        std::optional<glm::tvec4<uint8_t>> get_base_pixel(
+            uint32_t x, uint32_t y
+        ) const;
+
+        const ktxTexture& ktx() const;
+        const ktxTexture1* ktx1() const;
+        const ktxTexture2* ktx2() const;
+
+    private:
+        // Non-const
+        ktxTexture1* ktx1_nc();
+        ktxTexture2* ktx2_nc();
 
         ktxTexture* texture_ = nullptr;
     };
