@@ -13,6 +13,11 @@ namespace dal {
 
         virtual void destroy() = 0;
         virtual bool is_ready() const = 0;
+
+        template <typename T>
+        const T* as() const {
+            return dynamic_cast<const T*>(this);
+        }
     };
 
 

@@ -67,13 +67,17 @@ namespace {
                         ASSERT_TRUE(ktx_img->transcode(KTX_TTF_RGBA32));
                     }
 
-                    for (uint32_t y = 0 ; y < ktx_img->base_height(); ++y) {
-                        for (uint32_t x = 0 ; x < ktx_img->base_width(); ++x) {
+                    for (uint32_t y = 0; y < ktx_img->base_height(); ++y) {
+                        for (uint32_t x = 0; x < ktx_img->base_width(); ++x) {
                             const auto pixel = ktx_img->get_base_pixel(x, y);
                             fmt::print(
                                 "Pixel at ({}, {}): rgba=({}, {}, {}, {})\n",
-                                x, y,
-                                pixel->r, pixel->g, pixel->b, pixel->a
+                                x,
+                                y,
+                                pixel->r,
+                                pixel->g,
+                                pixel->b,
+                                pixel->a
                             );
                         }
                     }
@@ -90,14 +94,45 @@ namespace {
                     );
                     continue;
                 }
-            } else if (auto img2d = dynamic_cast<dal::IImage2D*>(img.get())) {
+            } else if (auto img2d = img->as<dal::IImage2D>()) {
+                if (auto img_u8 = img->as<dal::TImage2D<uint8_t>>()) {
+                    for (uint32_t y = 0; y < img_u8->height(); ++y) {
+                        for (uint32_t x = 0; x < img_u8->width(); ++x) {
+                            const auto pixel = img_u8->texel_ptr(x, y);
+                            fmt::print(
+                                "Pixel at ({}, {}): rgba=({}, {}, {}, {})\n",
+                                x,
+                                y,
+                                pixel[0],
+                                pixel[1],
+                                pixel[2],
+                                pixel[3]
+                            );
+                        }
+                    }
+                } else if (auto img_f32 = img->as<dal::TImage2D<float>>()) {
+                    for (uint32_t y = 0; y < img_f32->height(); ++y) {
+                        for (uint32_t x = 0; x < img_f32->width(); ++x) {
+                            const auto pixel = img_f32->texel_ptr(x, y);
+                            fmt::print(
+                                "Pixel at ({}, {}): rgba=({}, {}, {}, {})\n",
+                                x,
+                                y,
+                                pixel[0],
+                                pixel[1],
+                                pixel[2],
+                                pixel[3]
+                            );
+                        }
+                    }
+                }
+
                 fmt::print(
-                    "IImage2D: dim={}x{}, ch={}, typeSize={}, dataSize={}\n",
+                    "IImage2D: dim={}x{}, ch={}, typeSize={}\n",
                     img2d->width(),
                     img2d->height(),
                     img2d->channels(),
-                    img2d->value_type_size(),
-                    ::format_bytes(img2d->data_size())
+                    img2d->value_type_size()
                 );
             }
         }
