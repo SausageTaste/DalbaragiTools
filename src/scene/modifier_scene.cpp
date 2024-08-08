@@ -6,7 +6,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <sung/general/aabb.hpp>
+
 #include "daltools/img/img.hpp"
+#include "daltools/img/img2d.hpp"
 
 
 namespace {
@@ -665,8 +668,36 @@ namespace dal::parser {
                 pinfo.data_ = img_file_content->data();
                 pinfo.size_ = img_file_content->size();
                 auto img = dal::parse_img(pinfo);
-                if (!img->is_ready())
-                    continue;
+
+                if (auto img_u8 = img->as<dal::TImage2D<uint8_t>>()) {
+                    if (img_u8->channels() < 4)
+                        continue;
+
+                    const auto wh = glm::vec2(
+                        img_u8->width(), img_u8->height()
+                    );
+                    const auto tri_count = mesh->indices_.size() / 3;
+                    for (size_t i = 0; i < tri_count; ++i) {
+                        const auto& i0 = mesh->indices_[i * 3 + 0];
+                        const auto& i1 = mesh->indices_[i * 3 + 1];
+                        const auto& i2 = mesh->indices_[i * 3 + 2];
+
+                        const auto& v0 = mesh->vertices_[i0];
+                        const auto& v1 = mesh->vertices_[i1];
+                        const auto& v2 = mesh->vertices_[i2];
+
+                        const auto uv0 = v0.uv_ * wh;
+                        const auto uv1 = v1.uv_ * wh;
+                        const auto uv2 = v2.uv_ * wh;
+
+                        sung::AABB2<float> aabb;
+                        aabb.set(uv0.x, uv0.y);
+                        aabb.expand_to_span(uv1.x, uv1.y);
+                        aabb.expand_to_span(uv2.x, uv2.y);
+
+                        continue;
+                    }
+                }
             }
 
             continue;

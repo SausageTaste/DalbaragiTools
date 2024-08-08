@@ -16,7 +16,10 @@ namespace dal {
 
         template <typename T>
         const T* as() const {
-            return dynamic_cast<const T*>(this);
+            if (this->is_ready())
+                return dynamic_cast<const T*>(this);
+            else
+                return nullptr;
         }
     };
 

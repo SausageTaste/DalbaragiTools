@@ -52,7 +52,7 @@ namespace dal::parser {
         reduce_indexed_vertices(scene);
         remove_duplicate_materials(scene);
         merge_redundant_mesh_actors(scene);
-        // split_by_transparency(scene, path);
+        split_by_transparency(scene, path);
         reduce_joints(scene);
         apply_root_transform(scene);
     }
