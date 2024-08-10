@@ -586,6 +586,9 @@ namespace {
 
 namespace {
 
+    const static std::string TRANSP_SUFFIX = "#transp";
+
+
     std::optional<std::filesystem::path> find_image_path(
         const std::filesystem::path& path, const std::string& img_name
     ) {
@@ -622,6 +625,159 @@ namespace {
         return buffer;
     }
 
+
+    class MeshSplitterReg {
+
+    public:
+        void notify(
+            const std::string& mesh_name,
+            const scene_t::Mesh& mesh,
+            const dal::TImage2D<uint8_t>& img
+        ) {
+            if (img.channels() != 4)
+                return;
+
+            auto& r = this->get_or_create(mesh_name);
+
+            if (0 == r.tri_count_) {
+                r.tri_count_ = mesh.indices_.size() / 3;
+            } else {
+                assert(r.tri_count_ == mesh.indices_.size() / 3);
+            }
+
+            const auto wh = glm::vec2(img.width(), img.height());
+            const auto tri_count = r.tri_count_;
+
+            for (size_t tri_index = 0; tri_index < tri_count; ++tri_index) {
+                const auto& i0 = mesh.indices_[tri_index * 3 + 0];
+                const auto& i1 = mesh.indices_[tri_index * 3 + 1];
+                const auto& i2 = mesh.indices_[tri_index * 3 + 2];
+
+                const auto& v0 = mesh.vertices_[i0];
+                const auto& v1 = mesh.vertices_[i1];
+                const auto& v2 = mesh.vertices_[i2];
+
+                const auto uv0 = v0.uv_ * wh;
+                const auto uv1 = v1.uv_ * wh;
+                const auto uv2 = v2.uv_ * wh;
+
+                if (this->is_transp(uv0, uv1, uv2, img)) {
+                    r.transp_tri_indices_.insert(tri_index);
+                }
+            }
+
+            return;
+        }
+
+        bool is_eligible_for_replacement(const std::string& mesh_name) const {
+            const auto found = this->records_.find(mesh_name);
+            if (this->records_.end() == found)
+                return false;
+
+            const auto& r = found->second;
+            if (r.transp_tri_indices_.empty())
+                return false;
+
+            return true;
+        }
+
+        std::optional<std::pair<scene_t::Mesh, scene_t::Mesh>> try_build(
+            const std::string& mesh_name, const scene_t::Mesh& mesh
+        ) const {
+            const auto found = this->records_.find(mesh_name);
+            if (this->records_.end() == found)
+                return std::nullopt;
+
+            const auto& r = found->second;
+            if (r.transp_tri_indices_.empty())
+                return std::nullopt;
+            if (r.tri_count_ != mesh.indices_.size() / 3)
+                return std::nullopt;
+
+            scene_t::Mesh opaque, transp;
+            opaque.name_ = mesh_name;
+            transp.name_ = mesh_name + ::TRANSP_SUFFIX;
+            opaque.skeleton_name_ = mesh.skeleton_name_;
+            transp.skeleton_name_ = mesh.skeleton_name_;
+
+            for (size_t tri_index = 0; tri_index < r.tri_count_; ++tri_index) {
+                const auto& i0 = mesh.indices_[tri_index * 3 + 0];
+                const auto& i1 = mesh.indices_[tri_index * 3 + 1];
+                const auto& i2 = mesh.indices_[tri_index * 3 + 2];
+
+                const auto& v0 = mesh.vertices_[i0];
+                const auto& v1 = mesh.vertices_[i1];
+                const auto& v2 = mesh.vertices_[i2];
+
+                const auto is_tranp = r.transp_tri_indices_.end() !=
+                                      r.transp_tri_indices_.find(tri_index);
+
+                if (is_tranp) {
+                    transp.add_vertex(v0);
+                    transp.add_vertex(v1);
+                    transp.add_vertex(v2);
+                } else {
+                    opaque.add_vertex(v0);
+                    opaque.add_vertex(v1);
+                    opaque.add_vertex(v2);
+                }
+            }
+
+            return std::make_pair(opaque, transp);
+        }
+
+    private:
+        struct Record {
+            std::unordered_set<size_t> transp_tri_indices_;
+            size_t tri_count_ = 0;
+        };
+
+        Record& get_or_create(const std::string& mesh_name) {
+            auto found = this->records_.find(mesh_name);
+            if (this->records_.end() != found) {
+                return found->second;
+            } else {
+                return this->records_.emplace(mesh_name, Record{})
+                    .first->second;
+            }
+        }
+
+        static bool is_transp(
+            const glm::vec2& tc0,
+            const glm::vec2& tc1,
+            const glm::vec2& tc2,
+            const dal::TImage2D<uint8_t>& img
+        ) {
+            sung::AABB2<float> aabb;
+            aabb.set(tc0.x, tc0.y);
+            aabb.expand_to_span(tc1.x, tc1.y);
+            aabb.expand_to_span(tc2.x, tc2.y);
+
+            const auto x_min = static_cast<int64_t>(std::floor(aabb.x_min()));
+            const auto x_max = static_cast<int64_t>(std::ceil(aabb.x_max()));
+            const auto y_min = static_cast<int64_t>(std::floor(aabb.y_min()));
+            const auto y_max = static_cast<int64_t>(std::ceil(aabb.y_max()));
+
+            for (int64_t x = x_min; x <= x_max; ++x) {
+                for (int64_t y = y_min; y <= y_max; ++y) {
+                    const auto img_u8_ptr = img.texel_ptr(
+                        x % img.width(), y % img.width()
+                    );
+                    if (img_u8_ptr != nullptr) {
+                        const auto alpha = img_u8_ptr[3];
+                        if (alpha < 255) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        std::unordered_map<std::string, Record> records_;
+    };
+
 }  // namespace
 namespace dal::parser {
 
@@ -630,77 +786,81 @@ namespace dal::parser {
     ) {
         using namespace std;
 
-        unordered_map<string, unordered_set<string>> mesh_mat_map;
-        for (auto& ma : scene.mesh_actors_) {
-            for (auto& ren_pair : ma.render_pairs_) {
-                auto it = mesh_mat_map.find(ren_pair.mesh_name_);
-                if (mesh_mat_map.end() == it)
-                    mesh_mat_map[ren_pair.mesh_name_] = {
-                        ren_pair.material_name_
-                    };
-                else
-                    it->second.insert(ren_pair.material_name_);
-            }
+        const auto mat_count = scene.materials_.size();
+        for (size_t i = 0; i < mat_count; ++i) {
+            scene.materials_[i].transparency_ = true;
+            scene.materials_.push_back(scene.materials_[i]);
+            scene.materials_.back().name_ += ::TRANSP_SUFFIX;
+            scene.materials_[i].transparency_ = false;
         }
+        std::sort(
+            scene.materials_.begin(),
+            scene.materials_.end(),
+            [](const auto& a, const auto& b) { return a.name_ < b.name_; }
+        );
 
-        for (auto& pair : mesh_mat_map) {
-            auto mesh = scene.find_mesh_by_name(pair.first);
-            if (nullptr == mesh)
-                continue;
+        ::MeshSplitterReg splitters;
 
-            std::unordered_set<std::string> img_paths;
-            for (auto& mat_name : pair.second) {
-                auto mat = scene.find_material_by_name(mat_name);
-                if (nullptr != mat) {
-                    auto img_path = ::find_image_path(path, mat->albedo_map_);
-                    if (img_path)
-                        img_paths.insert(img_path->u8string().c_str());
-                }
-            }
-
-            for (auto& img_path : img_paths) {
-                auto img_file_content = ::read_file<vector<uint8_t>>(img_path);
+        for (auto& mesh_actor : scene.mesh_actors_) {
+            for (auto& render_pair : mesh_actor.render_pairs_) {
+                auto mesh = scene.find_mesh_by_name(render_pair.mesh_name_);
+                if (nullptr == mesh)
+                    continue;
+                auto mat = scene.find_material_by_name(
+                    render_pair.material_name_
+                );
+                if (nullptr == mat)
+                    continue;
+                auto img_path = ::find_image_path(path, mat->albedo_map_);
+                if (!img_path)
+                    continue;
+                auto img_file_content = ::read_file<vector<uint8_t>>(*img_path);
                 if (!img_file_content)
                     continue;
 
                 dal::ImageParseInfo pinfo;
-                pinfo.file_path_ = img_path;
+                pinfo.file_path_ = img_path.value().u8string();
                 pinfo.data_ = img_file_content->data();
                 pinfo.size_ = img_file_content->size();
                 auto img = dal::parse_img(pinfo);
+                if (!img)
+                    continue;
+                if (!img->is_ready())
+                    continue;
 
                 if (auto img_u8 = img->as<dal::TImage2D<uint8_t>>()) {
-                    if (img_u8->channels() < 4)
-                        continue;
-
-                    const auto wh = glm::vec2(
-                        img_u8->width(), img_u8->height()
-                    );
-                    const auto tri_count = mesh->indices_.size() / 3;
-                    for (size_t i = 0; i < tri_count; ++i) {
-                        const auto& i0 = mesh->indices_[i * 3 + 0];
-                        const auto& i1 = mesh->indices_[i * 3 + 1];
-                        const auto& i2 = mesh->indices_[i * 3 + 2];
-
-                        const auto& v0 = mesh->vertices_[i0];
-                        const auto& v1 = mesh->vertices_[i1];
-                        const auto& v2 = mesh->vertices_[i2];
-
-                        const auto uv0 = v0.uv_ * wh;
-                        const auto uv1 = v1.uv_ * wh;
-                        const auto uv2 = v2.uv_ * wh;
-
-                        sung::AABB2<float> aabb;
-                        aabb.set(uv0.x, uv0.y);
-                        aabb.expand_to_span(uv1.x, uv1.y);
-                        aabb.expand_to_span(uv2.x, uv2.y);
-
-                        continue;
-                    }
+                    splitters.notify(mesh->name_, *mesh, *img_u8);
                 }
             }
+        }
 
-            continue;
+        const auto mesh_count = scene.meshes_.size();
+        for (size_t i = 0; i < mesh_count; ++i) {
+            auto& mesh = scene.meshes_[i];
+            auto new_meshes = splitters.try_build(mesh.name_, mesh);
+            if (!new_meshes.has_value()) {
+                continue;
+            }
+
+            mesh = std::move(new_meshes->first);
+            scene.meshes_.push_back(std::move(new_meshes->second));
+        }
+
+        for (auto& mesh_actor : scene.mesh_actors_) {
+            auto& rpairs = mesh_actor.render_pairs_;
+            const auto rpairs_size = rpairs.size();
+            for (size_t i = 0; i < rpairs_size; ++i) {
+                auto& rpair = rpairs[i];
+                if (splitters.is_eligible_for_replacement(rpair.mesh_name_)) {
+                    auto& new_rpair = rpairs.emplace_back(rpair);
+                    new_rpair.mesh_name_ += ::TRANSP_SUFFIX;
+                    new_rpair.material_name_ += ::TRANSP_SUFFIX;
+
+                    assert(scene.find_mesh_by_name(new_rpair.mesh_name_));
+                    assert(scene.find_material_by_name(new_rpair.material_name_)
+                    );
+                }
+            }
         }
 
         return;
