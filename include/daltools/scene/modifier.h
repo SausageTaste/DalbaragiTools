@@ -42,6 +42,8 @@ namespace dal::parser {
 
     void merge_redundant_mesh_actors(SceneIntermediate& scene);
 
+    void remove_empty_meshes(SceneIntermediate& scene);
+
     void split_by_transparency(
         SceneIntermediate& scene, const std::filesystem::path& path
     );
@@ -53,6 +55,7 @@ namespace dal::parser {
         remove_duplicate_materials(scene);
         merge_redundant_mesh_actors(scene);
         split_by_transparency(scene, path);
+        remove_empty_meshes(scene);
         reduce_joints(scene);
         apply_root_transform(scene);
     }

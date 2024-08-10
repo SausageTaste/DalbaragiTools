@@ -998,6 +998,51 @@ namespace dal::parser {
         }
     }
 
+    void remove_empty_meshes(SceneIntermediate& scene) {
+        std::unordered_set<std::string> empty_mesh_names;
+        for (auto& mesh : scene.meshes_) {
+            if (mesh.indices_.empty())
+                empty_mesh_names.insert(mesh.name_);
+        }
+
+        for (auto& mactor : scene.mesh_actors_) {
+            mactor.render_pairs_.erase(
+                std::remove_if(
+                    mactor.render_pairs_.begin(),
+                    mactor.render_pairs_.end(),
+                    [&empty_mesh_names](const auto& pair) {
+                        return empty_mesh_names.end() !=
+                               empty_mesh_names.find(pair.mesh_name_);
+                    }
+                ),
+                mactor.render_pairs_.end()
+            );
+        }
+
+        scene.mesh_actors_.erase(
+            std::remove_if(
+                scene.mesh_actors_.begin(),
+                scene.mesh_actors_.end(),
+                [](const auto& actor) {
+                    return actor.render_pairs_.empty();
+                }
+            ),
+            scene.mesh_actors_.end()
+        );
+
+        scene.meshes_.erase(
+            std::remove_if(
+                scene.meshes_.begin(),
+                scene.meshes_.end(),
+                [&empty_mesh_names](const auto& mesh) {
+                    return empty_mesh_names.end() !=
+                           empty_mesh_names.find(mesh.name_);
+                }
+            ),
+            scene.meshes_.end()
+        );
+    }
+
     // Modify
 
     void flip_uv_vertically(SceneIntermediate& scene) {
