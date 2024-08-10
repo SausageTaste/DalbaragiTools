@@ -84,6 +84,8 @@ namespace dal {
         return *reinterpret_cast<const glm::tvec4<uint8_t>*>(texel_ptr);
     }
 
+    ktxTexture& KtxImage::ktx() { return *texture_; }
+
     const ktxTexture& KtxImage::ktx() const { return *texture_; }
 
     const ktxTexture1* KtxImage::ktx1() const {

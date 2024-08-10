@@ -36,6 +36,7 @@ namespace dal {
             uint32_t x, uint32_t y
         ) const;
 
+        ktxTexture& ktx();
         const ktxTexture& ktx() const;
         const ktxTexture1* ktx1() const;
         const ktxTexture2* ktx2() const;

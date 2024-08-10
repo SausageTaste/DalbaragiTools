@@ -15,6 +15,14 @@ namespace dal {
         virtual bool is_ready() const = 0;
 
         template <typename T>
+        T* as() {
+            if (this->is_ready())
+                return dynamic_cast<T*>(this);
+            else
+                return nullptr;
+        }
+
+        template <typename T>
         const T* as() const {
             if (this->is_ready())
                 return dynamic_cast<const T*>(this);
