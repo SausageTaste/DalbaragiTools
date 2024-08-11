@@ -7,7 +7,9 @@
 #include <unordered_set>
 
 #include <sung/general/aabb.hpp>
+#include <sung/general/geometry2d.hpp>
 
+#include "daltools/common/glm_tool.hpp"
 #include "daltools/img/img.hpp"
 #include "daltools/img/img2d.hpp"
 
@@ -748,6 +750,10 @@ namespace {
             const glm::vec2& tc2,
             const dal::TImage2D<uint8_t>& img
         ) {
+            const sung::Triangle2<float> tri{ dal::vec_cast<float>(tc0),
+                                              dal::vec_cast(tc1),
+                                              dal::vec_cast(tc2) };
+
             sung::AABB2<float> aabb;
             aabb.set(tc0.x, tc0.y);
             aabb.expand_to_span(tc1.x, tc1.y);
@@ -760,12 +766,15 @@ namespace {
 
             for (int64_t x = x_min; x <= x_max; ++x) {
                 for (int64_t y = y_min; y <= y_max; ++y) {
+                    if (!tri.is_inside_cl({ x + 0.5f, y + 0.5f }))
+                        continue;
+
                     const auto img_u8_ptr = img.texel_ptr(
                         x % img.width(), y % img.width()
                     );
                     if (img_u8_ptr != nullptr) {
                         const auto alpha = img_u8_ptr[3];
-                        if (alpha < 255) {
+                        if (alpha < 254) {
                             return true;
                         }
                     }
@@ -1023,9 +1032,7 @@ namespace dal::parser {
             std::remove_if(
                 scene.mesh_actors_.begin(),
                 scene.mesh_actors_.end(),
-                [](const auto& actor) {
-                    return actor.render_pairs_.empty();
-                }
+                [](const auto& actor) { return actor.render_pairs_.empty(); }
             ),
             scene.mesh_actors_.end()
         );
