@@ -9,7 +9,7 @@ namespace dal {
     template <typename T>
     glm::tvec2<T>& vec_cast(sung::TVec2<T>& v) {
         static_assert(sizeof(glm::tvec2<T>) == sizeof(T) * 2);
-        static_assert(sizeof(glm::tvec2<t>) == sizeof(sung::TVec2<T>));
+        static_assert(sizeof(glm::tvec2<T>) == sizeof(sung::TVec2<T>));
         return *reinterpret_cast<glm::tvec2<T>*>(&v);
     }
 

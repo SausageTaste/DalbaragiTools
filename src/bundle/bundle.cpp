@@ -1,5 +1,7 @@
 #include "daltools/bundle/bundle.hpp"
 
+#include <cstring>
+
 #include <sung/general/time.hpp>
 
 
