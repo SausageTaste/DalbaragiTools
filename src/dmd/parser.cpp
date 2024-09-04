@@ -1,5 +1,9 @@
 #include "daltools/dmd/parser.h"
 
+#include <stdexcept>
+
+#include <sung/general/bytes.hpp>
+
 #include "daltools/common/byte_tool.h"
 #include "daltools/common/compression.h"
 #include "daltools/common/konst.h"
@@ -44,33 +48,21 @@ namespace {
 // Parser functions
 namespace {
 
-    const uint8_t* parse_aabb(
-        const uint8_t* header,
-        const uint8_t* const end,
-        dal::parser::AABB3& output
-    ) {
-        float fbuf[6];
-        header = dal::parser::assemble_4_bytes_array<float>(header, fbuf, 6);
-
-        output.min_ = glm::vec3{ fbuf[0], fbuf[1], fbuf[2] };
-        output.max_ = glm::vec3{ fbuf[3], fbuf[4], fbuf[5] };
-
-        return header;
+    void parse_aabb(sung::BytesReader& r, dal::parser::AABB3& output) {
+        output.min_.x = r.read_float32().value();
+        output.min_.y = r.read_float32().value();
+        output.min_.z = r.read_float32().value();
+        output.max_.x = r.read_float32().value();
+        output.max_.y = r.read_float32().value();
+        output.max_.z = r.read_float32().value();
     }
 
-    const uint8_t* parse_mat4(
-        const uint8_t* header, const uint8_t* const end, glm::mat4& mat
-    ) {
-        float fbuf[16];
-        header = dalp::assemble_4_bytes_array<float>(header, fbuf, 16);
-
+    void parse_mat4(sung::BytesReader& r, glm::mat4& mat) {
         for (glm::mat4::length_type row = 0; row < 4; ++row) {
             for (glm::mat4::length_type col = 0; col < 4; ++col) {
-                mat[col][row] = fbuf[4 * row + col];
+                mat[col][row] = r.read_float32().value();
             }
         }
-
-        return header;
     }
 
 }  // namespace
@@ -79,25 +71,19 @@ namespace {
 // Parse animations
 namespace {
 
-    const uint8_t* parse_skeleton(
-        const uint8_t* header, const uint8_t* const end, dalp::Skeleton& output
-    ) {
-        header = ::parse_mat4(header, end, output.root_transform_);
+    void parse_skeleton(sung::BytesReader& r, dalp::Skeleton& output) {
+        ::parse_mat4(r, output.root_transform_);
 
-        const auto joint_count = dal::parser::make_int32(header);
-        header += 4;
+        const auto joint_count = r.read_int32().value();
         output.joints_.resize(joint_count);
 
         for (int i = 0; i < joint_count; ++i) {
             auto& joint = output.joints_.at(i);
 
-            joint.name_ = reinterpret_cast<const char*>(header);
-            header += joint.name_.size() + 1;
-            joint.parent_index_ = dalp::make_int32(header);
-            header += 4;
+            joint.name_ = r.read_nt_str();
+            joint.parent_index_ = r.read_int32().value();
 
-            const auto joint_type_index = dalp::make_int32(header);
-            header += 4;
+            const auto joint_type_index = r.read_int32().value();
             switch (joint_type_index) {
                 case 0:
                     joint.joint_type_ = dalp::JointType::basic;
@@ -112,41 +98,38 @@ namespace {
                     joint.joint_type_ = dalp::JointType::basic;
             }
 
-            header = parse_mat4(header, end, joint.offset_mat_);
+            ::parse_mat4(r, joint.offset_mat_);
         }
-
-        return header;
     }
 
-    const uint8_t* parse_animJoint(
-        const uint8_t* header, const uint8_t* const end, dalp::AnimJoint& output
-    ) {
+    void parse_animJoint(sung::BytesReader& r, dalp::AnimJoint& output) {
         {
-            output.name_ = reinterpret_cast<const char*>(header);
-            header += output.name_.size() + 1;
+            output.name_ = r.read_nt_str();
 
             glm::mat4 _;
-            header = parse_mat4(header, end, _);
+            ::parse_mat4(r, _);
         }
 
         {
-            const auto num = dalp::make_int32(header);
-            header += 4;
-
+            const auto num = r.read_int32().value();
             for (int i = 0; i < num; ++i) {
                 float fbuf[4];
-                header = dalp::assemble_4_bytes_array<float>(header, fbuf, 4);
+                if (!r.read_float32_arr(fbuf, 4))
+                    throw std::runtime_error("Failed to read float array.");
+
+                // The order of parameter evaluation is not coherent with the
+                // order of the parameters so I must use a buffer
                 output.add_position(fbuf[0], fbuf[1], fbuf[2], fbuf[3]);
             }
         }
 
         {
-            const auto num = dalp::make_int32(header);
-            header += 4;
-
+            const auto num = r.read_int32().value();
             for (int i = 0; i < num; ++i) {
                 float fbuf[5];
-                header = dalp::assemble_4_bytes_array<float>(header, fbuf, 5);
+                if (!r.read_float32_arr(fbuf, 5))
+                    throw std::runtime_error("Failed to read float array.");
+
                 output.add_rotation(
                     fbuf[0], fbuf[4], fbuf[1], fbuf[2], fbuf[3]
                 );
@@ -154,49 +137,35 @@ namespace {
         }
 
         {
-            const auto num = dalp::make_int32(header);
-            header += 4;
+            const auto num = r.read_int32().value();
             for (int i = 0; i < num; ++i) {
                 float fbuf[2];
-                header = dalp::assemble_4_bytes_array<float>(header, fbuf, 2);
+                if (!r.read_float32_arr(fbuf, 2))
+                    throw std::runtime_error("Failed to read float array.");
+
                 output.add_scale(fbuf[0], fbuf[1]);
             }
         }
-
-        return header;
     }
 
-    const uint8_t* parse_animations(
-        const uint8_t* header,
-        const uint8_t* const end,
-        std::vector<dalp::Animation>& animations
+    void parse_animations(
+        sung::BytesReader& r, std::vector<dalp::Animation>& animations
     ) {
-        const auto anim_count = dalp::make_int32(header);
-        header += 4;
-
+        const auto anim_count = r.read_int32().value();
         animations.resize(anim_count);
         for (int i = 0; i < anim_count; ++i) {
             auto& anim = animations.at(i);
 
-            anim.name_ = reinterpret_cast<const char*>(header);
-            header += anim.name_.size() + 1;
+            anim.name_ = r.read_nt_str();
+            const auto duration_tick = r.read_float32().value();
+            anim.ticks_per_sec_ = r.read_float32().value();
 
-            const auto duration_tick = dalp::make_float32(header);
-            header += 4;
-
-            anim.ticks_per_sec_ = dalp::make_float32(header);
-            header += 4;
-
-            const auto joint_count = dalp::make_int32(header);
-            header += 4;
-
+            const auto joint_count = r.read_int32().value();
             anim.joints_.resize(joint_count);
             for (int j = 0; j < joint_count; ++j) {
-                header = ::parse_animJoint(header, end, anim.joints_.at(j));
+                ::parse_animJoint(r, anim.joints_.at(j));
             }
         }
-
-        return header;
     }
 
 }  // namespace
@@ -205,157 +174,79 @@ namespace {
 // Parse render units
 namespace {
 
-    const uint8_t* parse_material(
-        const uint8_t* header,
-        const uint8_t* const end,
-        dalp::Material& material
-    ) {
-        material.roughness_ = dalp::make_float32(header);
-        header += 4;
-        material.metallic_ = dalp::make_float32(header);
-        header += 4;
-        material.transparency_ = dalp::make_bool8(header);
-        header += 1;
+    void parse_material(sung::BytesReader& r, dalp::Material& material) {
+        material.roughness_ = r.read_float32().value();
+        material.metallic_ = r.read_float32().value();
+        material.transparency_ = r.read_bool().value();
 
-        material.albedo_map_ = reinterpret_cast<const char*>(header);
-        header += material.albedo_map_.size() + 1;
-
-        material.roughness_map_ = reinterpret_cast<const char*>(header);
-        header += material.roughness_map_.size() + 1;
-
-        material.metallic_map_ = reinterpret_cast<const char*>(header);
-        header += material.metallic_map_.size() + 1;
-
-        material.normal_map_ = reinterpret_cast<const char*>(header);
-        header += material.normal_map_.size() + 1;
-
-        return header;
+        material.albedo_map_ = r.read_nt_str();
+        material.roughness_map_ = r.read_nt_str();
+        material.metallic_map_ = r.read_nt_str();
+        material.normal_map_ = r.read_nt_str();
     }
 
-    const uint8_t* parse_mesh(
-        const uint8_t* header,
-        const uint8_t* const end,
-        dalp::Mesh_Straight& mesh
-    ) {
-        const auto vert_count = dalp::make_int64(header);
-        header += 8;
-
+    void parse_mesh(sung::BytesReader& r, dalp::Mesh_Straight& mesh) {
+        const auto vert_count = r.read_int64().value();
         const auto vert_count_times_3 = vert_count * 3;
         const auto vert_count_times_2 = vert_count * 2;
 
         mesh.vertices_.resize(vert_count_times_3);
-        header = dalp::assemble_4_bytes_array<float>(
-            header, mesh.vertices_.data(), vert_count_times_3
-        );
+        r.read_float32_arr(mesh.vertices_.data(), vert_count_times_3);
 
         mesh.uv_coordinates_.resize(vert_count_times_2);
-        header = dalp::assemble_4_bytes_array<float>(
-            header, mesh.uv_coordinates_.data(), vert_count_times_2
-        );
+        r.read_float32_arr(mesh.uv_coordinates_.data(), vert_count_times_2);
 
         mesh.normals_.resize(vert_count_times_3);
-        header = dalp::assemble_4_bytes_array<float>(
-            header, mesh.normals_.data(), vert_count_times_3
-        );
-
-        return header;
+        r.read_float32_arr(mesh.normals_.data(), vert_count_times_3);
     }
 
-    const uint8_t* parse_mesh(
-        const uint8_t* header,
-        const uint8_t* const end,
-        dalp::Mesh_StraightJoint& mesh
-    ) {
-        const auto vert_count = dalp::make_int64(header);
-        header += 8;
+    void parse_mesh(sung::BytesReader& r, dalp::Mesh_StraightJoint& mesh) {
+        const auto vert_count = r.read_int64().value();
         const auto vert_count_times_3 = vert_count * 3;
         const auto vert_count_times_2 = vert_count * 2;
-        const auto vert_count_times_joint_count =
-            vert_count * dal::parser::NUM_JOINTS_PER_VERTEX;
+        const auto vert_count_joint_count = vert_count *
+                                            dal::parser::NUM_JOINTS_PER_VERTEX;
 
         mesh.vertices_.resize(vert_count_times_3);
-        header = dalp::assemble_4_bytes_array<float>(
-            header, mesh.vertices_.data(), vert_count_times_3
-        );
+        r.read_float32_arr(mesh.vertices_.data(), vert_count_times_3);
 
         mesh.uv_coordinates_.resize(vert_count_times_2);
-        header = dalp::assemble_4_bytes_array<float>(
-            header, mesh.uv_coordinates_.data(), vert_count_times_2
-        );
+        r.read_float32_arr(mesh.uv_coordinates_.data(), vert_count_times_2);
 
         mesh.normals_.resize(vert_count_times_3);
-        header = dalp::assemble_4_bytes_array<float>(
-            header, mesh.normals_.data(), vert_count_times_3
-        );
+        r.read_float32_arr(mesh.normals_.data(), vert_count_times_3);
 
-        mesh.joint_weights_.resize(vert_count_times_joint_count);
-        header = dalp::assemble_4_bytes_array<float>(
-            header, mesh.joint_weights_.data(), vert_count_times_joint_count
-        );
+        mesh.joint_weights_.resize(vert_count_joint_count);
+        r.read_float32_arr(mesh.joint_weights_.data(), vert_count_joint_count);
 
-        mesh.joint_indices_.resize(vert_count_times_joint_count);
-        header = dalp::assemble_4_bytes_array<int32_t>(
-            header, mesh.joint_indices_.data(), vert_count_times_joint_count
-        );
-
-        return header;
+        mesh.joint_indices_.resize(vert_count_joint_count);
+        r.read_int32_arr(mesh.joint_indices_.data(), vert_count_joint_count);
     }
 
-    const uint8_t* parse_mesh(
-        const uint8_t* header,
-        const uint8_t* const end,
-        dalp::Mesh_Indexed& mesh
-    ) {
-        const auto vertex_count = dalp::make_int64(header);
-        header += 8;
+    void parse_mesh(sung::BytesReader& r, dalp::Mesh_Indexed& mesh) {
+        const auto vertex_count = r.read_int64().value();
         for (int64_t i = 0; i < vertex_count; ++i) {
             auto& vert = mesh.vertices_.emplace_back();
 
-            float fbuf[8];
-            header = dalp::assemble_4_bytes_array<float>(header, fbuf, 8);
+            static_assert(sizeof(float) * 3 == sizeof(vert.pos_), "");
+            static_assert(sizeof(float) * 3 == sizeof(vert.normal_), "");
+            static_assert(sizeof(float) * 2 == sizeof(vert.uv_), "");
 
-            vert.pos_ = glm::vec3{ fbuf[0], fbuf[1], fbuf[2] };
-            vert.normal_ = glm::vec3{ fbuf[3], fbuf[4], fbuf[5] };
-            vert.uv_ = glm::vec2{ fbuf[6], fbuf[7] };
+            r.read_float32_arr(&vert.pos_[0], 3);
+            r.read_float32_arr(&vert.normal_[0], 3);
+            r.read_float32_arr(&vert.uv_[0], 2);
         }
 
-        const auto index_count = dalp::make_int64(header);
-        header += 8;
-        for (int64_t i = 0; i < index_count; ++i) {
-            mesh.indices_.push_back(dalp::make_int32(header));
-            header += 4;
-        }
-
-        return header;
+        const auto index_count = r.read_int64().value();
+        for (int64_t i = 0; i < index_count; ++i)
+            mesh.indices_.push_back(r.read_int32().value());
     }
 
-    const uint8_t* parse_mesh(
-        const uint8_t* header,
-        const uint8_t* const end,
-        dalp::Mesh_IndexedJoint& mesh
-    ) {
-        const auto vertex_count = dalp::make_int64(header);
-        header += 8;
+    void parse_mesh(sung::BytesReader& r, dalp::Mesh_IndexedJoint& mesh) {
+        const auto vertex_count = r.read_int64().value();
         for (int64_t i = 0; i < vertex_count; ++i) {
             auto& vert = mesh.vertices_.emplace_back();
 
-            float fbuf[8];
-            header = dalp::assemble_4_bytes_array<float>(header, fbuf, 8);
-            float fbuf_joint[dal::parser::NUM_JOINTS_PER_VERTEX];
-            header = dalp::assemble_4_bytes_array<float>(
-                header, fbuf_joint, dal::parser::NUM_JOINTS_PER_VERTEX
-            );
-            int32_t ibuf_joint[dal::parser::NUM_JOINTS_PER_VERTEX];
-            header = dalp::assemble_4_bytes_array<int32_t>(
-                header, ibuf_joint, dal::parser::NUM_JOINTS_PER_VERTEX
-            );
-
-            vert.pos_ = glm::vec3{ fbuf[0], fbuf[1], fbuf[2] };
-            vert.normal_ = glm::vec3{ fbuf[3], fbuf[4], fbuf[5] };
-            vert.uv_ = glm::vec2{ fbuf[6], fbuf[7] };
-
-            static_assert(sizeof(vert.joint_weights_.x) == sizeof(float));
-            static_assert(sizeof(vert.joint_indices_.x) == sizeof(int32_t));
             static_assert(
                 sizeof(vert.joint_weights_) ==
                 sizeof(float) * dal::parser::NUM_JOINTS_PER_VERTEX
@@ -365,78 +256,57 @@ namespace {
                 sizeof(int32_t) * dal::parser::NUM_JOINTS_PER_VERTEX
             );
 
-            memcpy(
-                &vert.joint_weights_, fbuf_joint, sizeof(vert.joint_weights_)
+            r.read_float32_arr(&vert.pos_[0], 3);
+            r.read_float32_arr(&vert.normal_[0], 3);
+            r.read_float32_arr(&vert.uv_[0], 2);
+            r.read_float32_arr(
+                &vert.joint_weights_[0], dalp::NUM_JOINTS_PER_VERTEX
             );
-            memcpy(
-                &vert.joint_indices_, ibuf_joint, sizeof(vert.joint_indices_)
+            r.read_int32_arr(
+                &vert.joint_indices_[0], dalp::NUM_JOINTS_PER_VERTEX
             );
         }
 
-        const auto index_count = dalp::make_int64(header);
-        header += 8;
-        for (int64_t i = 0; i < index_count; ++i) {
-            mesh.indices_.push_back(dalp::make_int32(header));
-            header += 4;
-        }
-
-        return header;
+        const auto index_count = r.read_int64().value();
+        for (int64_t i = 0; i < index_count; ++i)
+            mesh.indices_.push_back(r.read_int32().value());
     }
 
     template <typename _Mesh>
-    const uint8_t* parse_render_unit(
-        const uint8_t* header,
-        const uint8_t* const end,
-        dalp::RenderUnit<_Mesh>& unit
+    void parse_render_unit(
+        sung::BytesReader& r, dalp::RenderUnit<_Mesh>& unit
     ) {
-        unit.name_ = reinterpret_cast<const char*>(header);
-        header += unit.name_.size() + 1;
-        header = ::parse_material(header, end, unit.material_);
-        header = ::parse_mesh(header, end, unit.mesh_);
-
-        return header;
+        unit.name_ = r.read_nt_str();
+        ::parse_material(r, unit.material_);
+        ::parse_mesh(r, unit.mesh_);
     }
 
 
     dalp::ModelParseResult parse_all(
-        dalp::Model& output,
-        const uint8_t* const begin,
-        const uint8_t* const end
+        sung::BytesReader& r, dalp::Model& output
     ) {
-        const uint8_t* header = begin;
+        ::parse_aabb(r, output.aabb_);
+        ::parse_skeleton(r, output.skeleton_);
+        ::parse_animations(r, output.animations_);
 
-        header = ::parse_aabb(header, end, output.aabb_);
-        header = ::parse_skeleton(header, end, output.skeleton_);
-        header = ::parse_animations(header, end, output.animations_);
+        output.units_straight_.resize(r.read_int64().value());
+        for (auto& unit : output.units_straight_) ::parse_render_unit(r, unit);
 
-        output.units_straight_.resize(dalp::make_int64(header));
-        header += 8;
-        for (auto& unit : output.units_straight_) {
-            header = ::parse_render_unit(header, end, unit);
-        }
+        output.units_straight_joint_.resize(r.read_int64().value());
+        for (auto& unit : output.units_straight_joint_)
+            ::parse_render_unit(r, unit);
 
-        output.units_straight_joint_.resize(dalp::make_int64(header));
-        header += 8;
-        for (auto& unit : output.units_straight_joint_) {
-            header = ::parse_render_unit(header, end, unit);
-        }
+        output.units_indexed_.resize(r.read_int64().value());
+        for (auto& unit : output.units_indexed_) ::parse_render_unit(r, unit);
 
-        output.units_indexed_.resize(dalp::make_int64(header));
-        header += 8;
-        for (auto& unit : output.units_indexed_) {
-            header = ::parse_render_unit(header, end, unit);
-        }
+        output.units_indexed_joint_.resize(r.read_int64().value());
+        for (auto& unit : output.units_indexed_joint_)
+            ::parse_render_unit(r, unit);
 
-        output.units_indexed_joint_.resize(dalp::make_int64(header));
-        header += 8;
-        for (auto& unit : output.units_indexed_joint_) {
-            header = ::parse_render_unit(header, end, unit);
-        }
-
-        if (header != end)
-            return dalp::ModelParseResult::corrupted_content;
-        else
+        if (r.is_eof())
             return dalp::ModelParseResult::success;
+        else
+            return dalp::ModelParseResult::corrupted_content;
     }
 
 }  // namespace
@@ -460,7 +330,7 @@ namespace dal::parser {
 
         // Parse
         return ::parse_all(
-            output, unzipped->data(), unzipped->data() + unzipped->size()
+            sung::BytesReader{ unzipped->data(), unzipped->size() }, output
         );
     }
 
