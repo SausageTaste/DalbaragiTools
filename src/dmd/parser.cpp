@@ -14,16 +14,10 @@ namespace dalp = dal::parser;
 
 namespace {
 
-    std::optional<std::vector<uint8_t>> unzip_dal_model(
-        const uint8_t* const buf, const size_t buf_size
-    ) {
-        const auto expected_unzipped_size = dal::parser::make_int64(
-            buf + dalp::MAGIC_NUMBER_SIZE
-        );
-        const auto data_offset = dalp::MAGIC_NUMBER_SIZE + sizeof(int64_t);
-
+    std::optional<std::vector<uint8_t>> unzip_dal_model(sung::BytesReader& r) {
+        const auto expected_unzipped_size = r.read_int64().value();
         const auto unzipped = dal::decomp_bro(
-            buf + data_offset, buf_size - data_offset, expected_unzipped_size
+            r.head(), r.remaining(), expected_unzipped_size
         );
 
         if (unzipped.has_value())
@@ -323,8 +317,11 @@ namespace dal::parser {
         if (!::is_magic_numbers_correct(file_content))
             return dalp::ModelParseResult::magic_numbers_dont_match;
 
+        sung::BytesReader file_bytes{ file_content, content_size };
+        file_bytes.advance(dalp::MAGIC_NUMBER_SIZE);
+
         // Decompress
-        const auto unzipped = ::unzip_dal_model(file_content, content_size);
+        const auto unzipped = ::unzip_dal_model(file_bytes);
         if (!unzipped)
             return dalp::ModelParseResult::decompression_failed;
 
