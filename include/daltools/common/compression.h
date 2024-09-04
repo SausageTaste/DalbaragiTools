@@ -10,6 +10,13 @@
 
 namespace dal {
 
+    enum class CompressMethod {
+        none,
+        zip,
+        brotli,
+    };
+
+
     enum class CompressResult {
         success,
         not_enough_buffer_size,

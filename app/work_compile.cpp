@@ -2,6 +2,8 @@
 
 #include <filesystem>
 #include <fstream>
+#include <map>
+#include <set>
 
 #include <spdlog/fmt/fmt.h>
 #include <argparse/argparse.hpp>
@@ -36,8 +38,25 @@ namespace {
         return buffer;
     }
 
+    dal::CompressMethod interpret_comp_method(const std::string& str) {
+        const std::map<dal::CompressMethod, std::set<std::string>> map{
+            { dal::CompressMethod::none, { "none", "0" } },
+            { dal::CompressMethod::zip, { "zip", "1" } },
+            { dal::CompressMethod::brotli, { "brotli", "2" } },
+        };
 
-    void do_file(const std::filesystem::path& src_path) {
+        for (const auto& [method, strs] : map) {
+            if (strs.find(str) != strs.end()) {
+                return method;
+            }
+        }
+
+        throw std::runtime_error{ "Invalid compression method: " + str };
+    }
+
+    void do_file(
+        const std::filesystem::path& src_path, dal::CompressMethod comp_method
+    ) {
         using namespace dal::crypto;
         using namespace dal::parser;
         using SecretKey = PublicKeySignature::SecretKey;
@@ -62,7 +81,7 @@ namespace {
         }
 
         const auto model = convert_to_model_dmd(scenes.at(0));
-        const auto bin_built = build_binary_model(model);
+        const auto bin_built = build_binary_model(model, comp_method);
 
         std::filesystem::path output_path = src_path;
         output_path.replace_extension("dmd");
@@ -80,13 +99,20 @@ namespace dal {
     void work_compile(int argc, char* argv[]) {
         argparse::ArgumentParser parser{ "daltools" };
         parser.add_argument("operation").help("Operation name");
+        parser.add_argument("-c", "--compress")
+            .help("Select compression method (0: none, 1: zip, 2: brotli)")
+            .default_value("2");
         parser.add_argument("files").help("Input model file paths").remaining();
         parser.parse_args(argc, argv);
+
+        const auto comp_method = ::interpret_comp_method(
+            parser.get<std::string>("--compress")
+        );
 
         const auto files = parser.get<std::vector<std::string>>("files");
         for (const auto& src_path_str : files) {
             const std::filesystem::path src_path{ src_path_str };
-            ::do_file(src_path);
+            ::do_file(src_path, comp_method);
         }
     }
 

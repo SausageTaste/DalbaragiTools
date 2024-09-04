@@ -15,7 +15,33 @@ namespace dalp = dal::parser;
 namespace {
 
     std::optional<std::vector<uint8_t>> unzip_dal_model(sung::BytesReader& r) {
+        const auto comp_method = (dal::CompressMethod)r.read_int32().value();
         const auto expected_unzipped_size = r.read_int64().value();
+
+        if (comp_method == dal::CompressMethod::none) {
+            std::vector<uint8_t> output{ r.head(), r.head() + r.remaining() };
+            return output;
+        } else if (comp_method == dal::CompressMethod::zip) {
+            const auto unzipped = dal::decomp_zip(
+                dal::BinDataView{ r.head(), r.remaining() },
+                expected_unzipped_size
+            );
+            if (unzipped.has_value())
+                return unzipped.value();
+            else
+                return std::nullopt;
+        } else if (comp_method == dal::CompressMethod::brotli) {
+            const auto unzipped = dal::decomp_bro(
+                r.head(), r.remaining(), expected_unzipped_size
+            );
+
+            if (unzipped.has_value())
+                return unzipped.value();
+            else
+                return std::nullopt;
+        }
+
+
         const auto unzipped = dal::decomp_bro(
             r.head(), r.remaining(), expected_unzipped_size
         );
@@ -320,15 +346,37 @@ namespace dal::parser {
         sung::BytesReader file_bytes{ file_content, content_size };
         file_bytes.advance(dalp::MAGIC_NUMBER_SIZE);
 
-        // Decompress
-        const auto unzipped = ::unzip_dal_model(file_bytes);
-        if (!unzipped)
-            return dalp::ModelParseResult::decompression_failed;
+        const auto comp_method_i = file_bytes.read_int32().value();
+        const auto expected_unzipped_size = file_bytes.read_int64().value();
+        const auto comp_method = (CompressMethod)comp_method_i;
 
-        // Parse
-        return ::parse_all(
-            sung::BytesReader{ unzipped->data(), unzipped->size() }, output
-        );
+        if (comp_method == CompressMethod::none) {
+            return ::parse_all(file_bytes, output);
+        } else {
+            std::optional<std::vector<uint8_t>> unzipped = std::nullopt;
+
+            if (comp_method == CompressMethod::zip) {
+                unzipped = decomp_zip(
+                    BinDataView{ file_bytes.head(), file_bytes.remaining() },
+                    expected_unzipped_size
+                );
+            } else if (comp_method == CompressMethod::brotli) {
+                unzipped = decomp_bro(
+                    file_bytes.head(),
+                    file_bytes.remaining(),
+                    expected_unzipped_size
+                );
+            }
+
+            if (!unzipped.has_value())
+                return dalp::ModelParseResult::decompression_failed;
+
+            return ::parse_all(
+                sung::BytesReader{ unzipped->data(), unzipped->size() }, output
+            );
+        }
+
+        return dalp::ModelParseResult::corrupted_content;
     }
 
     std::optional<Model> parse_dmd(

@@ -156,7 +156,7 @@ namespace {
         std::cout << "        animations: " << model->animations_.size() << std::endl;
 
         {
-            const auto binary = dal::parser::build_binary_model(*model);
+            const auto binary = dal::parser::build_binary_model(*model, dal::CompressMethod::brotli);
             const auto model_second = dal::parser::parse_dmd(*binary);
 
             std::cout << "    * Second model parsed" << std::endl;
@@ -219,7 +219,7 @@ namespace {
             size_t process_count = 0;
 
             while (::get_cur_sec() - start_time < TEST_DURATION) {
-                const auto binary = dal::parser::build_binary_model(*model);
+                const auto binary = dal::parser::build_binary_model(*model, dal::CompressMethod::brotli);
                 ++process_count;
             }
 
@@ -255,7 +255,7 @@ namespace {
         }
         model->units_straight_joint_.clear();
 
-        const auto binary_built = dalp::build_binary_model(*model);
+        const auto binary_built = dalp::build_binary_model(*model, dal::CompressMethod::brotli);
 
         std::ofstream file(src_path, std::ios::binary);
         file.write(reinterpret_cast<const char*>(binary_built->data()), binary_built->size());

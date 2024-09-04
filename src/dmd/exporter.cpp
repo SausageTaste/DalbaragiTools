@@ -40,20 +40,33 @@ namespace {
 namespace {
 
     std::optional<std::vector<uint8_t>> compress_dal_model(
-        const uint8_t* const src, const size_t src_size
+        const uint8_t* const src,
+        const size_t src_size,
+        dal::CompressMethod comp_method
     ) {
         dalp::BinaryDataArray output;
 
         output.append_array(
             dalp::MAGIC_NUMBERS_DAL_MODEL, dalp::MAGIC_NUMBER_SIZE
         );
+        output.append_int32(static_cast<int32_t>(comp_method));
         output.append_int64(src_size);
 
-        const auto compressed = dal::compress_bro(src, src_size);
-        if (!compressed.has_value())
-            return std::nullopt;
+        if (comp_method == dal::CompressMethod::none) {
+            output.append_array(src, src_size);
+        } else if (comp_method == dal::CompressMethod::zip) {
+            dal::BinDataView bin_view{ src, src_size };
+            const auto compressed = dal::compress_zip(bin_view);
+            if (!compressed.has_value())
+                return std::nullopt;
+            output.append_array(compressed->data(), compressed->size());
+        } else if (comp_method == dal::CompressMethod::brotli) {
+            const auto compressed = dal::compress_bro(src, src_size);
+            if (!compressed.has_value())
+                return std::nullopt;
+            output.append_array(compressed->data(), compressed->size());
+        }
 
-        output.append_array(compressed->data(), compressed->size());
         return output.release();
     }
 
@@ -292,7 +305,9 @@ namespace {
 namespace dal::parser {
 
     ModelExportResult build_binary_model(
-        std::vector<uint8_t>& output, const Model& input
+        std::vector<uint8_t>& output,
+        const Model& input,
+        CompressMethod comp_method
     ) {
         BinaryBuildBuffer buffer;
 
@@ -328,7 +343,9 @@ namespace dal::parser {
             buffer += ::build_bin_mesh_indexed_joint(unit.mesh_);
         }
 
-        auto zipped = ::compress_dal_model(buffer.data(), buffer.size());
+        auto zipped = ::compress_dal_model(
+            buffer.data(), buffer.size(), comp_method
+        );
         if (!zipped.has_value())
             return ModelExportResult::compression_failure;
 
@@ -336,9 +353,11 @@ namespace dal::parser {
         return ModelExportResult::success;
     }
 
-    std::optional<std::vector<uint8_t>> build_binary_model(const Model& input) {
+    std::optional<std::vector<uint8_t>> build_binary_model(
+        const Model& input, CompressMethod comp_method
+    ) {
         std::vector<uint8_t> result;
-        const auto res = build_binary_model(result, input);
+        const auto res = build_binary_model(result, input, comp_method);
         if (ModelExportResult::success != res)
             return std::nullopt;
         else

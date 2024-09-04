@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <spdlog/fmt/fmt.h>
+#include <sung/general/time.hpp>
 
 #include "daltools/common/util.h"
 #include "daltools/dmd/exporter.h"
@@ -105,7 +106,7 @@ namespace {
                 << "Failed to read file: " << json_path.u8string();
 
             fmt::print("Testing: {}\n", json_path.u8string());
-            dal::Timer timer;
+            sung::MonotonicRealtimeTimer timer;
 
             // Replace extension from .json to .bin
             auto bin_path = json_path;
@@ -137,7 +138,9 @@ namespace {
             const auto model1 = dal::parser::convert_to_model_dmd(scenes.at(0));
             fmt::print(" - Model built ({:.2f})\n", timer.check_get_elapsed());
 
-            const auto binary1 = dal::parser::build_binary_model(model1);
+            const auto binary1 = dal::parser::build_binary_model(
+                model1, dal::CompressMethod::brotli
+            );
             ASSERT_TRUE(binary1.has_value());
             fmt::print(" - DMD built ({:.2f})\n", timer.check_get_elapsed());
 
@@ -145,7 +148,9 @@ namespace {
             ASSERT_TRUE(model2.has_value());
             fmt::print(" - DMD parsed ({:.2f})\n", timer.check_get_elapsed());
 
-            const auto binary2 = dal::parser::build_binary_model(*model2);
+            const auto binary2 = dal::parser::build_binary_model(
+                *model2, dal::CompressMethod::brotli
+            );
             ASSERT_TRUE(binary2.has_value());
             fmt::print(" - DMD again ({:.2f})\n", timer.check_get_elapsed());
 
