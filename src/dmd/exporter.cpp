@@ -65,8 +65,7 @@ namespace {
             if (!compressed.has_value())
                 return std::nullopt;
             output.append_array(compressed->data(), compressed->size());
-        }
-        else {
+        } else {
             return std::nullopt;
         }
 
@@ -88,9 +87,9 @@ namespace {
 // Build animations
 namespace {
 
-    ::BinaryBuildBuffer build_bin_skeleton(const dalp::Skeleton& skeleton) {
-        ::BinaryBuildBuffer output;
-
+    void build_bin_skeleton(
+        ::BinaryBuildBuffer& output, const dalp::Skeleton& skeleton
+    ) {
         output.append_mat4(skeleton.root_transform_);
         output.append_int32(skeleton.joints_.size());
 
@@ -116,14 +115,11 @@ namespace {
 
             output.append_mat4(joint.offset_mat_);
         }
-
-        return output;
     }
 
-    ::BinaryBuildBuffer _build_bin_joint_keyframes(const dalp::AnimJoint& joint
+    void _build_bin_joint_keyframes(
+        ::BinaryBuildBuffer& output, const dalp::AnimJoint& joint
     ) {
-        ::BinaryBuildBuffer output;
-
         output.append_str(joint.name_);
         output.append_mat4(glm::mat4{ 1 });
 
@@ -149,15 +145,12 @@ namespace {
             output.append_float32(scale.first);
             output.append_float32(scale.second);
         }
-
-        return output;
     }
 
-    ::BinaryBuildBuffer build_bin_animation(
+    void build_bin_animation(
+        ::BinaryBuildBuffer& output,
         const std::vector<dalp::Animation>& animations
     ) {
-        ::BinaryBuildBuffer output;
-
         output.append_int32(animations.size());
 
         for (size_t i = 0; i < animations.size(); ++i) {
@@ -170,11 +163,9 @@ namespace {
             output.append_int32(anim.joints_.size());
 
             for (auto& joint : anim.joints_) {
-                output += ::_build_bin_joint_keyframes(joint);
+                ::_build_bin_joint_keyframes(output, joint);
             }
         }
-
-        return output;
     }
 
 }  // namespace
@@ -183,9 +174,9 @@ namespace {
 // Build render units
 namespace {
 
-    ::BinaryBuildBuffer build_bin_material(const dalp::Material& material) {
-        ::BinaryBuildBuffer output;
-
+    void build_bin_material(
+        ::BinaryBuildBuffer& output, const dalp::Material& material
+    ) {
         output.append_float32(material.roughness_);
         output.append_float32(material.metallic_);
         output.append_bool8(material.transparency_);
@@ -193,14 +184,11 @@ namespace {
         output.append_str(material.roughness_map_);
         output.append_str(material.metallic_map_);
         output.append_str(material.normal_map_);
-
-        return output;
     }
 
-    ::BinaryBuildBuffer build_bin_mesh_straight(const dalp::Mesh_Straight& mesh
+    void build_bin_mesh_straight(
+        ::BinaryBuildBuffer& output, const dalp::Mesh_Straight& mesh
     ) {
-        ::BinaryBuildBuffer output;
-
         assert(mesh.vertices_.size() * 2 == mesh.uv_coordinates_.size() * 3);
         assert(mesh.vertices_.size() == mesh.normals_.size());
         assert(mesh.vertices_.size() % 3 == 0);
@@ -210,15 +198,11 @@ namespace {
         output.append_float32_vector(mesh.vertices_);
         output.append_float32_vector(mesh.uv_coordinates_);
         output.append_float32_vector(mesh.normals_);
-
-        return output;
     }
 
-    ::BinaryBuildBuffer build_bin_mesh_straight_joint(
-        const dalp::Mesh_StraightJoint& mesh
+    void build_bin_mesh_straight_joint(
+        ::BinaryBuildBuffer& output, const dalp::Mesh_StraightJoint& mesh
     ) {
-        ::BinaryBuildBuffer output;
-
         assert(
             mesh.vertices_.size() * dal::parser::NUM_JOINTS_PER_VERTEX ==
             mesh.joint_indices_.size() * 3
@@ -228,18 +212,17 @@ namespace {
             mesh.joint_weights_.size() * 3
         );
 
-        output += ::build_bin_mesh_straight(mesh);
+        ::build_bin_mesh_straight(output, mesh);
 
         output.append_float32_vector(mesh.joint_weights_);
         output.append_int32_array(
             mesh.joint_indices_.data(), mesh.joint_indices_.size()
         );
-
-        return output;
     }
 
-    ::BinaryBuildBuffer build_bin_mesh_indexed(const dalp::Mesh_Indexed& mesh) {
-        ::BinaryBuildBuffer output;
+    void build_bin_mesh_indexed(
+        ::BinaryBuildBuffer& output, const dalp::Mesh_Indexed& mesh
+    ) {
         static_assert(32 == sizeof(dalp::Mesh_Indexed::VERT_TYPE));
 
         output.append_int64(mesh.vertices_.size());
@@ -260,14 +243,11 @@ namespace {
         for (auto index : mesh.indices_) {
             output.append_int32(index);
         }
-
-        return output;
     }
 
-    ::BinaryBuildBuffer build_bin_mesh_indexed_joint(
-        const dalp::Mesh_IndexedJoint& mesh
+    void build_bin_mesh_indexed_joint(
+        ::BinaryBuildBuffer& output, const dalp::Mesh_IndexedJoint& mesh
     ) {
-        ::BinaryBuildBuffer output;
         static_assert(64 == sizeof(dalp::Mesh_IndexedJoint::VERT_TYPE));
 
         output.append_int64(mesh.vertices_.size());
@@ -298,8 +278,6 @@ namespace {
         for (auto index : mesh.indices_) {
             output.append_int32(index);
         }
-
-        return output;
     }
 
 }  // namespace
@@ -315,35 +293,35 @@ namespace dal::parser {
         BinaryBuildBuffer buffer;
 
         ::append_bin_aabb(buffer, input.aabb_);
-        buffer += ::build_bin_skeleton(input.skeleton_);
-        buffer += ::build_bin_animation(input.animations_);
+        ::build_bin_skeleton(buffer, input.skeleton_);
+        ::build_bin_animation(buffer, input.animations_);
 
         buffer.append_int64(input.units_straight_.size());
         for (auto& unit : input.units_straight_) {
             buffer.append_str(unit.name_);
-            buffer += ::build_bin_material(unit.material_);
-            buffer += ::build_bin_mesh_straight(unit.mesh_);
+            ::build_bin_material(buffer, unit.material_);
+            ::build_bin_mesh_straight(buffer, unit.mesh_);
         }
 
         buffer.append_int64(input.units_straight_joint_.size());
         for (auto& unit : input.units_straight_joint_) {
             buffer.append_str(unit.name_);
-            buffer += ::build_bin_material(unit.material_);
-            buffer += ::build_bin_mesh_straight_joint(unit.mesh_);
+            ::build_bin_material(buffer, unit.material_);
+            ::build_bin_mesh_straight_joint(buffer, unit.mesh_);
         }
 
         buffer.append_int64(input.units_indexed_.size());
         for (auto& unit : input.units_indexed_) {
             buffer.append_str(unit.name_);
-            buffer += ::build_bin_material(unit.material_);
-            buffer += ::build_bin_mesh_indexed(unit.mesh_);
+            ::build_bin_material(buffer, unit.material_);
+            ::build_bin_mesh_indexed(buffer, unit.mesh_);
         }
 
         buffer.append_int64(input.units_indexed_joint_.size());
         for (auto& unit : input.units_indexed_joint_) {
             buffer.append_str(unit.name_);
-            buffer += ::build_bin_material(unit.material_);
-            buffer += ::build_bin_mesh_indexed_joint(unit.mesh_);
+            ::build_bin_material(buffer, unit.material_);
+            ::build_bin_mesh_indexed_joint(buffer, unit.mesh_);
         }
 
         auto zipped = ::compress_dal_model(
