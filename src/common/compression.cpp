@@ -40,12 +40,12 @@ namespace dal {
         return output;
     }
 
-    std::optional<binvec_t> compress_zip(const BinDataView& src) {
+    std::optional<binvec_t> compress_zip(const uint8_t* src, size_t src_size) {
         binvec_t output;
-        output.resize(src.size() * 2);
+        output.resize(src_size * 2);
 
         const auto res = compress_zip(
-            output.data(), output.size(), src.data(), src.size()
+            output.data(), output.size(), src, src_size
         );
         if (res.m_result != CompressResult::success) {
             return std::nullopt;
@@ -53,6 +53,10 @@ namespace dal {
 
         output.resize(res.m_output_size);
         return output;
+    }
+
+    std::optional<binvec_t> compress_zip(const BinDataView& src) {
+        return compress_zip(src.data(), src.size());
     }
 
     CompressResultData decomp_zip(
@@ -232,14 +236,14 @@ namespace dal {
     }
 
 
-    std::string encode_base64(const BinDataView& src) {
+    std::string encode_base64(const uint8_t* src, size_t src_size) {
         std::string output;
-        output.resize(src.size() * 2);
+        output.resize(src_size * 2);
         size_t output_size = output.size();
 
         base64_encode(
-            reinterpret_cast<const char*>(src.data()),
-            src.size(),
+            reinterpret_cast<const char*>(src),
+            src_size,
             reinterpret_cast<char*>(output.data()),
             &output_size,
             0
@@ -247,6 +251,10 @@ namespace dal {
 
         output.resize(output_size);
         return output;
+    }
+
+    std::string encode_base64(const BinDataView& src) {
+        return encode_base64(src.data(), src.size());
     }
 
     std::optional<std::vector<uint8_t>> decode_base64(

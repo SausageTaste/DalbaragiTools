@@ -37,6 +37,7 @@ namespace dal {
         const uint8_t* const src,
         const size_t src_size
     );
+    std::optional<binvec_t> compress_zip(const uint8_t* src, size_t src_size);
     std::optional<binvec_t> compress_zip(const BinDataView& src);
 
 
@@ -67,6 +68,7 @@ namespace dal {
     );
 
 
+    std::string encode_base64(const uint8_t* src, size_t src_size);
     std::string encode_base64(const BinDataView& src);
 
     std::optional<std::vector<uint8_t>> decode_base64(
