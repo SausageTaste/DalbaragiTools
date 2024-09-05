@@ -8,7 +8,6 @@
 #include <spdlog/fmt/fmt.h>
 #include <argparse/argparse.hpp>
 
-#include "daltools/common/crypto.h"
 #include "daltools/common/konst.h"
 #include "daltools/dmd/exporter.h"
 #include "daltools/dmd/parser.h"
@@ -57,9 +56,7 @@ namespace {
     void do_file(
         const std::filesystem::path& src_path, dal::CompressMethod comp_method
     ) {
-        using namespace dal::crypto;
         using namespace dal::parser;
-        using SecretKey = PublicKeySignature::SecretKey;
 
         const auto json_data = ::read_file(src_path);
 
