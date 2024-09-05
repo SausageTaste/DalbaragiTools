@@ -66,6 +66,9 @@ namespace {
                 return std::nullopt;
             output.append_array(compressed->data(), compressed->size());
         }
+        else {
+            return std::nullopt;
+        }
 
         return output.release();
     }

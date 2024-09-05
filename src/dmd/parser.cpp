@@ -133,12 +133,9 @@ namespace {
         {
             const auto num = r.read_int32().value();
             for (int i = 0; i < num; ++i) {
-                float fbuf[4];
-                if (!r.read_float32_arr(fbuf, 4))
-                    throw std::runtime_error("Failed to read float array.");
-
                 // The order of parameter evaluation is not coherent with the
                 // order of the parameters so I must use a buffer
+                const auto fbuf = r.read_float32_arr<4>().value();
                 output.add_position(fbuf[0], fbuf[1], fbuf[2], fbuf[3]);
             }
         }
@@ -146,10 +143,7 @@ namespace {
         {
             const auto num = r.read_int32().value();
             for (int i = 0; i < num; ++i) {
-                float fbuf[5];
-                if (!r.read_float32_arr(fbuf, 5))
-                    throw std::runtime_error("Failed to read float array.");
-
+                const auto fbuf = r.read_float32_arr<5>().value();
                 output.add_rotation(
                     fbuf[0], fbuf[1], fbuf[2], fbuf[3], fbuf[4]
                 );
@@ -159,10 +153,7 @@ namespace {
         {
             const auto num = r.read_int32().value();
             for (int i = 0; i < num; ++i) {
-                float fbuf[2];
-                if (!r.read_float32_arr(fbuf, 2))
-                    throw std::runtime_error("Failed to read float array.");
-
+                const auto fbuf = r.read_float32_arr<2>().value();
                 output.add_scale(fbuf[0], fbuf[1]);
             }
         }
@@ -207,40 +198,48 @@ namespace {
 
     void parse_mesh(sung::BytesReader& r, dalp::Mesh_Straight& mesh) {
         const auto vert_count = r.read_int64().value();
-        const auto vert_count_times_3 = vert_count * 3;
-        const auto vert_count_times_2 = vert_count * 2;
+        const auto vert_count_x_3 = vert_count * 3;
+        const auto vert_count_x_2 = vert_count * 2;
 
-        mesh.vertices_.resize(vert_count_times_3);
-        r.read_float32_arr(mesh.vertices_.data(), vert_count_times_3);
+        mesh.vertices_.resize(vert_count_x_3);
+        if (!r.read_float32_arr(mesh.vertices_.data(), vert_count_x_3))
+            throw std::runtime_error{ "Failed to read vertices" };
 
-        mesh.uv_coordinates_.resize(vert_count_times_2);
-        r.read_float32_arr(mesh.uv_coordinates_.data(), vert_count_times_2);
+        mesh.uv_coordinates_.resize(vert_count_x_2);
+        if (!r.read_float32_arr(mesh.uv_coordinates_.data(), vert_count_x_2))
+            throw std::runtime_error{ "Failed to read uv coordinates" };
 
-        mesh.normals_.resize(vert_count_times_3);
-        r.read_float32_arr(mesh.normals_.data(), vert_count_times_3);
+        mesh.normals_.resize(vert_count_x_3);
+        if (!r.read_float32_arr(mesh.normals_.data(), vert_count_x_3))
+            throw std::runtime_error{ "Failed to read normals" };
     }
 
     void parse_mesh(sung::BytesReader& r, dalp::Mesh_StraightJoint& mesh) {
         const auto vert_count = r.read_int64().value();
-        const auto vert_count_times_3 = vert_count * 3;
-        const auto vert_count_times_2 = vert_count * 2;
-        const auto vert_count_joint_count = vert_count *
-                                            dal::parser::NUM_JOINTS_PER_VERTEX;
+        const auto vert_count_x_3 = vert_count * 3;
+        const auto vert_count_x_2 = vert_count * 2;
+        const auto vert_count_joint = vert_count *
+                                      dal::parser::NUM_JOINTS_PER_VERTEX;
 
-        mesh.vertices_.resize(vert_count_times_3);
-        r.read_float32_arr(mesh.vertices_.data(), vert_count_times_3);
+        mesh.vertices_.resize(vert_count_x_3);
+        if (!r.read_float32_arr(mesh.vertices_.data(), vert_count_x_3))
+            throw std::runtime_error{ "Failed to read vertices" };
 
-        mesh.uv_coordinates_.resize(vert_count_times_2);
-        r.read_float32_arr(mesh.uv_coordinates_.data(), vert_count_times_2);
+        mesh.uv_coordinates_.resize(vert_count_x_2);
+        if (!r.read_float32_arr(mesh.uv_coordinates_.data(), vert_count_x_2))
+            throw std::runtime_error{ "Failed to read uv coordinates" };
 
-        mesh.normals_.resize(vert_count_times_3);
-        r.read_float32_arr(mesh.normals_.data(), vert_count_times_3);
+        mesh.normals_.resize(vert_count_x_3);
+        if (!r.read_float32_arr(mesh.normals_.data(), vert_count_x_3))
+            throw std::runtime_error{ "Failed to read normals" };
 
-        mesh.joint_weights_.resize(vert_count_joint_count);
-        r.read_float32_arr(mesh.joint_weights_.data(), vert_count_joint_count);
+        mesh.joint_weights_.resize(vert_count_joint);
+        if (!r.read_float32_arr(mesh.joint_weights_.data(), vert_count_joint))
+            throw std::runtime_error{ "Failed to read joint weights" };
 
-        mesh.joint_indices_.resize(vert_count_joint_count);
-        r.read_int32_arr(mesh.joint_indices_.data(), vert_count_joint_count);
+        mesh.joint_indices_.resize(vert_count_joint);
+        if (!r.read_int32_arr(mesh.joint_indices_.data(), vert_count_joint))
+            throw std::runtime_error{ "Failed to read joint indices" };
     }
 
     void parse_mesh(sung::BytesReader& r, dalp::Mesh_Indexed& mesh) {
@@ -252,9 +251,12 @@ namespace {
             static_assert(sizeof(float) * 3 == sizeof(vert.normal_), "");
             static_assert(sizeof(float) * 2 == sizeof(vert.uv_), "");
 
-            r.read_float32_arr(&vert.pos_[0], 3);
-            r.read_float32_arr(&vert.normal_[0], 3);
-            r.read_float32_arr(&vert.uv_[0], 2);
+            if (!r.read_float32_arr(&vert.pos_[0], 3))
+                throw std::runtime_error{ "Failed to read pos" };
+            if (!r.read_float32_arr(&vert.normal_[0], 3))
+                throw std::runtime_error{ "Failed to read normal" };
+            if (!r.read_float32_arr(&vert.uv_[0], 2))
+                throw std::runtime_error{ "Failed to read uv" };
         }
 
         const auto index_count = r.read_int64().value();
@@ -263,7 +265,9 @@ namespace {
     }
 
     void parse_mesh(sung::BytesReader& r, dalp::Mesh_IndexedJoint& mesh) {
+        constexpr auto J_ELEM = dalp::NUM_JOINTS_PER_VERTEX;
         const auto vertex_count = r.read_int64().value();
+
         for (int64_t i = 0; i < vertex_count; ++i) {
             auto& vert = mesh.vertices_.emplace_back();
 
@@ -276,15 +280,16 @@ namespace {
                 sizeof(int32_t) * dal::parser::NUM_JOINTS_PER_VERTEX
             );
 
-            r.read_float32_arr(&vert.pos_[0], 3);
-            r.read_float32_arr(&vert.normal_[0], 3);
-            r.read_float32_arr(&vert.uv_[0], 2);
-            r.read_float32_arr(
-                &vert.joint_weights_[0], dalp::NUM_JOINTS_PER_VERTEX
-            );
-            r.read_int32_arr(
-                &vert.joint_indices_[0], dalp::NUM_JOINTS_PER_VERTEX
-            );
+            if (!r.read_float32_arr(&vert.pos_[0], 3))
+                throw std::runtime_error{ "Failed to read pos" };
+            if (!r.read_float32_arr(&vert.normal_[0], 3))
+                throw std::runtime_error{ "Failed to read normal" };
+            if (!r.read_float32_arr(&vert.uv_[0], 2))
+                throw std::runtime_error{ "Failed to read uv" };
+            if (!r.read_float32_arr(&vert.joint_weights_[0], J_ELEM))
+                throw std::runtime_error{ "Failed to read joint weights" };
+            if (!r.read_int32_arr(&vert.joint_indices_[0], J_ELEM))
+                throw std::runtime_error{ "Failed to read joint indices" };
         }
 
         const auto index_count = r.read_int64().value();
