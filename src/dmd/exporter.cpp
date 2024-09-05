@@ -135,10 +135,10 @@ namespace {
         output.append_int32(joint.rotations_.size());
         for (auto& rot : joint.rotations_) {
             output.append_float32(rot.first);
+            output.append_float32(rot.second.w);
             output.append_float32(rot.second.x);
             output.append_float32(rot.second.y);
             output.append_float32(rot.second.z);
-            output.append_float32(rot.second.w);
         }
 
         output.append_int32(joint.scales_.size());

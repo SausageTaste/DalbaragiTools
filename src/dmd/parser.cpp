@@ -151,7 +151,7 @@ namespace {
                     throw std::runtime_error("Failed to read float array.");
 
                 output.add_rotation(
-                    fbuf[0], fbuf[4], fbuf[1], fbuf[2], fbuf[3]
+                    fbuf[0], fbuf[1], fbuf[2], fbuf[3], fbuf[4]
                 );
             }
         }
