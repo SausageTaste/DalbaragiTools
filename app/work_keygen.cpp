@@ -1,5 +1,7 @@
 #include "work_functions.hpp"
 
+#include <fstream>
+
 #include <spdlog/fmt/fmt.h>
 #include <argparse/argparse.hpp>
 
@@ -14,59 +16,46 @@ namespace dal {
         sung::MonotonicRealtimeTimer timer;
         argparse::ArgumentParser parser{ "daltools" };
         {
-        parser.add_argument("operation")
-            .help("Operation name");
-
-        parser.add_argument("-s", "--sign")
-            .help("Generate key pair for signing")
-            .default_value(false)
-            .implicit_value(true);
-
-        parser.add_argument("-p", "--prefix")
-            .help("File path to save key files. Extension must be omitted")
-            .required();
-
-        parser.add_argument("--owner")
-            .required();
-
-        parser.add_argument("--email")
-            .required();
-
-        parser.add_argument("--description")
-            .default_value(std::string{});
+            parser.add_argument("operation").help("Operation name");
+            parser.add_argument("-o", "--output")
+                .help("File path to save key files. Extension must be omitted")
+                .required();
+            parser.add_argument("--owner").required();
+            parser.add_argument("--email").required();
+            parser.add_argument("--description").default_value(std::string{});
         }
         parser.parse_args(argc, argv);
 
-        const auto output_prefix = parser.get<std::string>("--prefix");
+        const auto output_prefix = parser.get<std::string>("--output");
 
-        if (parser["--sign"] == true) {
-            std::cout << "Keypair for signing\n";
-            timer.check();
+        dal::KeyMetadata md;
+        md.owner_name_ = parser.get<std::string>("--owner");
+        md.email_ = parser.get<std::string>("--email");
+        md.description_ = parser.get<std::string>("--description");
+        md.update_created_time();
 
-            dal::crypto::PublicKeySignature sign_mgr{ dal::crypto::CONTEXT_PARSER };
-            const auto [pk, sk] = sign_mgr.gen_keys();
+        std::cout << "Keypair for data\n";
+        timer.check();
 
-            dal::crypto::KeyAttrib attrib;
-            attrib.m_owner_name = parser.get<std::string>("--owner");
-            attrib.m_email = parser.get<std::string>("--email");
-            attrib.m_description = parser.get<std::string>("--description");
+        const auto [pk, sk] = dal::gen_data_key_pair();
 
-            {
-                attrib.m_type = sk.key_type();
-                const auto path = output_prefix + "-sign_sec.dky";
-                dal::crypto::save_key(path.c_str(), sk, attrib);
-                fmt::print("    Secret key: {}\n", path);
-            }
-
-            {
-                attrib.m_type = pk.key_type();
-                const auto path = output_prefix + "-sign_pub.dky";
-                dal::crypto::save_key(path.c_str(), pk, attrib);
-                fmt::print("    Public key: {}\n", path);
-            }
-
-            fmt::print("    took {} seconds\n", timer.elapsed());
+        {
+            const auto path = output_prefix + "-data_sec.dky";
+            const auto data = dal::serialize_key(sk, md);
+            std::ofstream file{ path };
+            file.write(reinterpret_cast<const char*>(data.data()), data.size());
+            fmt::print("    Secret key: {}\n", path);
         }
+
+        {
+            const auto path = output_prefix + "-data_pub.dky";
+            const auto data = dal::serialize_key(pk, md);
+            std::ofstream file{ path };
+            file.write(reinterpret_cast<const char*>(data.data()), data.size());
+            fmt::print("    Public key: {}\n", path);
+        }
+
+        fmt::print("    took {} seconds\n", timer.elapsed());
     }
 
-}
+}  // namespace dal

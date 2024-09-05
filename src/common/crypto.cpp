@@ -8,6 +8,8 @@
 
 #include <hydrogen.h>
 #include <spdlog/fmt/fmt.h>
+#include <sung/general/bytes.hpp>
+#include <sung/general/time.hpp>
 
 #include "daltools/common/byte_tool.h"
 #include "daltools/common/compression.h"
@@ -31,7 +33,8 @@ namespace {
     std::optional<T> read_file(const char* const path) {
         using namespace std::string_literals;
 
-        std::ifstream file{ path, std::ios::ate | std::ios::binary | std::ios::in };
+        std::ifstream file{ path,
+                            std::ios::ate | std::ios::binary | std::ios::in };
 
         if (!file.is_open())
             return std::nullopt;
@@ -47,7 +50,9 @@ namespace {
         return buffer;
     }
 
-    std::string add_line_breaks(const std::string input, const size_t line_length) {
+    std::string add_line_breaks(
+        const std::string input, const size_t line_length
+    ) {
         std::string output;
         auto header = input.data();
         auto end = header + input.size();
@@ -64,11 +69,14 @@ namespace {
     }
 
     std::string clean_up_base64_str(std::string string) {
-        string.erase(std::remove_if(
-            string.begin(),
-            string.end(),
-            [](char x) { return std::isspace(x); }
-        ), string.end());
+        string.erase(
+            std::remove_if(
+                string.begin(),
+                string.end(),
+                [](char x) { return std::isspace(x); }
+            ),
+            string.end()
+        );
         return string;
     }
 
@@ -82,13 +90,13 @@ namespace {
             return static_cast<dal::crypto::KeyType>(value);
     }
 
-}
+}  // namespace
 
 
 // KeyAttrib
 namespace dal::crypto {
 
-     bool KeyAttrib::operator!=(const KeyAttrib& rhs) const {
+    bool KeyAttrib::operator!=(const KeyAttrib& rhs) const {
         if (this->m_created_time != rhs.m_created_time)
             return true;
         if (this->m_owner_name != rhs.m_owner_name)
@@ -101,7 +109,7 @@ namespace dal::crypto {
             return true;
 
         return false;
-     }
+    }
 
     std::vector<uint8_t> KeyAttrib::build_binary_v1() const {
         /*
@@ -125,20 +133,23 @@ namespace dal::crypto {
         return array.release();
     }
 
-    bool KeyAttrib::parse_binary_v1(const uint8_t* const arr, const size_t arr_size) {
-        dal::parser::BinaryArrayParser parser{arr, arr_size};
+    bool KeyAttrib::parse_binary_v1(
+        const uint8_t* const arr, const size_t arr_size
+    ) {
+        dal::parser::BinaryArrayParser parser{ arr, arr_size };
 
         this->m_owner_name = parser.parse_str();
         this->m_email = parser.parse_str();
         this->m_description = parser.parse_str();
         this->m_type = ::convert_to_key_type(parser.parse_int32());
 
-        const auto a = std::chrono::system_clock::duration{parser.parse_int64()};
-        this->m_created_time = std::chrono::system_clock::time_point{a};
+        const auto a = std::chrono::system_clock::duration{ parser.parse_int64(
+        ) };
+        this->m_created_time = std::chrono::system_clock::time_point{ a };
         return parser.is_emtpy();
     }
 
-}
+}  // namespace dal::crypto
 
 
 // IKey
@@ -175,12 +186,13 @@ namespace dal::crypto {
     bool IKey::set_from_hex_str(const char* const buf, const size_t buf_size) {
         std::vector<uint8_t> buffer(buf_size);
 
-        const auto result = hydro_hex2bin(buffer.data(), buffer.size(), buf, buf_size, nullptr, nullptr);
+        const auto result = hydro_hex2bin(
+            buffer.data(), buffer.size(), buf, buf_size, nullptr, nullptr
+        );
         if (-1 != result) {
             this->set(buffer.data(), result);
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }
@@ -191,14 +203,17 @@ namespace dal::crypto {
         std::vector<char> buffer;
         buffer.resize(this->size() * 2 + 1);
 
-        if (nullptr != hydro_bin2hex(buffer.data(), buffer.size(), this->data(), this->size())) {
+        if (nullptr !=
+            hydro_bin2hex(
+                buffer.data(), buffer.size(), this->data(), this->size()
+            )) {
             output = buffer.data();
         }
 
         return output;
     }
 
-}
+}  // namespace dal::crypto
 
 
 namespace dal::crypto {
@@ -217,9 +232,12 @@ namespace dal::crypto {
     }
 
 
-    std::vector<uint8_t> build_key_binary(const IKey& key, const KeyAttrib& attrib) {
+    std::vector<uint8_t> build_key_binary(
+        const IKey& key, const KeyAttrib& attrib
+    ) {
         const auto magic_num_len = std::strlen(::KEY_MAGIC_NUMBERS);
-        const int32_t HEADER_SIZE = sizeof(char) * magic_num_len + sizeof(int32_t) * 5;
+        const int32_t HEADER_SIZE = sizeof(char) * magic_num_len +
+                                    sizeof(int32_t) * 5;
         const auto attrib_bin = attrib.build_binary_v1();
         dal::parser::BinaryDataArray array;
 
@@ -243,12 +261,15 @@ namespace dal::crypto {
 
     std::string build_key_store(const IKey& key, const KeyAttrib& attrib) {
         const auto data = build_key_binary(key, attrib);
-        const auto compressed = dal::compress_with_header(data);  // If it fails, it's a bug
+        const auto compressed = dal::compress_with_header(data
+        );  // If it fails, it's a bug
         const auto base64 = dal::encode_base64(*compressed);
         return ::add_line_breaks(base64, 40);
     }
 
-    void save_key(const char* const path, const IKey& key, const KeyAttrib& attrib) {
+    void save_key(
+        const char* const path, const IKey& key, const KeyAttrib& attrib
+    ) {
         const auto data = build_key_store(key, attrib);
         std::ofstream file(path);
         file.write(data.data(), data.size());
@@ -256,7 +277,12 @@ namespace dal::crypto {
     }
 
 
-    bool parse_key_binary(const std::string& passwd, const std::vector<uint8_t>& data, IKey& key, KeyAttrib& attrib) {
+    bool parse_key_binary(
+        const std::string& passwd,
+        const std::vector<uint8_t>& data,
+        IKey& key,
+        KeyAttrib& attrib
+    ) {
         dal::parser::BinaryArrayParser parser(data);
 
         const auto magic_num_len = std::strlen(::KEY_MAGIC_NUMBERS);
@@ -274,7 +300,9 @@ namespace dal::crypto {
         bool parse_result = false;
         switch (version) {
             case 1:
-                parse_result = attrib.parse_binary_v1(data.data() + attrib_loc, attrib_size);
+                parse_result = attrib.parse_binary_v1(
+                    data.data() + attrib_loc, attrib_size
+                );
                 break;
             default:
                 return false;
@@ -286,29 +314,46 @@ namespace dal::crypto {
         return true;
     }
 
-    void parse_key_store(const std::string& data, const char* const key_path, IKey& out_key, KeyAttrib& out_attrib) {
+    void parse_key_store(
+        const std::string& data,
+        const char* const key_path,
+        IKey& out_key,
+        KeyAttrib& out_attrib
+    ) {
         const auto base64 = ::clean_up_base64_str(data);
-        const auto compressed = dal::decode_base64(base64.data(), base64.size());
+        const auto compressed = dal::decode_base64(
+            base64.data(), base64.size()
+        );
         if (!compressed)
-            throw std::runtime_error{fmt::format("Failed to decode a key file: \"{}\"\n", key_path)};
+            throw std::runtime_error{
+                fmt::format("Failed to decode a key file: \"{}\"\n", key_path)
+            };
 
         const auto key_data = dal::decompress_with_header(*compressed);
         if (!key_data)
-            throw std::runtime_error{fmt::format("Failed to uncompress a key file: \"{}\"\n", key_path)};
+            throw std::runtime_error{ fmt::format(
+                "Failed to uncompress a key file: \"{}\"\n", key_path
+            ) };
 
         if (!parse_key_binary("", *key_data, out_key, out_attrib))
-            throw std::runtime_error{fmt::format("Failed to parse a key file: \"{}\"\n", key_path)};
+            throw std::runtime_error{
+                fmt::format("Failed to parse a key file: \"{}\"\n", key_path)
+            };
     }
 
-    void load_key(const char* const key_path, IKey& out_key, KeyAttrib& out_attrib) {
+    void load_key(
+        const char* const key_path, IKey& out_key, KeyAttrib& out_attrib
+    ) {
         const auto base64 = ::read_file<std::string>(key_path);
         if (!base64)
-            throw std::runtime_error{fmt::format("Failed to open a key file: \"{}\"\n", key_path)};
+            throw std::runtime_error{
+                fmt::format("Failed to open a key file: \"{}\"\n", key_path)
+            };
 
         parse_key_store(base64.value(), key_path, out_key, out_attrib);
     }
 
-}
+}  // namespace dal::crypto
 
 
 // PublicKeySignature::IKey
@@ -326,19 +371,19 @@ namespace dal::crypto {
         return this->size() == hydro_sign_BYTES;
     }
 
-}
+}  // namespace dal::crypto
 
 
 // SignManager
 namespace dal::crypto {
 
     PublicKeySignature::PublicKeySignature(const char* const context)
-        : IContextInfo(context)
-    {
+        : IContextInfo(context) {
         ::init_hydrogen();
     }
 
-    std::pair<PublicKeySignature::PublicKey, PublicKeySignature::SecretKey> PublicKeySignature::gen_keys() {
+    std::pair<PublicKeySignature::PublicKey, PublicKeySignature::SecretKey>
+    PublicKeySignature::gen_keys() {
         std::pair<PublicKey, SecretKey> output;
 
         hydro_sign_keypair key_pair;
@@ -353,7 +398,8 @@ namespace dal::crypto {
         return output;
     }
 
-    std::optional<PublicKeySignature::Signature> PublicKeySignature::create_signature(
+    std::optional<PublicKeySignature::Signature>
+    PublicKeySignature::create_signature(
         const void* const msg,
         const size_t msg_size,
         const PublicKeySignature::SecretKey& secret_key
@@ -364,7 +410,13 @@ namespace dal::crypto {
             return output;
 
         uint8_t signature[hydro_sign_BYTES];
-        if (0 == hydro_sign_create(signature, msg, msg_size, this->context_char(), secret_key.data())) {
+        if (0 == hydro_sign_create(
+                     signature,
+                     msg,
+                     msg_size,
+                     this->context_char(),
+                     secret_key.data()
+                 )) {
             output = Signature{};
             output->set(signature, hydro_sign_BYTES);
         }
@@ -383,7 +435,168 @@ namespace dal::crypto {
         if (!signature.is_valid())
             return false;
 
-        return 0 == hydro_sign_verify(signature.data(), msg, msg_size, this->context_char(), public_key.data());
+        return 0 == hydro_sign_verify(
+                        signature.data(),
+                        msg,
+                        msg_size,
+                        this->context_char(),
+                        public_key.data()
+                    );
     }
 
-}
+}  // namespace dal::crypto
+
+
+namespace {
+
+    void serialize_key_metadata(
+        sung::BytesBuilder& b, const dal::KeyMetadata& metadata
+    ) {
+        b.add_nt_str(metadata.owner_name_.c_str());
+        b.add_nt_str(metadata.email_.c_str());
+        b.add_nt_str(metadata.description_.c_str());
+        b.add_nt_str(metadata.created_time_.c_str());
+    }
+
+    void parse_key_metadata(
+        sung::BytesReader& reader, dal::KeyMetadata& metadata
+    ) {
+        metadata.owner_name_ = reader.read_nt_str();
+        metadata.email_ = reader.read_nt_str();
+        metadata.description_ = reader.read_nt_str();
+        metadata.created_time_ = reader.read_nt_str();
+    }
+
+    std::string serialized_into_str(const uint8_t* data, const size_t size) {
+        const auto compressed = dal::compress_bro(data, size);
+        if (!compressed)
+            return {};
+
+        sung::BytesBuilder com_data;
+        com_data.add_uint64(size);
+        com_data.add_uint64(compressed->size());
+        com_data.add_arr(compressed->data(), compressed->size());
+        return dal::encode_base64(com_data.data(), com_data.size());
+    }
+
+    std::vector<uint8_t> deserialize_from_str(
+        const uint8_t* data, const size_t size
+    ) {
+        const auto nb64 = dal::decode_base64(
+            reinterpret_cast<const char*>(data), size
+        );
+        if (!nb64)
+            return {};
+
+        sung::BytesReader reader{ nb64->data(), nb64->size() };
+        const auto raw_size = reader.read_uint64();
+        if (!raw_size)
+            return {};
+        const auto com_size = reader.read_uint64();
+        if (!com_size)
+            return {};
+
+        fmt::print(
+            "Raw size: {}, Compressed size: {}\n",
+            raw_size.value(),
+            com_size.value()
+        );
+
+        const auto decomp = dal::decomp_bro(
+            reader.head(), com_size.value(), raw_size.value()
+        );
+        if (!decomp)
+            return {};
+
+        return decomp.value();
+    }
+
+}  // namespace
+namespace dal {
+
+    std::pair<DataKeyPublic, DataKeySecret> gen_data_key_pair() {
+        std::pair<DataKeyPublic, DataKeySecret> out;
+        auto& pub = out.first;
+        auto& sec = out.second;
+
+        sec.encrypt_key_.resize(hydro_secretbox_KEYBYTES);
+        hydro_secretbox_keygen(sec.encrypt_key_.data());
+
+        hydro_sign_keypair key_pair;
+        hydro_sign_keygen(&key_pair);
+        pub.sign_key_.set(key_pair.pk, hydro_sign_PUBLICKEYBYTES);
+        sec.sign_key_.set(key_pair.sk, hydro_sign_SECRETKEYBYTES);
+
+        return out;
+    }
+
+    std::string serialize_key(const DataKeyPublic& key, const KeyMetadata& md) {
+        sung::BytesBuilder raw_data;
+        ::serialize_key_metadata(raw_data, md);
+        raw_data.add_int32((int)KeyType::data_pub);
+        raw_data.add_arr(key.sign_key_.data(), key.sign_key_.size());
+
+        return ::serialized_into_str(raw_data.data(), raw_data.size());
+    }
+
+    std::string serialize_key(const DataKeySecret& key, const KeyMetadata& md) {
+        sung::BytesBuilder raw_data;
+        ::serialize_key_metadata(raw_data, md);
+        raw_data.add_int32((int)KeyType::data_sec);
+        raw_data.add_arr(key.sign_key_.data(), key.sign_key_.size());
+        raw_data.add_arr(key.encrypt_key_.data(), key.encrypt_key_.size());
+
+        return ::serialized_into_str(raw_data.data(), raw_data.size());
+    }
+
+    std::optional<VKeysMetadata> deserialize_key(
+        const uint8_t* const data, const size_t size
+    ) {
+        VKeysMetadata out;
+
+        const auto deserialized = ::deserialize_from_str(data, size);
+        if (deserialized.empty())
+            return sung::nullopt;
+
+        sung::BytesReader reader{ deserialized.data(), deserialized.size() };
+        ::parse_key_metadata(reader, out.second);
+        const auto key_type_int = reader.read_int32();
+        if (!key_type_int)
+            return sung::nullopt;
+        const auto key_type = static_cast<KeyType>(key_type_int.value());
+
+        if (key_type == KeyType::data_pub) {
+            out.first = DataKeyPublic{};
+            auto& key = std::get<DataKeyPublic>(out.first);
+
+            key.sign_key_.resize(hydro_sign_PUBLICKEYBYTES);
+            reader.read_raw_arr(key.sign_key_.data(), key.sign_key_.size());
+        } else if (key_type == KeyType::data_sec) {
+            out.first = DataKeySecret{};
+            auto& key = std::get<DataKeySecret>(out.first);
+
+            key.sign_key_.resize(hydro_sign_SECRETKEYBYTES);
+            reader.read_raw_arr(key.sign_key_.data(), key.sign_key_.size());
+
+            key.encrypt_key_.resize(hydro_secretbox_KEYBYTES);
+            reader.read_raw_arr(
+                key.encrypt_key_.data(), key.encrypt_key_.size()
+            );
+        }
+
+        if (!reader.is_eof())
+            return sung::nullopt;
+
+        return out;
+    }
+
+}  // namespace dal
+
+
+namespace dal {
+
+    void KeyMetadata::update_created_time() {
+        created_time_ = sung::get_time_iso_utc();
+    }
+
+}  // namespace dal

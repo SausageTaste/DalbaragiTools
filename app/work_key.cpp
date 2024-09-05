@@ -8,39 +8,63 @@
 #include "daltools/common/util.h"
 
 
+namespace {
+
+    auto read_file(const std::filesystem::path& path) {
+        std::ifstream file(path, std::ios::binary);
+        std::vector<uint8_t> content;
+        content.assign(
+            std::istreambuf_iterator<char>(file),
+            std::istreambuf_iterator<char>()
+        );
+        return content;
+    }
+
+}  // namespace
+
+
 namespace dal {
 
     void work_key(int argc, char* argv[]) {
+        namespace fs = std::filesystem;
+
         sung::MonotonicRealtimeTimer timer;
         argparse::ArgumentParser parser{ "daltools" };
         {
-        parser.add_argument("operation")
-            .help("Operation name");
-
-        parser.add_argument("-p", "--print")
-            .help("Print attributes of a key")
-            .default_value(false)
-            .implicit_value(true);
-
-        parser.add_argument("-i", "--input")
-            .help("Key path")
-            .required();
+            parser.add_argument("operation").help("Operation name");
+            parser.add_argument("files")
+                .help("Input dky file paths")
+                .remaining();
         }
         parser.parse_args(argc, argv);
 
-        const auto key_path = parser.get<std::string>("--input");
-        const auto [key, attrib] = dal::crypto::load_key<dal::crypto::IKey>(key_path.c_str());
+        const auto files = parser.get<std::vector<std::string>>("files");
+        for (const auto& x : files) {
+            const fs::path key_path{ x };
+            const auto data = ::read_file(key_path);
+            const auto key_opt = dal::deserialize_key(data.data(), data.size());
+            if (!key_opt) {
+                fmt::print("Invalid key file: '{}'\n", x);
+                return;
+            }
 
-        if (parser["--print"] == true) {
-            fmt::print("Owner: {}\n", attrib.m_owner_name);
-            fmt::print("E-mail: {}\n", attrib.m_email);
-            fmt::print("Description: {}\n", attrib.m_description);
-            fmt::print("Key type: {}\n", attrib.get_type_str());
+            const auto& [key, md] = key_opt.value();
 
-            const auto a = std::chrono::system_clock::to_time_t(attrib.m_created_time);
-            fmt::print("Created date: {:%F %T %z}\n", fmt::localtime(a));
-            std::cout << "===================================\n";
+            std::string key_type;
+            if (key.index() == 0)
+                key_type = "Data public";
+            else if (key.index() == 1)
+                key_type = "Data secret";
+            else
+                key_type = "Unknown";
+
+            fmt::print("* {}\n", fs::absolute(key_path).u8string());
+            fmt::print(" - Key type      {}\n", key_type);
+            fmt::print(" - Owner         {}\n", md.owner_name_);
+            fmt::print(" - E-mail        {}\n", md.email_);
+            fmt::print(" - Created date  {}\n", md.created_time_);
+            fmt::print(" - Description   {}\n", md.description_);
         }
     }
 
-}
+}  // namespace dal
