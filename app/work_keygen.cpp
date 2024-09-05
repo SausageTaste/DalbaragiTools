@@ -37,7 +37,7 @@ namespace dal {
         }
         parser.parse_args(argc, argv);
 
-        const auto output_prefix = parser.get<std::string>("--output");
+        const auto output_prefix = parser.get<std::string>("--prefix");
 
         if (parser["--sign"] == true) {
             std::cout << "Keypair for signing\n";
