@@ -476,19 +476,17 @@ namespace {
         com_data.add_uint64(size);
         com_data.add_uint64(compressed->size());
         com_data.add_arr(compressed->data(), compressed->size());
-        return dal::encode_base64(com_data.data(), com_data.size());
+        const auto b64 = dal::encode_base64(com_data.data(), com_data.size());
+        return ::add_line_breaks(b64, 40);
     }
 
-    std::vector<uint8_t> deserialize_from_str(
-        const uint8_t* data, const size_t size
-    ) {
-        const auto nb64 = dal::decode_base64(
-            reinterpret_cast<const char*>(data), size
-        );
-        if (!nb64)
+    std::vector<uint8_t> deserialize_from_str(const std::string& b64) {
+        const auto c_b64 = clean_up_base64_str(b64);
+        const auto n_b64 = dal::decode_base64(c_b64.data(), c_b64.size());
+        if (!n_b64)
             return {};
 
-        sung::BytesReader reader{ nb64->data(), nb64->size() };
+        sung::BytesReader reader{ n_b64->data(), n_b64->size() };
         const auto raw_size = reader.read_uint64();
         if (!raw_size)
             return {};
@@ -549,12 +547,10 @@ namespace dal {
         return ::serialized_into_str(raw_data.data(), raw_data.size());
     }
 
-    std::optional<VKeysMetadata> deserialize_key(
-        const uint8_t* const data, const size_t size
-    ) {
+    std::optional<VKeysMetadata> deserialize_key(const std::string& b64) {
         VKeysMetadata out;
 
-        const auto deserialized = ::deserialize_from_str(data, size);
+        const auto deserialized = ::deserialize_from_str(b64);
         if (deserialized.empty())
             return sung::nullopt;
 

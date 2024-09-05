@@ -273,8 +273,6 @@ namespace dal {
     using VKeys = std::variant<DataKeyPublic, DataKeySecret>;
     using VKeysMetadata = std::pair<VKeys, KeyMetadata>;
 
-    std::optional<VKeysMetadata> deserialize_key(
-        const uint8_t* const data, const size_t size
-    );
+    std::optional<VKeysMetadata> deserialize_key(const std::string& b64);
 
 }  // namespace dal

@@ -19,10 +19,7 @@ namespace {
 
         {
             const auto pub_serialized = dal::serialize_key(pub, metadata);
-            const auto pub_recon = dal::deserialize_key(
-                reinterpret_cast<const uint8_t*>(pub_serialized.data()),
-                pub_serialized.size()
-            );
+            const auto pub_recon = dal::deserialize_key(pub_serialized);
 
             ASSERT_TRUE(pub_recon.has_value());
             ASSERT_TRUE(pub_recon->first.index() == 0);
@@ -31,10 +28,7 @@ namespace {
 
         {
             const auto sec_serialized = dal::serialize_key(sec, metadata);
-            const auto sec_recon = dal::deserialize_key(
-                reinterpret_cast<const uint8_t*>(sec_serialized.data()),
-                sec_serialized.size()
-            );
+            const auto sec_recon = dal::deserialize_key(sec_serialized);
 
             ASSERT_TRUE(sec_recon.has_value());
             ASSERT_TRUE(sec_recon->first.index() == 1);

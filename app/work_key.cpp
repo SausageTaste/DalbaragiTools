@@ -11,8 +11,8 @@
 namespace {
 
     auto read_file(const std::filesystem::path& path) {
-        std::ifstream file(path, std::ios::binary);
-        std::vector<uint8_t> content;
+        std::ifstream file(path);
+        std::string content;
         content.assign(
             std::istreambuf_iterator<char>(file),
             std::istreambuf_iterator<char>()
@@ -42,7 +42,7 @@ namespace dal {
         for (const auto& x : files) {
             const fs::path key_path{ x };
             const auto data = ::read_file(key_path);
-            const auto key_opt = dal::deserialize_key(data.data(), data.size());
+            const auto key_opt = dal::deserialize_key(data);
             if (!key_opt) {
                 fmt::print("Invalid key file: '{}'\n", x);
                 return;
