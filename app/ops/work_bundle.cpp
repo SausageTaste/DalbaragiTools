@@ -71,6 +71,10 @@ namespace dal {
         parser.add_argument("-o", "--output")
             .help("Output file path")
             .required();
+        parser.add_argument("-q", "--quality")
+            .help("Quality level for brotli compression")
+            .default_value(DEFAULT_BRO_QUALITY)
+            .action([](const std::string& value) { return std::stoi(value); });
         parser.add_argument("inputs").help("Input paths").remaining();
         parser.parse_args(argc, argv);
 
@@ -80,6 +84,7 @@ namespace dal {
             return;
         }
         const auto out_path = ::make_path(out_str.back());
+        const auto quality = parser.get<int>("--quality");
 
         sung::BytesBuilder items_block, data_block;
         std::unordered_set<std::string> added_names;
@@ -107,7 +112,7 @@ namespace dal {
         sung::BytesBuilder combined;
         combined.enlarge(sizeof(dal::BundleHeader));
 
-        const auto items_bro = compress_bro(items_block.vector());
+        const auto items_bro = compress_bro(items_block.vector(), quality);
         const auto items_info = combined.add_arr(items_bro.value());
         spdlog::info(
             "Item info: count={}, size={}, size_z={}, ratio={:.2f}",
@@ -117,7 +122,7 @@ namespace dal {
             static_cast<double>(items_info.second) / items_block.size()
         );
 
-        const auto data_bro = compress_bro(data_block.vector());
+        const auto data_bro = compress_bro(data_block.vector(), quality);
         const auto data_info = combined.add_arr(data_bro.value());
         spdlog::info(
             "Data info: size={}, size_z={}, ratio={:.2f}",

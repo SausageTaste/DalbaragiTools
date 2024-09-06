@@ -50,8 +50,16 @@ namespace dal {
     std::optional<binvec_t> decomp_zip(const BinDataView& src, size_t hint);
 
 
-    std::optional<binvec_t> compress_bro(const uint8_t* src, size_t src_size);
-    std::optional<binvec_t> compress_bro(const BinDataView& src);
+    constexpr uint32_t DEFAULT_BRO_QUALITY = 6;
+
+    std::optional<binvec_t> compress_bro(
+        const uint8_t* src,
+        size_t src_size,
+        uint32_t quality = DEFAULT_BRO_QUALITY
+    );
+    std::optional<binvec_t> compress_bro(
+        const BinDataView& src, uint32_t quality = DEFAULT_BRO_QUALITY
+    );
 
     std::optional<binvec_t> decomp_bro(
         const uint8_t* src, size_t src_size, size_t hint

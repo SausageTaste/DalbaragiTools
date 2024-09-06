@@ -7,6 +7,8 @@
 #include <libbase64.h>
 #include <zlib.h>
 
+#include <sung/general/mamath.hpp>
+
 #include "daltools/common/byte_tool.h"
 
 
@@ -114,10 +116,14 @@ namespace dal {
 
 
     std::optional<binvec_t> compress_bro(
-        const uint8_t* const src, const size_t src_size
+        const uint8_t* const src, const size_t src_size, uint32_t q
     ) {
         auto instance = BrotliEncoderCreateInstance(nullptr, nullptr, nullptr);
-        BrotliEncoderSetParameter(instance, BROTLI_PARAM_QUALITY, 6);
+        BrotliEncoderSetParameter(
+            instance,
+            BROTLI_PARAM_QUALITY,
+            sung::clamp<uint32_t>(q, BROTLI_MIN_QUALITY, BROTLI_MAX_QUALITY)
+        );
 
         std::vector<uint8_t> buffer(BROTLI_BUFFER_SIZE);
         binvec_t result;
@@ -148,8 +154,10 @@ namespace dal {
         return result;
     }
 
-    std::optional<binvec_t> compress_bro(const BinDataView& src) {
-        return compress_bro(src.data(), src.size());
+    std::optional<binvec_t> compress_bro(
+        const BinDataView& src, uint32_t quality
+    ) {
+        return compress_bro(src.data(), src.size(), quality);
     }
 
     std::optional<binvec_t> decomp_bro(
