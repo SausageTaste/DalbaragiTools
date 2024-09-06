@@ -1,9 +1,9 @@
 add_executable(daltools
+    ops/work_bundle.cpp
+    ops/work_compile.cpp
+    ops/work_key.cpp
+    ops/work_keygen.cpp
     main.cpp
-    work_bundle.cpp
-    work_compile.cpp
-    work_key.cpp
-    work_keygen.cpp
 )
 target_include_directories(daltools PUBLIC .)
 target_compile_features(daltools PUBLIC cxx_std_17)
