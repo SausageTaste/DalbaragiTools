@@ -13,13 +13,16 @@
 #include "daltools/common/compression.h"
 
 
+namespace fs = std::filesystem;
+
+
 namespace {
 
-    std::filesystem::path make_path(const std::string& str) {
-        return std::filesystem::absolute(std::filesystem::path{ str });
+    fs::path make_path(const std::string& str) {
+        return fs::absolute(fs::path{ str });
     }
 
-    auto read_file(const std::filesystem::path& path) {
+    auto read_file(const fs::path& path) {
         std::ifstream file(path, std::ios::binary);
         std::vector<uint8_t> content;
         content.assign(
@@ -29,13 +32,32 @@ namespace {
         return content;
     }
 
-    void save_file(
-        const std::filesystem::path& path, const std::vector<uint8_t>& content
-    ) {
+    void save_file(const fs::path& path, const void* data, size_t size) {
         std::ofstream file(path, std::ios::binary);
-        file.write(
-            reinterpret_cast<const char*>(content.data()), content.size()
-        );
+        file.write(reinterpret_cast<const char*>(data), size);
+    }
+
+    void save_file(const fs::path& path, const std::vector<uint8_t>& content) {
+        ::save_file(path, content.data(), content.size());
+    }
+
+    fs::path select_not_colliding_folder_name(
+        const fs::path& loc, const std::string& base_name
+    ) {
+        const auto folder_path = loc / fs::u8path(base_name);
+        if (!fs::exists(folder_path)) {
+            return fs::absolute(folder_path);
+        }
+
+        for (int i = 0; i < 1000; ++i) {
+            const auto name = fmt::format("{}_{:0>3}", base_name, i);
+            const auto folder_path = loc / fs::u8path(name);
+            if (!fs::exists(folder_path)) {
+                return fs::absolute(folder_path);
+            }
+        }
+
+        throw std::runtime_error("Failed to find a folder name");
     }
 
 }  // namespace
@@ -253,6 +275,110 @@ namespace dal {
             }
 
             continue;
+        }
+    }
+
+    void work_extract(int argc, char* argv[]) {
+        argparse::ArgumentParser parser{ "daltools" };
+        parser.add_argument("operation").help("Operation name").required();
+        parser.add_argument("inputs").help("Input paths").remaining();
+        parser.parse_args(argc, argv);
+
+        const auto inputs = parser.get<std::vector<std::string>>("inputs");
+        const auto file_paths = glob::glob(inputs);
+
+        for (const auto& x : file_paths) {
+            fmt::print("\n*** Extracting: '{}'\n", fs::absolute(x).u8string());
+
+            std::ifstream file(x, std::ifstream ::binary);
+
+            // Header block
+            dal::BundleHeader header;
+            {
+                std::array<char, sizeof(BundleHeader)> headbuf;
+                file.read(headbuf.data(), headbuf.size());
+                std::streamsize res = file.gcount();
+
+                if (res != headbuf.size()) {
+                    fmt::print("Invalid Dalbaragi Bundle file\n");
+                    continue;
+                }
+
+                header = *reinterpret_cast<const BundleHeader*>(headbuf.data());
+                if (!header.is_magic_valid()) {
+                    fmt::print("Invalid Magic number\n");
+                    continue;
+                }
+            }
+
+            // Items block
+            std::unordered_map<std::string, std::pair<uint64_t, uint64_t>> item;
+            {
+                file.seekg(header.items_offset());
+                std::vector<uint8_t> items_buf(header.items_size_z());
+                file.read((char*)items_buf.data(), items_buf.size());
+                if (file.gcount() != items_buf.size()) {
+                    fmt::print("Failed to read items block\n");
+                    continue;
+                }
+
+                const auto item_block = decomp_bro(
+                    items_buf, header.items_size()
+                );
+                if (!item_block.has_value()) {
+                    fmt::print("Failed to decompress items block\n");
+                    continue;
+                }
+
+                sung::BytesReader items_reader{ item_block->data(),
+                                                item_block->size() };
+                for (uint64_t i = 0; i < header.items_count(); ++i) {
+                    const auto name = items_reader.read_nt_str();
+                    const auto offset = items_reader.read_uint64().value();
+                    const auto size = items_reader.read_uint64().value();
+                    item[name] = { offset, size };
+                }
+
+                if (!items_reader.is_eof()) {
+                    fmt::print("Items block and item count mismatch\n");
+                }
+            }
+
+            const auto out_dir = ::select_not_colliding_folder_name(
+                x.parent_path(), x.stem().u8string()
+            );
+            std::filesystem::create_directory(out_dir);
+            fmt::print("Output folder: '{}'\n", out_dir.u8string());
+
+            // Data block
+            {
+                file.seekg(header.data_offset());
+                std::vector<uint8_t> data_buf(header.data_size_z());
+                file.read((char*)data_buf.data(), data_buf.size());
+                if (file.gcount() != data_buf.size()) {
+                    fmt::print("Failed to read data block\n");
+                    continue;
+                }
+
+                const auto data_block = decomp_bro(
+                    data_buf, header.data_size()
+                );
+                if (!data_block.has_value()) {
+                    fmt::print("Failed to decompress data block\n");
+                    continue;
+                }
+
+                size_t count = 0;
+                for (auto& [name, offset_size] : item) {
+                    const auto [offset, size] = offset_size;
+                    const auto begin = data_block->data() + offset;
+
+                    const auto out_path = out_dir / fs::u8path(name);
+                    ::save_file(out_path, begin, size);
+                    ++count;
+                }
+                fmt::print("Extracted {} files\n", count);
+            }
         }
     }
 
