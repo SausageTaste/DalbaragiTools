@@ -1,3 +1,4 @@
+#include <array>
 #include <iostream>
 #include <string>
 
@@ -37,6 +38,48 @@ namespace {
                 sec.encrypt_key_, std::get<1>(sec_recon->first).encrypt_key_
             );
         }
+    }
+
+
+    TEST(Crypto, Encryption) {
+        std::string plain_text = "Hello, world!";
+
+        const auto [pk, sk] = dal::gen_data_key_pair();
+
+        const auto cipher = dal::encrypt_data(
+            sk, plain_text.data(), plain_text.size()
+        );
+        ASSERT_TRUE(cipher.has_value());
+
+        const auto plain = dal::decrypt_data(
+            sk, cipher->data(), cipher->size()
+        );
+        ASSERT_TRUE(plain.has_value());
+        for (size_t i = 0; i < plain_text.size(); ++i)
+            ASSERT_EQ(plain_text[i], plain->at(i));
+
+        return;
+    }
+
+
+    TEST(Crypto, Signature) {
+        std::string plain_text = "Hello, world!";
+
+        const auto [pk, sk] = dal::gen_data_key_pair();
+
+        const auto signature = dal::create_signature(
+            sk, plain_text.data(), plain_text.size()
+        );
+        ASSERT_TRUE(signature.has_value());
+
+        const auto verified = dal::verify_signature(
+            pk,
+            plain_text.data(),
+            plain_text.size(),
+            signature->data(),
+            signature->size()
+        );
+        ASSERT_TRUE(verified);
     }
 
 }  // namespace

@@ -201,6 +201,97 @@ namespace dal {
         return out;
     }
 
+
+    std::optional<std::vector<uint8_t>> encrypt_data(
+        const DataKeySecret& key, const void* const data, const size_t data_size
+    ) {
+        if (key.encrypt_key_.size() != hydro_secretbox_KEYBYTES)
+            return sung::nullopt;
+
+        std::vector<uint8_t> out(hydro_secretbox_HEADERBYTES + data_size);
+        ::init_hydrogen();
+        const auto res = hydro_secretbox_encrypt(
+            out.data(),
+            reinterpret_cast<const uint8_t*>(data),
+            data_size,
+            0,
+            CRYPTO_CONTEXT,
+            key.encrypt_key_.data()
+        );
+        if (0 != res)
+            return sung::nullopt;
+
+        return out;
+    }
+
+    std::optional<std::vector<uint8_t>> decrypt_data(
+        const DataKeySecret& key, const void* const data, const size_t data_size
+    ) {
+        if (key.encrypt_key_.size() != hydro_secretbox_KEYBYTES)
+            return sung::nullopt;
+
+        std::vector<uint8_t> out(data_size - hydro_secretbox_HEADERBYTES);
+        ::init_hydrogen();
+        const auto res = hydro_secretbox_decrypt(
+            out.data(),
+            reinterpret_cast<const uint8_t*>(data),
+            data_size,
+            0,
+            CRYPTO_CONTEXT,
+            key.encrypt_key_.data()
+        );
+        if (0 != res)
+            return sung::nullopt;
+
+        return out;
+    }
+
+    std::optional<std::vector<uint8_t>> create_signature(
+        const DataKeySecret& key, const void* const data, const size_t data_size
+    ) {
+        if (key.sign_key_.size() != hydro_sign_SECRETKEYBYTES)
+            return sung::nullopt;
+
+        std::vector<uint8_t> out(hydro_sign_BYTES);
+        ::init_hydrogen();
+        const auto res = hydro_sign_create(
+            out.data(),
+            reinterpret_cast<const uint8_t*>(data),
+            data_size,
+            CRYPTO_CONTEXT,
+            key.sign_key_.data()
+        );
+
+        if (0 != res)
+            return sung::nullopt;
+
+        return out;
+    }
+
+    bool verify_signature(
+        const DataKeyPublic& key,
+        const void* const data,
+        const size_t data_size,
+        const void* const sig,
+        const size_t sig_size
+    ) {
+        if (key.sign_key_.size() != hydro_sign_PUBLICKEYBYTES)
+            return false;
+        if (sig_size != hydro_sign_BYTES)
+            return false;
+
+        ::init_hydrogen();
+        const auto res = hydro_sign_verify(
+            reinterpret_cast<const uint8_t*>(sig),
+            reinterpret_cast<const uint8_t*>(data),
+            data_size,
+            CRYPTO_CONTEXT,
+            key.sign_key_.data()
+        );
+
+        return 0 == res;
+    }
+
 }  // namespace dal
 
 

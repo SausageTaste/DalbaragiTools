@@ -72,4 +72,24 @@ namespace dal {
 
     std::optional<VKeysMetadata> deserialize_key(const std::string& b64);
 
+    std::optional<std::vector<uint8_t>> encrypt_data(
+        const DataKeySecret& key, const void* const data, const size_t data_size
+    );
+
+    std::optional<std::vector<uint8_t>> decrypt_data(
+        const DataKeySecret& key, const void* const data, const size_t data_size
+    );
+
+    std::optional<std::vector<uint8_t>> create_signature(
+        const DataKeySecret& key, const void* const data, const size_t data_size
+    );
+
+    bool verify_signature(
+        const DataKeyPublic& key,
+        const void* const data,
+        const size_t data_size,
+        const void* const sig,
+        const size_t sig_size
+    );
+
 }  // namespace dal
