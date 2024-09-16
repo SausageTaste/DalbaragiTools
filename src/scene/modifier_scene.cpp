@@ -184,7 +184,9 @@ namespace {
                         vertex.pos_ = actor_mat4 *
                                       glm::vec4{ src_vert.pos_, 1 };
                         vertex.uv_ = src_vert.uv_;
-                        vertex.normal_ = actor_mat3 * src_vert.normal_;
+                        vertex.normal_ = glm::normalize(
+                            actor_mat3 * src_vert.normal_
+                        );
                         dst_pair.mesh_.add_vertex(vertex);
                     }
                 } else {
@@ -202,7 +204,9 @@ namespace {
                         vertex.pos_ = actor_mat4 *
                                       glm::vec4{ src_vert.pos_, 1 };
                         vertex.uv_ = src_vert.uv_;
-                        vertex.normal_ = actor_mat3 * src_vert.normal_;
+                        vertex.normal_ = glm::normalize(
+                            actor_mat3 * src_vert.normal_
+                        );
 
                         const int valid_joint_count = std::min<int>(
                             4, src_vert.joints_.size()
@@ -890,7 +894,7 @@ namespace dal::parser {
         for (auto& mesh : scene.meshes_) {
             for (auto& vertex : mesh.vertices_) {
                 ::apply_transform(root_m4, vertex.pos_);
-                vertex.normal_ = root_m3 * vertex.normal_;
+                vertex.normal_ = glm::normalize(root_m3 * vertex.normal_);
             }
         }
 

@@ -24,9 +24,10 @@ namespace {
             vert.uv_ = glm::vec2{ input.uv_coordinates_[2 * i + 0],
                                   input.uv_coordinates_[2 * i + 1] };
 
-            vert.normal_ = glm::vec3{ input.normals_[3 * i + 0],
-                                      input.normals_[3 * i + 1],
-                                      input.normals_[3 * i + 2] };
+            vert.normal_ = glm::normalize(glm::vec3{ input.normals_[3 * i + 0],
+                                                     input.normals_[3 * i + 1],
+                                                     input.normals_[3 * i + 2] }
+            );
 
             static_assert(4 == dalp::NUM_JOINTS_PER_VERTEX);
 
@@ -63,9 +64,10 @@ namespace {
             vert.uv_ = glm::vec2{ input.uv_coordinates_[2 * i + 0],
                                   input.uv_coordinates_[2 * i + 1] };
 
-            vert.normal_ = glm::vec3{ input.normals_[3 * i + 0],
-                                      input.normals_[3 * i + 1],
-                                      input.normals_[3 * i + 2] };
+            vert.normal_ = glm::normalize(glm::vec3{ input.normals_[3 * i + 0],
+                                                     input.normals_[3 * i + 1],
+                                                     input.normals_[3 * i + 2] }
+            );
 
             output.add_vertex(vert);
         }
