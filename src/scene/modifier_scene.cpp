@@ -1008,13 +1008,15 @@ namespace dal::parser {
     }
 
     void remove_empty_meshes(SceneIntermediate& scene) {
+        auto& mesh_actors = scene.mesh_actors_;
+
         std::unordered_set<std::string> empty_mesh_names;
         for (auto& mesh : scene.meshes_) {
             if (mesh.indices_.empty())
                 empty_mesh_names.insert(mesh.name_);
         }
 
-        for (auto& mactor : scene.mesh_actors_) {
+        for (auto& mactor : mesh_actors) {
             mactor.render_pairs_.erase(
                 std::remove_if(
                     mactor.render_pairs_.begin(),
@@ -1028,14 +1030,26 @@ namespace dal::parser {
             );
         }
 
-        scene.mesh_actors_.erase(
-            std::remove_if(
-                scene.mesh_actors_.begin(),
-                scene.mesh_actors_.end(),
-                [](const auto& actor) { return actor.render_pairs_.empty(); }
-            ),
-            scene.mesh_actors_.end()
-        );
+        for (auto it = mesh_actors.begin(); it != mesh_actors.end();) {
+            if (!it->render_pairs_.empty()) {
+                ++it;
+                continue;
+            }
+            if (!it->transform_.is_identity()) {
+                ++it;
+                continue;
+            }
+
+            const auto& old_parent = it->name_;
+            const auto& new_parent = it->parent_name_;
+            for (auto& actor : mesh_actors) {
+                if (actor.parent_name_ == old_parent) {
+                    actor.parent_name_ = new_parent;
+                }
+            }
+
+            it = mesh_actors.erase(it);
+        }
 
         scene.meshes_.erase(
             std::remove_if(

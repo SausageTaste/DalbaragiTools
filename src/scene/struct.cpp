@@ -83,6 +83,13 @@ namespace dal::parser {
         return true;
     }
 
+    bool scene_t::Transform::is_identity() const {
+        return this->pos_ == glm::vec3{ 0, 0, 0 } &&
+               this->quat_ == glm::quat{ 1, 0, 0, 0 } &&
+               this->scale_ == glm::vec3{ 1, 1, 1 };
+    }
+
+
     glm::mat4 scene_t::Transform::make_mat4() const {
         const auto scale = glm::scale(glm::mat4{ 1 }, this->scale_);
         const auto rotation = glm::mat4_cast(this->quat_);

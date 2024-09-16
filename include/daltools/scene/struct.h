@@ -45,6 +45,8 @@ namespace dal::parser {
                 return !Transform::operator==(other);
             }
 
+            bool is_identity() const;
+
             glm::mat4 make_mat4() const;
         };
 
