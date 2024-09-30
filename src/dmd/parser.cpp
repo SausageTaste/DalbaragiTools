@@ -376,9 +376,8 @@ namespace dal::parser {
             if (!unzipped.has_value())
                 return dalp::ModelParseResult::decompression_failed;
 
-            return ::parse_all(
-                sung::BytesReader{ unzipped->data(), unzipped->size() }, output
-            );
+            sung::BytesReader r{ unzipped->data(), unzipped->size() };
+            return ::parse_all(r, output);
         }
 
         return dalp::ModelParseResult::corrupted_content;
