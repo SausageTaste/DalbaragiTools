@@ -69,13 +69,6 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 FetchContent_Declare(
-    fetch_brotli
-    GIT_REPOSITORY https://github.com/google/brotli
-    GIT_TAG        v1.1.0
-    GIT_PROGRESS   TRUE
-)
-
-FetchContent_Declare(
     fetch_stb
     GIT_REPOSITORY    https://github.com/nothings/stb
     GIT_TAG           013ac3beddff3dbffafd5177e7972067cd2b5083
@@ -107,13 +100,13 @@ FetchContent_MakeAvailable(
     fetch_json
     fetch_spdlog
     fetch_base64
-    fetch_brotli
     fetch_stb
     fetch_ktx
     fetch_glob
 )
 
 find_package(hydrogen REQUIRED)
+find_package(unofficial-brotli CONFIG REQUIRED)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/SungToolsCpp)
 
@@ -169,8 +162,8 @@ target_link_libraries(libdaltools PUBLIC
     nlohmann_json::nlohmann_json
     base64
     spdlog::spdlog
-    brotlidec
-    brotlienc
+    unofficial::brotli::brotlidec
+    unofficial::brotli::brotlienc
     ktx
     sungtools::general
 )
