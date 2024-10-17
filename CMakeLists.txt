@@ -19,30 +19,9 @@ set(FETCHCONTENT_QUIET FALSE)
 # ----------------------------------------------------------------------------------
 
 FetchContent_Declare(
-    fetch_glm
-    GIT_REPOSITORY https://github.com/g-truc/glm
-    GIT_TAG        1.0.1
-    GIT_PROGRESS   TRUE
-)
-
-FetchContent_Declare(
-    fetch_zlib
-    GIT_REPOSITORY https://github.com/madler/zlib
-    GIT_TAG        v1.3.1
-    GIT_PROGRESS   TRUE
-)
-
-FetchContent_Declare(
     fetch_argparse
     GIT_REPOSITORY https://github.com/p-ranav/argparse
     GIT_TAG        v3.0
-    GIT_PROGRESS   TRUE
-)
-
-FetchContent_Declare(
-    fetch_json
-    GIT_REPOSITORY https://github.com/nlohmann/json
-    GIT_TAG        v3.11.3
     GIT_PROGRESS   TRUE
 )
 
@@ -85,17 +64,16 @@ FetchContent_Declare(
 
 
 FetchContent_MakeAvailable(
-    fetch_glm
     fetch_argparse
-    fetch_json
     fetch_spdlog
     fetch_base64
     fetch_stb
     fetch_glob
 )
 
+find_package(glm CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
-find_package(hydrogen REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/SungToolsCpp)
@@ -109,7 +87,6 @@ add_library(libdaltools STATIC
     ${source_dir}/bundle/repo.cpp
     ${source_dir}/common/byte_tool.cpp
     ${source_dir}/common/compression.cpp
-    ${source_dir}/common/crypto.cpp
     ${source_dir}/common/util.cpp
     ${source_dir}/dmd/exporter.cpp
     ${source_dir}/dmd/parser.cpp
@@ -137,18 +114,13 @@ if (ANDROID)
     target_link_libraries(libdaltools PRIVATE z)
 
 else()
-    FetchContent_MakeAvailable(fetch_zlib)
-    target_link_libraries(libdaltools PRIVATE zlibstatic)
-    target_include_directories(libdaltools PRIVATE
-        ${fetch_zlib_SOURCE_DIR}
-        ${fetch_zlib_BINARY_DIR}
-    )
+    find_package(ZLIB REQUIRED)
+    target_link_libraries(libdaltools PRIVATE ZLIB::ZLIB)
 
 endif()
 
 target_link_libraries(libdaltools PUBLIC
     glm::glm
-    hydrogen::hydrogen
     nlohmann_json::nlohmann_json
     base64
     spdlog::spdlog
