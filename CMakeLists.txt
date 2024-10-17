@@ -5,10 +5,9 @@ include(FetchContent)
 project(DalbaragiTools)
 
 
-set(source_dir ${PROJECT_SOURCE_DIR}/src)
 set(DALTOOLS_ENABLE_TEST OFF CACHE BOOL "Enable testing")
-set(BUILD_SHARED_LIBS OFF)
-set(FETCHCONTENT_QUIET FALSE)
+
+set(source_dir ${PROJECT_SOURCE_DIR}/src)
 
 #set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 #set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
@@ -22,12 +21,13 @@ FetchContent_Declare(
     fetch_glob
     GIT_REPOSITORY https://github.com/p-ranav/glob
     GIT_TAG        d025092c0e1eb1a8b226d3a799fd32680d2fd13f
-    GIT_PROGRESS   TRUE
 )
 
 FetchContent_MakeAvailable(
     fetch_glob
 )
+
+add_subdirectory(${PROJECT_SOURCE_DIR}/extern/SungToolsCpp)
 
 find_package(argparse CONFIG REQUIRED)
 find_package(base64 CONFIG REQUIRED)
@@ -37,8 +37,6 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
-
-add_subdirectory(${PROJECT_SOURCE_DIR}/extern/SungToolsCpp)
 
 
 # Define project library
@@ -97,7 +95,6 @@ target_link_libraries(libdaltools PUBLIC
 # ----------------------------------------------------------------------------------
 
 add_subdirectory(./app)
-
 
 if (DALTOOLS_ENABLE_TEST)
     enable_testing()
