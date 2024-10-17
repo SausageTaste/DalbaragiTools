@@ -5,7 +5,7 @@
 #include <spdlog/fmt/fmt.h>
 #include <argparse/argparse.hpp>
 
-#include "daltools/common/crypto.h"
+//#include "daltools/common/crypto.h"
 #include "daltools/common/konst.h"
 #include "daltools/common/util.h"
 
@@ -13,6 +13,7 @@
 namespace dal {
 
     void work_keygen(int argc, char* argv[]) {
+        /*
         sung::MonotonicRealtimeTimer timer;
         argparse::ArgumentParser parser{ "daltools" };
         {
@@ -56,6 +57,7 @@ namespace dal {
         }
 
         fmt::print("    took {} seconds\n", timer.elapsed());
+        */
     }
 
 }  // namespace dal
