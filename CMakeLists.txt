@@ -19,41 +19,12 @@ set(FETCHCONTENT_QUIET FALSE)
 # ----------------------------------------------------------------------------------
 
 FetchContent_Declare(
-    fetch_argparse
-    GIT_REPOSITORY https://github.com/p-ranav/argparse
-    GIT_TAG        v3.0
-    GIT_PROGRESS   TRUE
-)
-
-FetchContent_Declare(
-    fetch_spdlog
-    GIT_REPOSITORY https://github.com/gabime/spdlog
-    GIT_TAG        v1.14.1
-    GIT_PROGRESS   TRUE
-)
-
-FetchContent_Declare(
-    fetch_base64
-    GIT_REPOSITORY https://github.com/aklomp/base64
-    GIT_TAG        b20a31a997e0b48274fa09e58b65ee9202531e4f
-    GIT_PROGRESS   TRUE
-)
-
-FetchContent_Declare(
     fetch_googletest
     GIT_REPOSITORY https://github.com/google/googletest
     GIT_TAG        v1.14.0
     GIT_PROGRESS   TRUE
 )
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-
-FetchContent_Declare(
-    fetch_stb
-    GIT_REPOSITORY    https://github.com/nothings/stb
-    GIT_TAG           013ac3beddff3dbffafd5177e7972067cd2b5083
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND     ""
-)
 
 FetchContent_Declare(
     fetch_glob
@@ -64,16 +35,16 @@ FetchContent_Declare(
 
 
 FetchContent_MakeAvailable(
-    fetch_argparse
-    fetch_spdlog
-    fetch_base64
-    fetch_stb
     fetch_glob
 )
 
+find_package(argparse CONFIG REQUIRED)
+find_package(base64 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
+find_package(Stb REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/SungToolsCpp)
@@ -101,7 +72,7 @@ add_library(libdaltools STATIC
 )
 target_include_directories(libdaltools PUBLIC
     ${PROJECT_SOURCE_DIR}/include
-    ${fetch_stb_SOURCE_DIR}
+    ${Stb_INCLUDE_DIR}
 )
 target_compile_features(libdaltools PUBLIC cxx_std_17)
 add_library(dalbaragi::daltools ALIAS libdaltools)
@@ -122,7 +93,7 @@ endif()
 target_link_libraries(libdaltools PUBLIC
     glm::glm
     nlohmann_json::nlohmann_json
-    base64
+    aklomp::base64
     spdlog::spdlog
     unofficial::brotli::brotlidec
     unofficial::brotli::brotlienc
