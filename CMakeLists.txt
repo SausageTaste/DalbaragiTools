@@ -19,20 +19,11 @@ set(FETCHCONTENT_QUIET FALSE)
 # ----------------------------------------------------------------------------------
 
 FetchContent_Declare(
-    fetch_googletest
-    GIT_REPOSITORY https://github.com/google/googletest
-    GIT_TAG        v1.14.0
-    GIT_PROGRESS   TRUE
-)
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-
-FetchContent_Declare(
     fetch_glob
     GIT_REPOSITORY https://github.com/p-ranav/glob
     GIT_TAG        d025092c0e1eb1a8b226d3a799fd32680d2fd13f
     GIT_PROGRESS   TRUE
 )
-
 
 FetchContent_MakeAvailable(
     fetch_glob
@@ -109,10 +100,7 @@ add_subdirectory(./app)
 
 
 if (DALTOOLS_ENABLE_TEST)
-    if (NOT TARGET gtest)
-        FetchContent_MakeAvailable(fetch_googletest)
-    endif()
-
     enable_testing()
+    find_package(GTest CONFIG REQUIRED)
     add_subdirectory(./test)
 endif()
