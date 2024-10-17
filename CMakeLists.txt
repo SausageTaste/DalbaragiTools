@@ -77,16 +77,6 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
-    fetch_ktx
-    GIT_REPOSITORY https://github.com/KhronosGroup/KTX-Software
-    GIT_TAG        v4.3.2
-    GIT_PROGRESS   TRUE
-)
-set(KTX_FEATURE_STATIC_LIBRARY ON CACHE BOOL "" FORCE)
-set(KTX_FEATURE_TESTS OFF CACHE BOOL "" FORCE)
-set(KTX_FEATURE_TOOLS OFF CACHE BOOL "" FORCE)
-
-FetchContent_Declare(
     fetch_glob
     GIT_REPOSITORY https://github.com/p-ranav/glob
     GIT_TAG        d025092c0e1eb1a8b226d3a799fd32680d2fd13f
@@ -101,10 +91,10 @@ FetchContent_MakeAvailable(
     fetch_spdlog
     fetch_base64
     fetch_stb
-    fetch_ktx
     fetch_glob
 )
 
+find_package(Ktx CONFIG REQUIRED)
 find_package(hydrogen REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
 
@@ -164,7 +154,7 @@ target_link_libraries(libdaltools PUBLIC
     spdlog::spdlog
     unofficial::brotli::brotlidec
     unofficial::brotli::brotlienc
-    ktx
+    KTX::ktx
     sungtools::general
 )
 
