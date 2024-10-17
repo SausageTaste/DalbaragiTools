@@ -33,13 +33,6 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
-    fetch_libhydrogen
-    GIT_REPOSITORY https://github.com/jedisct1/libhydrogen
-    GIT_TAG        c18e510d23c7539629e306d47925a35327eb1ebf
-    GIT_PROGRESS   TRUE
-)
-
-FetchContent_Declare(
     fetch_argparse
     GIT_REPOSITORY https://github.com/p-ranav/argparse
     GIT_TAG        v3.0
@@ -110,7 +103,6 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(
     fetch_glm
-    fetch_libhydrogen
     fetch_argparse
     fetch_json
     fetch_spdlog
@@ -120,6 +112,8 @@ FetchContent_MakeAvailable(
     fetch_ktx
     fetch_glob
 )
+
+find_package(libhydrogen REQUIRED)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/SungToolsCpp)
 
