@@ -7,7 +7,7 @@ add_test                  (daltest_dmd daltest_dmd)
 add_executable            (daltest_json test_json.cpp)
 target_compile_features   (daltest_json PUBLIC  cxx_std_17)
 target_include_directories(daltest_json PRIVATE .)
-target_link_libraries     (daltest_json PRIVATE GTest::gtest_main dalbaragi::daltools hydrogen)
+target_link_libraries     (daltest_json PRIVATE GTest::gtest_main dalbaragi::daltools hydrogen::hydrogen)
 add_test                  (daltest_json daltest_json)
 
 add_executable(daltest_crypto test_crypto.cpp)

@@ -113,7 +113,7 @@ FetchContent_MakeAvailable(
     fetch_glob
 )
 
-find_package(libhydrogen REQUIRED)
+find_package(hydrogen REQUIRED)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/SungToolsCpp)
 
@@ -165,7 +165,7 @@ endif()
 
 target_link_libraries(libdaltools PUBLIC
     glm::glm
-    hydrogen
+    hydrogen::hydrogen
     nlohmann_json::nlohmann_json
     base64
     spdlog::spdlog
