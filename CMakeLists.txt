@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.11.0)
 
-include(FetchContent)
+set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
 
 project(DalbaragiTools)
+
+include(FetchContent)
 
 
 set(DALTOOLS_ENABLE_TEST OFF CACHE BOOL "Enable testing")

@@ -1,0 +1,19 @@
+{
+    "dependencies": [
+        "aklomp-base64",
+        "argparse",
+        "brotli",
+        "glm",
+        "gtest",
+        {
+            "name": "ktx",
+            "features": [
+                "vulkan"
+            ]
+        },
+        "nlohmann-json",
+        "spdlog",
+        "stb",
+        "zlib"
+    ]
+}
