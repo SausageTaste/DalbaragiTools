@@ -37,7 +37,7 @@ find_package(glm CONFIG REQUIRED)
 find_package(Ktx CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
-find_package(Stb REQUIRED)
+find_package(Stb MODULE REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
 
 
