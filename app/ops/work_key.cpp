@@ -1,10 +1,12 @@
 #include "work_functions.hpp"
 
+#include <fstream>
+
 #include <spdlog/fmt/chrono.h>
 #include <spdlog/fmt/fmt.h>
 #include <argparse/argparse.hpp>
 
-#include "daltools/common/crypto.h"
+// #include "daltools/common/crypto.h"
 #include "daltools/common/util.h"
 
 
@@ -26,6 +28,7 @@ namespace {
 namespace dal {
 
     void work_key(int argc, char* argv[]) {
+        /*
         namespace fs = std::filesystem;
 
         sung::MonotonicRealtimeTimer timer;
@@ -65,6 +68,7 @@ namespace dal {
             fmt::print(" - Created date  {}\n", md.created_time_);
             fmt::print(" - Description   {}\n", md.description_);
         }
+        */
     }
 
 }  // namespace dal
