@@ -82,14 +82,14 @@ else()
 endif()
 
 target_link_libraries(libdaltools PUBLIC
-    glm::glm
-    nlohmann_json::nlohmann_json
     aklomp::base64
+    glm::glm
+    KTX::ktx
+    nlohmann_json::nlohmann_json
     spdlog::spdlog
+    sungtools::general
     unofficial::brotli::brotlidec
     unofficial::brotli::brotlienc
-    KTX::ktx
-    sungtools::general
 )
 
 
