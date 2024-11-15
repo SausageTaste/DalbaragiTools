@@ -44,7 +44,7 @@ class YamlLoader:
 
     @property
     def src_path(self):
-        return os.path.join(self.loc, self.__yml_content["src"])
+        return os.path.join(self.loc, self.__yml_content["dmd"]["src"])
 
     @property
     def src_loc(self):
@@ -53,7 +53,7 @@ class YamlLoader:
     @property
     def dmd_compression(self):
         try:
-            return str(self.__yml_content["dmd"]["compression"])
+            return str(self.__yml_content["dmd"]["compression_method"])
         except KeyError:
             return "none"
 
@@ -84,7 +84,9 @@ class YamlLoader:
 
     @property
     def tex_lookup_paths(self):
-        return iter(self.__tex_lookup_paths)
+        yield "."
+        for x in self.__tex_lookup_paths:
+            yield x
 
     def gen_ktx_conversions(self):
         for x in self.__yml_content["ktx_conversion"]:
