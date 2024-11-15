@@ -5,6 +5,7 @@ import sys
 from typing import Iterable, Optional
 
 import yaml
+from PIL import Image
 
 
 def mkdir_tree(path: str):
@@ -48,6 +49,35 @@ class YamlLoader:
     @property
     def src_loc(self):
         return os.path.split(self.src_path)[0]
+
+    @property
+    def dmd_compression(self):
+        return str(self.__yml_content["dmd"]["compression"])
+
+    @property
+    def bundle_enabled(self):
+        try:
+            return bool(self.__yml_content["bundle"]["enable"])
+        except KeyError:
+            return False
+
+    @property
+    def bundle_name(self):
+        try:
+            return self.__yml_content["bundle"]["name"]
+        except KeyError:
+            return ""
+
+    @property
+    def bundle_comp_level(self):
+        try:
+            return int(self.__yml_content["bundle"]["compression_level"])
+        except KeyError:
+            return 6
+
+    @property
+    def ktx_zstd_level(self):
+        return int(self.__yml_content["ktx_config"]["zstd"])
 
     @property
     def tex_lookup_paths(self):
@@ -111,13 +141,16 @@ class KtxParameters:
         self.__dst_path = os.path.join(ktx_dir, os.path.splitext(src_rel_path)[0] + ".ktx")
         return
 
-    def make_ktx_cmd(self):
+    def make_ktx_cmd(self, zstd_level: int):
         commands = [
             "ktx",
             "create",
             "--encode uastc",
             "--generate-mipmap",
         ]
+
+        if zstd_level > 0:
+            commands.append(f"--zstd {zstd_level}")
 
         if self.channels == "rgba":
             format_prefix = "R8G8B8A8"
@@ -145,14 +178,27 @@ class KtxParameters:
         return " ".join(commands)
 
 
-def __do_ktx_conversion(ktx_params: KtxParameters, ktx_dir: str):
+def __do_ktx_conversion(ktx_params: KtxParameters, ktx_dir: str, yaml_data: YamlLoader):
+    if os.path.isfile(ktx_params.dst_path):
+        print(f"KTX file already exists: {ktx_params.dst_path}")
+        return
+
+    if not ktx_params.src_path.endswith(".png"):
+        img = Image.open(ktx_params.src_path)
+        png_dir = os.path.relpath(os.path.split(ktx_dir)[0] + "/png")
+        os.makedirs(png_dir, exist_ok=True)
+        png_file_path = os.path.join(png_dir, os.path.relpath(ktx_params.src_path, yaml_data.loc)) + ".png"
+        os.makedirs(os.path.split(png_file_path)[0], exist_ok=True)
+        img.save(png_file_path, "PNG")
+        ktx_params.src_path = png_file_path
 
     mkdir_tree(ktx_dir)
-    cmd = ktx_params.make_ktx_cmd()
+    cmd = ktx_params.make_ktx_cmd(yaml_data.ktx_zstd_level)
+    print("Executing:", cmd)
     if 0 != os.system(cmd):
         raise RuntimeError("Failed to convert to KTX")
     else:
-        print("Success:", cmd)
+        print("Success")
 
 
 def do_once(yaml_path: str):
@@ -167,8 +213,8 @@ def do_once(yaml_path: str):
         ktx_params.channels = x["channels"]
         ktx_params.srgb = x["srgb"]
         ktx_params.finalize(ktx_path, yaml_data.loc)
-        __do_ktx_conversion(ktx_params, ktx_path)
         ktx_map[ktx_params.src_path] = ktx_params.dst_path
+        __do_ktx_conversion(ktx_params, ktx_path, yaml_data)
 
     with open(yaml_data.src_path, 'r') as f:
         json_data = json.load(f)
@@ -181,22 +227,25 @@ def do_once(yaml_path: str):
                     textures.add(v)
 
     intermediate_dir = os.path.join(out_dir, "intermediate")
+    shutil.rmtree(intermediate_dir, ignore_errors=True)
     mkdir_tree(intermediate_dir)
 
     dal_tex_map = {}
     for t in textures:
-        tex_path = make_neighbour_path(yaml_data.src_path, t)
+        tex_path = find_texture_file(t, yaml_data.tex_lookup_paths)
         if tex_path in ktx_map.keys():
-            ktx_tex_path = ktx_map[tex_path]
-            tex_path_in_dal = os.path.relpath(ktx_tex_path, ktx_path)
-        else:
-            tex_path_in_dal = os.path.relpath(tex_path, yaml_data.src_loc)
+            tex_path = ktx_map[tex_path]
+        tex_path_in_dal = os.path.split(tex_path)[1]
 
         if t != tex_path_in_dal:
             dal_tex_map[t] = tex_path_in_dal
+        else:
+            dal_tex_map[t] = t
 
         tex_path_in_intermediate = os.path.join(intermediate_dir, tex_path_in_dal)
+        os.makedirs(os.path.split(tex_path_in_intermediate)[0], exist_ok=True)
         shutil.copy(tex_path, tex_path_in_intermediate)
+        print(f"Copy {os.path.abspath(tex_path)} to {os.path.abspath(tex_path_in_intermediate)}")
 
     for s in json_data["scenes"]:
         for m in s["materials"]:
@@ -214,30 +263,51 @@ def do_once(yaml_path: str):
         shutil.copy(bin_path, os.path.join(intermediate_dir, os.path.split(bin_path)[1]))
 
     daltools_compile_commands = [
-        "daltools", "compile", "-c", "0", f'"{new_json_path}"',
+        "daltools",
+        "compile",
+        "-c",
+        f"{yaml_data.dmd_compression}",
+        f'"{new_json_path}"',
     ]
     cmd = " ".join(daltools_compile_commands)
     if 0 != os.system(cmd):
         raise RuntimeError("Failed to compile")
     print("Success:", cmd)
 
-    daltools_bundle_commands = [
-        "daltools",
-        "bundle",
-        "-q",
-        "6",
-        "-o",
-        f'"{os.path.abspath(os.path.join(intermediate_dir, "artist.dun"))}"',
-        f'"{os.path.abspath(os.path.join(intermediate_dir, "*.dmd"))}"',
-        f'"{os.path.abspath(os.path.join(intermediate_dir, "*.png"))}"',
-        f'"{os.path.abspath(os.path.join(intermediate_dir, "*.tga"))}"',
-        f'"{os.path.abspath(os.path.join(intermediate_dir, "*.jpg"))}"',
-        f'"{os.path.abspath(os.path.join(intermediate_dir, "*.ktx"))}"',
-    ]
-    cmd = " ".join(daltools_bundle_commands)
-    if 0 != os.system(cmd):
-        raise RuntimeError("Failed to bundle")
-    print("Success:", cmd)
+    final_dir = os.path.join(out_dir, "final")
+    shutil.rmtree(final_dir, ignore_errors=True)
+    os.makedirs(final_dir, exist_ok=True)
+
+    if yaml_data.bundle_enabled:
+        bundle_name = yaml_data.bundle_name
+        bundle_out_path = os.path.abspath(os.path.join(intermediate_dir, bundle_name))
+
+        daltools_bundle_commands = [
+            "daltools",
+            "bundle",
+            "-q",
+            f"{yaml_data.bundle_comp_level}",
+            "-o",
+            f'"{bundle_out_path}"',
+            f'"{os.path.abspath(os.path.join(intermediate_dir, "*.dmd"))}"',
+            f'"{os.path.abspath(os.path.join(intermediate_dir, "*.png"))}"',
+            f'"{os.path.abspath(os.path.join(intermediate_dir, "*.tga"))}"',
+            f'"{os.path.abspath(os.path.join(intermediate_dir, "*.jpg"))}"',
+            f'"{os.path.abspath(os.path.join(intermediate_dir, "*.ktx"))}"',
+        ]
+        cmd = " ".join(daltools_bundle_commands)
+        if 0 != os.system(cmd):
+            raise RuntimeError("Failed to bundle")
+        print("Success:", cmd)
+
+        shutil.move(bundle_out_path, os.path.join(final_dir, bundle_name))
+    else:
+        dmd_path = os.path.splitext(new_json_path)[0] + ".dmd"
+        shutil.move(dmd_path, os.path.join(final_dir, os.path.split(dmd_path)[1]))
+
+        for x in os.listdir(intermediate_dir):
+            if x in dal_tex_map.values():
+                shutil.move(os.path.join(intermediate_dir, x), os.path.join(final_dir, x))
 
 
 def main():
