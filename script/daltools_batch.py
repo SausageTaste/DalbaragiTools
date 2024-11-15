@@ -98,6 +98,11 @@ class YamlLoader:
 
     def gen_ktx_conversions(self):
         for x in self.__yml_content["ktx_conversion"]:
+            if "sources" not in x.keys():
+                continue
+            if x["sources"] is None:
+                continue
+
             for y in x["sources"]:
                 ktx_params = KtxParameters()
                 ktx_params.src_path = find_texture_file(y, self.tex_lookup_paths)
