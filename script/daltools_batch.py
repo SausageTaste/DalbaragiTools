@@ -34,9 +34,15 @@ class YamlLoader:
 
         self.__yaml_path = os.path.relpath(yaml_path)
 
-        self.__tex_lookup_paths = self.__yml_content["texture_lookup_paths"]
-        for i in range(len(self.__tex_lookup_paths)):
-            self.__tex_lookup_paths[i] = os.path.join(self.loc, self.__tex_lookup_paths[i])
+        self.__tex_lookup_paths = [
+            self.loc,
+        ]
+
+        try:
+            for x in self.__yml_content["texture_lookup_paths"]:
+                self.__tex_lookup_paths.append(os.path.join(self.loc, self.__tex_lookup_paths[i]))
+        except KeyError:
+            pass
 
     @property
     def loc(self):
@@ -80,11 +86,13 @@ class YamlLoader:
 
     @property
     def ktx_zstd_level(self):
-        return int(self.__yml_content["ktx_config"]["zstd"])
+        try:
+            return int(self.__yml_content["ktx_config"]["zstd"])
+        except KeyError:
+            return 0
 
     @property
     def tex_lookup_paths(self):
-        yield "."
         for x in self.__tex_lookup_paths:
             yield x
 
