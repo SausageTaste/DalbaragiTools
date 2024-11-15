@@ -40,7 +40,7 @@ class YamlLoader:
 
         try:
             for x in self.__yml_content["texture_lookup_paths"]:
-                self.__tex_lookup_paths.append(os.path.join(self.loc, self.__tex_lookup_paths[i]))
+                self.__tex_lookup_paths.append(os.path.join(self.loc, x))
         except KeyError:
             pass
 
