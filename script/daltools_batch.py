@@ -88,7 +88,12 @@ class YamlLoader:
 
     def gen_ktx_conversions(self):
         for x in self.__yml_content["ktx_conversion"]:
-            yield x
+            for y in x["sources"]:
+                ktx_params = KtxParameters()
+                ktx_params.src_path = find_texture_file(y, self.tex_lookup_paths)
+                ktx_params.channels = x["channels"]
+                ktx_params.srgb = x["srgb"]
+                yield ktx_params
 
 
 class KtxParameters:
@@ -210,12 +215,11 @@ def do_once(yaml_path: str):
 
     ktx_map = {}
     ktx_path = os.path.join(out_dir, "ktx")
-    for x in yaml_data.gen_ktx_conversions():
-        ktx_params = KtxParameters()
-        ktx_params.src_path = find_texture_file(x["src"], yaml_data.tex_lookup_paths)
-        ktx_params.channels = x["channels"]
-        ktx_params.srgb = x["srgb"]
+    for ktx_params in yaml_data.gen_ktx_conversions():
         ktx_params.finalize(ktx_path, yaml_data.loc)
+
+        if ktx_params.src_path in ktx_map.keys():
+            raise ValueError(f"Duplicate source path: {ktx_params.src_path}")
         ktx_map[ktx_params.src_path] = ktx_params.dst_path
         __do_ktx_conversion(ktx_params, ktx_path, yaml_data)
 
