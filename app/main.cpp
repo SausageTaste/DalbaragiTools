@@ -36,10 +36,15 @@ int main(int argc, char* argv[]) try {
             "Unknown operation ({}). It must be one of {{ {} }}", argv[1], keys
         ) };
     }
+
+    return 0;
 } catch (const std::runtime_error& e) {
     std::cout << "\nstd::runtime_error: " << e.what() << std::endl;
+    return 1;
 } catch (const std::exception& e) {
     std::cout << "\nstd::exception: " << e.what() << std::endl;
+    return 1;
 } catch (...) {
     std::cout << "\nunknown object thrown: " << std::endl;
+    return 1;
 }
