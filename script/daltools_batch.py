@@ -52,7 +52,10 @@ class YamlLoader:
 
     @property
     def dmd_compression(self):
-        return str(self.__yml_content["dmd"]["compression"])
+        try:
+            return str(self.__yml_content["dmd"]["compression"])
+        except KeyError:
+            return "none"
 
     @property
     def bundle_enabled(self):
