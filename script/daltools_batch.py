@@ -28,7 +28,7 @@ def find_texture_file(texture_path_suffix: str, folders: Iterable[str]):
 
 class YamlLoader:
     def __init__(self, yaml_path: str):
-        with open(yaml_path, 'r') as f:
+        with open(yaml_path, 'r', encoding="utf8") as f:
             self.__yml_content = yaml.safe_load(f)
         print(json.dumps(self.__yml_content, indent=4))
 
@@ -318,9 +318,10 @@ def do_once(yaml_path: str):
             f'"{os.path.abspath(os.path.join(intermediate_dir, "*.ktx"))}"',
         ]
         cmd = " ".join(daltools_bundle_commands)
+        print("Executing", cmd)
         if 0 != os.system(cmd):
             raise RuntimeError("Failed to bundle")
-        print("Success:", cmd)
+        print("Success")
 
         shutil.move(bundle_out_path, os.path.join(final_dir, bundle_name))
     else:

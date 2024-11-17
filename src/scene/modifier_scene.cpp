@@ -601,11 +601,13 @@ namespace {
         if (img_name.empty())
             return std::nullopt;
 
-        if (std::filesystem::is_regular_file(img_name))
-            return img_name;
+        const auto image_name_path = std::filesystem::u8path(img_name);
+
+        if (std::filesystem::is_regular_file(image_name_path))
+            return image_name_path;
 
         auto img_path = path;
-        img_path.replace_filename(img_name);
+        img_path.replace_filename(image_name_path);
         if (std::filesystem::is_regular_file(img_path))
             return img_path;
 
