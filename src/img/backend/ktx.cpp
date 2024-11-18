@@ -33,11 +33,16 @@ namespace dal {
         return texture_->baseHeight;
     }
 
-    uint32_t KtxImage::esize() const {
-        return ktxTexture_GetElementSize(texture_);
+    uint32_t KtxImage::esize() { return ktxTexture_GetElementSize(texture_); }
+
+    uint32_t KtxImage::num_cpnts() {
+        if (auto ktx2 = this->ktx2())
+            return ktxTexture2_GetNumComponents(ktx2);
+        else
+            return 0;
     }
 
-    bool KtxImage::need_transcoding() const {
+    bool KtxImage::need_transcoding() {
         if (nullptr == texture_)
             return false;
         return ktxTexture_NeedsTranscoding(texture_);
@@ -46,7 +51,7 @@ namespace dal {
     bool KtxImage::transcode(
         ktx_transcode_fmt_e format, ktx_transcode_flags flags
     ) {
-        if (auto ktx2 = this->ktx2_nc()) {
+        if (auto ktx2 = this->ktx2()) {
             const auto res = ktxTexture2_TranscodeBasis(ktx2, format, flags);
             return res == KTX_SUCCESS;
         }
@@ -83,30 +88,14 @@ namespace dal {
 
     ktxTexture& KtxImage::ktx() { return *texture_; }
 
-    const ktxTexture& KtxImage::ktx() const { return *texture_; }
-
-    const ktxTexture1* KtxImage::ktx1() const {
-        if (texture_->classId == ktxTexture1_c)
-            return reinterpret_cast<const ktxTexture1*>(texture_);
-        else
-            return nullptr;
-    }
-
-    const ktxTexture2* KtxImage::ktx2() const {
-        if (texture_->classId == ktxTexture2_c)
-            return reinterpret_cast<const ktxTexture2*>(texture_);
-        else
-            return nullptr;
-    }
-
-    ktxTexture1* KtxImage::ktx1_nc() {
+    ktxTexture1* KtxImage::ktx1() {
         if (texture_->classId == ktxTexture1_c)
             return reinterpret_cast<ktxTexture1*>(texture_);
         else
             return nullptr;
     }
 
-    ktxTexture2* KtxImage::ktx2_nc() {
+    ktxTexture2* KtxImage::ktx2() {
         if (texture_->classId == ktxTexture2_c)
             return reinterpret_cast<ktxTexture2*>(texture_);
         else

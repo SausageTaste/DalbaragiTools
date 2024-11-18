@@ -681,7 +681,7 @@ namespace {
         void notify(
             const std::string& mesh_name,
             const scene_t::Mesh& mesh,
-            const dal::KtxImage& img
+            dal::KtxImage& img
         ) {
             if (img.esize() != 4)
                 return;
@@ -835,7 +835,7 @@ namespace {
             const glm::vec2& tc0,
             const glm::vec2& tc1,
             const glm::vec2& tc2,
-            const dal::KtxImage& img
+            dal::KtxImage& img
         ) {
             const sung::Triangle2<float> tri{ dal::vec_cast<float>(tc0),
                                               dal::vec_cast(tc1),

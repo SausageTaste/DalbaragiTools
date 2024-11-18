@@ -16,11 +16,6 @@ namespace dal {
         KtxImage() = default;
         KtxImage(const uint8_t* data, size_t size);
 
-        KtxImage(const KtxImage&) = delete;
-        KtxImage& operator=(const KtxImage&) = delete;
-        KtxImage(KtxImage&&) = delete;
-        KtxImage& operator=(KtxImage&&) = delete;
-
         ~KtxImage() { this->destroy(); }
 
         void destroy() override;
@@ -29,9 +24,11 @@ namespace dal {
         uint32_t base_width() const;
         uint32_t base_height() const;
         // Element size
-        uint32_t esize() const;
+        uint32_t esize() ;
+        // Number of components
+        uint32_t num_cpnts() ;
 
-        bool need_transcoding() const;
+        bool need_transcoding() ;
         bool transcode(ktx_transcode_fmt_e fmt, ktx_transcode_flags flags = 0);
 
         std::optional<glm::tvec4<uint8_t>> get_base_pixel(
@@ -39,15 +36,10 @@ namespace dal {
         ) const;
 
         ktxTexture& ktx();
-        const ktxTexture& ktx() const;
-        const ktxTexture1* ktx1() const;
-        const ktxTexture2* ktx2() const;
+        ktxTexture1* ktx1();
+        ktxTexture2* ktx2();
 
     private:
-        // Non-const
-        ktxTexture1* ktx1_nc();
-        ktxTexture2* ktx2_nc();
-
         ktxTexture* texture_ = nullptr;
     };
 
