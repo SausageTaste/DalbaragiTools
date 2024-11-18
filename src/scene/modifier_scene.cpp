@@ -10,6 +10,7 @@
 #include <sung/general/geometry2d.hpp>
 
 #include "daltools/common/glm_tool.hpp"
+#include "daltools/img/backend/ktx.hpp"
 #include "daltools/img/img.hpp"
 #include "daltools/img/img2d.hpp"
 
@@ -677,6 +678,46 @@ namespace {
             return;
         }
 
+        void notify(
+            const std::string& mesh_name,
+            const scene_t::Mesh& mesh,
+            const dal::KtxImage& img
+        ) {
+            if (img.esize() != 4)
+                return;
+
+            auto& r = this->get_or_create(mesh_name);
+
+            if (0 == r.tri_count_) {
+                r.tri_count_ = mesh.indices_.size() / 3;
+            } else {
+                assert(r.tri_count_ == mesh.indices_.size() / 3);
+            }
+
+            const auto wh = glm::vec2(img.base_width(), img.base_height());
+            const auto tri_count = r.tri_count_;
+
+            for (size_t tri_index = 0; tri_index < tri_count; ++tri_index) {
+                const auto& i0 = mesh.indices_[tri_index * 3 + 0];
+                const auto& i1 = mesh.indices_[tri_index * 3 + 1];
+                const auto& i2 = mesh.indices_[tri_index * 3 + 2];
+
+                const auto& v0 = mesh.vertices_[i0];
+                const auto& v1 = mesh.vertices_[i1];
+                const auto& v2 = mesh.vertices_[i2];
+
+                const auto uv0 = v0.uv_ * wh;
+                const auto uv1 = v1.uv_ * wh;
+                const auto uv2 = v2.uv_ * wh;
+
+                if (this->is_transp(uv0, uv1, uv2, img)) {
+                    r.transp_tri_indices_.insert(tri_index);
+                }
+            }
+
+            return;
+        }
+
         bool is_eligible_for_replacement(const std::string& mesh_name) const {
             const auto found = this->records_.find(mesh_name);
             if (this->records_.end() == found)
@@ -776,10 +817,50 @@ namespace {
                         continue;
 
                     const auto img_u8_ptr = img.texel_ptr(
-                        x % img.width(), y % img.width()
+                        x % img.width(), y % img.height()
                     );
                     if (img_u8_ptr != nullptr) {
                         const auto alpha = img_u8_ptr[3];
+                        if (alpha < 254) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        static bool is_transp(
+            const glm::vec2& tc0,
+            const glm::vec2& tc1,
+            const glm::vec2& tc2,
+            const dal::KtxImage& img
+        ) {
+            const sung::Triangle2<float> tri{ dal::vec_cast<float>(tc0),
+                                              dal::vec_cast(tc1),
+                                              dal::vec_cast(tc2) };
+
+            sung::AABB2<float> aabb;
+            aabb.set(tc0.x, tc0.y);
+            aabb.expand_to_span(tc1.x, tc1.y);
+            aabb.expand_to_span(tc2.x, tc2.y);
+
+            const auto x_min = static_cast<int64_t>(std::floor(aabb.x_min()));
+            const auto x_max = static_cast<int64_t>(std::ceil(aabb.x_max()));
+            const auto y_min = static_cast<int64_t>(std::floor(aabb.y_min()));
+            const auto y_max = static_cast<int64_t>(std::ceil(aabb.y_max()));
+
+            for (int64_t x = x_min; x <= x_max; ++x) {
+                for (int64_t y = y_min; y <= y_max; ++y) {
+                    if (!tri.is_inside_cl({ x + 0.5f, y + 0.5f }))
+                        continue;
+
+                    const auto img_u8_ptr = img.get_base_pixel(
+                        x % img.base_width(), y % img.base_height()
+                    );
+                    if (img_u8_ptr) {
+                        const auto alpha = img_u8_ptr->a;
                         if (alpha < 254) {
                             return true;
                         }
@@ -845,6 +926,12 @@ namespace dal::parser {
 
                 if (auto img_u8 = img->as<dal::TImage2D<uint8_t>>()) {
                     splitters.notify(mesh->name_, *mesh, *img_u8);
+                } else if (auto img_ktx = img->as<dal::KtxImage>()) {
+                    if (img_ktx->need_transcoding()) {
+                        if (img_ktx->transcode(KTX_TTF_RGBA32)) {
+                            splitters.notify(mesh->name_, *mesh, *img_ktx);
+                        }
+                    }
                 }
             }
         }
