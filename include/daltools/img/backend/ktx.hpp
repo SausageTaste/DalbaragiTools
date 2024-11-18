@@ -28,6 +28,8 @@ namespace dal {
 
         uint32_t base_width() const;
         uint32_t base_height() const;
+        // Element size
+        uint32_t esize() const;
 
         bool need_transcoding() const;
         bool transcode(ktx_transcode_fmt_e fmt, ktx_transcode_flags flags = 0);

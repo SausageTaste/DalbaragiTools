@@ -33,6 +33,10 @@ namespace dal {
         return texture_->baseHeight;
     }
 
+    uint32_t KtxImage::esize() const {
+        return ktxTexture_GetElementSize(texture_);
+    }
+
     bool KtxImage::need_transcoding() const {
         if (nullptr == texture_)
             return false;
