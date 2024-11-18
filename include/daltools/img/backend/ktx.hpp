@@ -18,8 +18,8 @@ namespace dal {
 
         KtxImage(const KtxImage&) = delete;
         KtxImage& operator=(const KtxImage&) = delete;
-        KtxImage(KtxImage&&);
-        KtxImage& operator=(KtxImage&&);
+        KtxImage(KtxImage&&) = delete;
+        KtxImage& operator=(KtxImage&&) = delete;
 
         ~KtxImage() { this->destroy(); }
 

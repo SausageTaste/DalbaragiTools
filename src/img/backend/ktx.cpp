@@ -12,13 +12,6 @@ namespace dal {
         }
     }
 
-    KtxImage::KtxImage(KtxImage&& rhs) { std::swap(texture_, rhs.texture_); }
-
-    KtxImage& KtxImage::operator=(KtxImage&& rhs) {
-        std::swap(texture_, rhs.texture_);
-        return *this;
-    }
-
     void KtxImage::destroy() {
         if (nullptr != texture_) {
             ktxTexture_Destroy(texture_);
