@@ -41,13 +41,11 @@ namespace {
             parse_info.size_ = img_data.size();
             parse_info.force_rgba_ = false;
             parse_info.file_path_ = entry.path().string();
-            images.push_back(dal::parse_img(parse_info));
-        }
 
-        for (const auto& img : images) {
+            auto img = dal::parse_img(parse_info);
             ASSERT_TRUE(img->is_ready());
 
-            if (auto ktx_img = dynamic_cast<dal::KtxImage*>(img.get())) {
+            if (auto ktx_img = img->as<dal::KtxImage>()) {
                 if (auto ktx1 = ktx_img->ktx1()) {
                     fmt::print(
                         "KTX 1: dim={}x{}x{}, levels={}, compressed={}, "
@@ -64,75 +62,78 @@ namespace {
                     auto& te2 = *ktx2;
 
                     if (ktx_img->need_transcoding()) {
-                        ASSERT_TRUE(ktx_img->transcode(KTX_TTF_RGBA32));
+                        const auto res = ktx_img->transcode(KTX_TTF_RGBA32);
+                        ASSERT_TRUE(res);
                     }
 
-                    for (uint32_t y = 0; y < ktx_img->base_height(); ++y) {
-                        for (uint32_t x = 0; x < ktx_img->base_width(); ++x) {
-                            const auto pixel = ktx_img->get_base_pixel(x, y);
-                            fmt::print(
-                                "Pixel at ({}, {}): rgba=({}, {}, {}, {})\n",
-                                x,
-                                y,
-                                pixel->r,
-                                pixel->g,
-                                pixel->b,
-                                pixel->a
-                            );
+                    size_t pixel_count = 0;
+                    size_t transp_count = 0;
+                    if (ktx_img->esize() == 4) {
+                        const auto width = ktx_img->base_width();
+                        const auto height = ktx_img->base_height();
+
+                        for (uint32_t y = 0; y < height; ++y) {
+                            for (uint32_t x = 0; x < width; ++x) {
+                                ++pixel_count;
+                                if (auto p = ktx_img->get_base_pixel(x, y)) {
+                                    if (p->a < 254) {
+                                        ++transp_count;
+                                    }
+                                }
+                            }
                         }
                     }
 
                     fmt::print(
                         "KTX 2: dim={}x{}x{}, levels={}, compressed={}, "
-                        "dataSize={}\n",
+                        "dataSize={}, transp={}/{}\n",
                         tex.baseWidth,
                         tex.baseHeight,
                         tex.baseDepth,
                         tex.numLevels,
                         tex.isCompressed,
-                        ::format_bytes(tex.dataSize)
+                        ::format_bytes(tex.dataSize),
+                        transp_count,
+                        pixel_count
                     );
                     continue;
                 }
             } else if (auto img2d = img->as<dal::IImage2D>()) {
+                size_t pixel_count = 0;
+                size_t transp_count = 0;
+
                 if (auto img_u8 = img->as<dal::TImage2D<uint8_t>>()) {
                     for (uint32_t y = 0; y < img_u8->height(); ++y) {
                         for (uint32_t x = 0; x < img_u8->width(); ++x) {
-                            const auto pixel = img_u8->texel_ptr(x, y);
-                            fmt::print(
-                                "Pixel at ({}, {}): rgba=({}, {}, {}, {})\n",
-                                x,
-                                y,
-                                pixel[0],
-                                pixel[1],
-                                pixel[2],
-                                pixel[3]
-                            );
+                            ++pixel_count;
+                            if (auto p = img_u8->texel_ptr(x, y)) {
+                                if (p[3] < 254) {
+                                    ++transp_count;
+                                }
+                            }
                         }
                     }
                 } else if (auto img_f32 = img->as<dal::TImage2D<float>>()) {
                     for (uint32_t y = 0; y < img_f32->height(); ++y) {
                         for (uint32_t x = 0; x < img_f32->width(); ++x) {
-                            const auto pixel = img_f32->texel_ptr(x, y);
-                            fmt::print(
-                                "Pixel at ({}, {}): rgba=({}, {}, {}, {})\n",
-                                x,
-                                y,
-                                pixel[0],
-                                pixel[1],
-                                pixel[2],
-                                pixel[3]
-                            );
+                            ++pixel_count;
+                            if (auto p = img_f32->texel_ptr(x, y)) {
+                                if (p[3] < 0.99f) {
+                                    ++transp_count;
+                                }
+                            }
                         }
                     }
                 }
 
                 fmt::print(
-                    "IImage2D: dim={}x{}, ch={}, typeSize={}\n",
+                    "IImage2D: dim={}x{}, ch={}, typeSize={}, transp={}/{}\n",
                     img2d->width(),
                     img2d->height(),
                     img2d->channels(),
-                    img2d->value_type_size()
+                    img2d->value_type_size(),
+                    transp_count,
+                    pixel_count
                 );
             }
         }
