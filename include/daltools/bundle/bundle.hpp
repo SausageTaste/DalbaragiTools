@@ -46,7 +46,7 @@ namespace dal {
     private:
         std::array<char, 6> magic_;
         std::array<char, 32 - 6> created_datetime_;
-        uint32_t version_;
+        uint64_t version_;
 
         uint64_t items_offset_;
         uint64_t items_size_;
