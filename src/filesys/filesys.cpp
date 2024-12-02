@@ -81,12 +81,8 @@ namespace {
     class FileSubsysStd : public dal::IFileSubsys {
 
     public:
-        FileSubsysStd(
-            const std::string& prefix,
-            const fs::path& root,
-            dal::BundleRepository& bundles
-        )
-            : prefix_{ prefix }, root_{ root }, bundles_{ bundles } {}
+        FileSubsysStd(const std::string& prefix, const fs::path& root)
+            : prefix_{ prefix }, root_{ root } {}
 
         bool is_file(const fs::path& i_path) override {
             const auto raw_path = this->make_raw_path(i_path);
@@ -103,7 +99,7 @@ namespace {
             override {
             const auto raw_path = this->make_raw_path(path);
             if (!raw_path.has_value())
-                return false;
+                return 0;
 
             std::ifstream file(*raw_path, std::ios::binary);
             file.read(reinterpret_cast<char*>(buf), buf_size);
@@ -122,49 +118,6 @@ namespace {
                     std::istreambuf_iterator<char>()
                 );
                 return true;
-            }
-
-            const auto parent_path = raw_path->parent_path();
-
-            {
-                const auto bundle_file_data = bundles_.get_file_data(
-                    parent_path.u8string(), raw_path->filename().u8string()
-                );
-                if (nullptr != bundle_file_data.first) {
-                    out.assign(
-                        bundle_file_data.first,
-                        bundle_file_data.first + bundle_file_data.second
-                    );
-                    return true;
-                }
-            }
-
-            std::vector<uint8_t> file_content;
-            {
-                file.open(parent_path, std::ios::binary);
-                if (!file.is_open())
-                    return false;
-
-                file_content.assign(
-                    std::istreambuf_iterator<char>(file),
-                    std::istreambuf_iterator<char>()
-                );
-            }
-
-            if (!bundles_.notify(parent_path.u8string(), file_content))
-                return false;
-
-            {
-                const auto bundle_file_data = bundles_.get_file_data(
-                    parent_path.u8string(), raw_path->filename().u8string()
-                );
-                if (nullptr != bundle_file_data.first) {
-                    out.assign(
-                        bundle_file_data.first,
-                        bundle_file_data.first + bundle_file_data.second
-                    );
-                    return true;
-                }
             }
 
             return false;
@@ -190,7 +143,6 @@ namespace {
 
         fs::path root_;
         fs::path prefix_;
-        dal::BundleRepository& bundles_;
     };
 
 }  // namespace
@@ -199,11 +151,9 @@ namespace {
 namespace dal {
 
     std::unique_ptr<IFileSubsys> create_filesubsys_std(
-        const std::string& prefix, const fs::path& root, Filesystem& filesys
+        const std::string& prefix, const fs::path& root
     ) {
-        return std::make_unique<FileSubsysStd>(
-            prefix, root, filesys.bundle_repo()
-        );
+        return std::make_unique<FileSubsysStd>(prefix, root);
     }
 
 }  // namespace dal
@@ -235,6 +185,31 @@ namespace dal {
             }
         }
 
+        // Check if the file is in a bundle
+        const auto parent_path = path.parent_path();
+        for (const auto& subsys : this->pimpl_->subsys_) {
+            if (!subsys->is_file(parent_path))
+                continue;
+
+            auto bundle_file_data = pimpl_->bundles_.get_file_data(
+                parent_path.u8string(), path.filename().u8string()
+            );
+            if (nullptr != bundle_file_data.first)
+                return true;
+
+            std::vector<uint8_t> file_content;
+            if (!subsys->read_file(parent_path, file_content))
+                continue;
+            if (!pimpl_->bundles_.notify(parent_path.u8string(), file_content))
+                continue;
+
+            bundle_file_data = pimpl_->bundles_.get_file_data(
+                parent_path.u8string(), path.filename().u8string()
+            );
+            if (nullptr != bundle_file_data.first)
+                return true;
+        }
+
         return false;
     }
 
@@ -243,6 +218,41 @@ namespace dal {
     ) {
         for (const auto& subsys : this->pimpl_->subsys_) {
             if (subsys->read_file(path, out)) {
+                return true;
+            }
+        }
+
+        // Check if the file is in a bundle
+        const auto parent_path = path.parent_path();
+        for (const auto& subsys : this->pimpl_->subsys_) {
+            if (!subsys->is_file(parent_path))
+                continue;
+
+            auto bundle_file_data = pimpl_->bundles_.get_file_data(
+                parent_path.u8string(), path.filename().u8string()
+            );
+            if (nullptr != bundle_file_data.first) {
+                out.assign(
+                    bundle_file_data.first,
+                    bundle_file_data.first + bundle_file_data.second
+                );
+                return true;
+            }
+
+            std::vector<uint8_t> file_content;
+            if (!subsys->read_file(parent_path, file_content))
+                continue;
+            if (!pimpl_->bundles_.notify(parent_path.u8string(), file_content))
+                continue;
+
+            bundle_file_data = pimpl_->bundles_.get_file_data(
+                parent_path.u8string(), path.filename().u8string()
+            );
+            if (nullptr != bundle_file_data.first) {
+                out.assign(
+                    bundle_file_data.first,
+                    bundle_file_data.first + bundle_file_data.second
+                );
                 return true;
             }
         }

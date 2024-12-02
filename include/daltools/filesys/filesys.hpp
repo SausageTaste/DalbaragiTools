@@ -61,9 +61,7 @@ namespace dal {
 
 
     std::unique_ptr<IFileSubsys> create_filesubsys_std(
-        const std::string& prefix,
-        const fs::path& root,
-        Filesystem& filesys
+        const std::string& prefix, const fs::path& root
     );
 
 }  // namespace dal
