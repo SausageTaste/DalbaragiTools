@@ -22,9 +22,6 @@ namespace dal {
 
         virtual bool is_file(const fs::path& path) = 0;
 
-        virtual std::vector<fs::path> list_files(const fs::path& path) = 0;
-        virtual std::vector<fs::path> list_folders(const fs::path& path) = 0;
-
         virtual size_t read_file(
             const fs::path& path, uint8_t* buf, size_t buf_size
         ) = 0;
@@ -53,11 +50,6 @@ namespace dal {
         void add_subsys(std::unique_ptr<IFileSubsys> subsys);
 
         bool is_file(const fs::path& path);
-
-        std::vector<fs::path> list_files(const fs::path& path);
-        std::vector<fs::path> list_folders(const fs::path& path);
-
-        void walk(const fs::path& root, IDirWalker& visitor);
 
         bool read_file(const fs::path& path, std::vector<uint8_t>& out);
         std::optional<std::vector<uint8_t>> read_file(const fs::path& path);

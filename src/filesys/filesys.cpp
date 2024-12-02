@@ -99,36 +99,6 @@ namespace {
             return false;
         }
 
-        std::vector<fs::path> list_files(const fs::path& i_path) override {
-            std::vector<fs::path> output;
-
-            const auto raw_path = this->make_raw_path(i_path);
-            if (!raw_path.has_value())
-                return output;
-
-            for (const auto& entry : fs::directory_iterator(*raw_path)) {
-                if (entry.is_regular_file())
-                    output.push_back(this->make_i_path(entry.path()));
-            }
-
-            return output;
-        }
-
-        std::vector<fs::path> list_folders(const fs::path& i_path) override {
-            std::vector<fs::path> output;
-
-            const auto raw_path = this->make_raw_path(i_path);
-            if (!raw_path.has_value())
-                return output;
-
-            for (const auto& entry : fs::directory_iterator(*raw_path)) {
-                if (entry.is_directory())
-                    output.push_back(this->make_i_path(entry.path()));
-            }
-
-            return output;
-        }
-
         size_t read_file(const fs::path& path, uint8_t* buf, size_t buf_size)
             override {
             const auto raw_path = this->make_raw_path(path);
@@ -244,47 +214,6 @@ namespace dal {
     class Filesystem::Impl {
 
     public:
-        std::vector<fs::path> list_files(const fs::path& path) {
-            std::vector<fs::path> output;
-
-            for (const auto& subsys : subsys_) {
-                const auto files = subsys->list_files(path);
-                output.insert(output.end(), files.begin(), files.end());
-            }
-
-            return output;
-        }
-
-        std::vector<fs::path> list_folders(const fs::path& path) {
-            std::vector<fs::path> output;
-
-            for (const auto& subsys : subsys_) {
-                const auto folders = subsys->list_folders(path);
-                output.insert(output.end(), folders.begin(), folders.end());
-            }
-
-            return output;
-        }
-
-        void walk(const fs::path& fol_path, IDirWalker& walker, size_t depth) {
-            const auto res = walker.on_folder(fol_path, depth);
-            if (!res)
-                return;
-
-            for (const auto& subsys : subsys_) {
-                for (const auto& file_path : subsys->list_files(fol_path)) {
-                    if (!::walk_bundle(file_path, walker, *subsys, depth + 1))
-                        walker.on_file(file_path, depth + 1);
-                }
-            }
-
-            for (const auto& subsys : subsys_) {
-                for (auto& folder_path : subsys->list_folders(fol_path)) {
-                    this->walk(folder_path, walker, depth + 1);
-                }
-            }
-        }
-
         BundleRepository bundles_;
         std::vector<std::unique_ptr<IFileSubsys>> subsys_;
     };
@@ -307,32 +236,6 @@ namespace dal {
         }
 
         return false;
-    }
-
-    std::vector<fs::path> Filesystem::list_files(const fs::path& path) {
-        std::vector<fs::path> output;
-
-        for (const auto& subsys : pimpl_->subsys_) {
-            const auto files = subsys->list_files(path);
-            output.insert(output.end(), files.begin(), files.end());
-        }
-
-        return output;
-    }
-
-    std::vector<fs::path> Filesystem::list_folders(const fs::path& path) {
-        std::vector<fs::path> output;
-
-        for (const auto& subsys : pimpl_->subsys_) {
-            const auto folders = subsys->list_folders(path);
-            output.insert(output.end(), folders.begin(), folders.end());
-        }
-
-        return output;
-    }
-
-    void Filesystem::walk(const fs::path& root, IDirWalker& visitor) {
-        pimpl_->walk(root, visitor, 0);
     }
 
     bool Filesystem::read_file(
