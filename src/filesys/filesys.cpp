@@ -5,73 +5,13 @@
 #include <sung/general/bytes.hpp>
 
 #include "daltools/bundle/bundle.hpp"
+#include "daltools/bundle/repo.hpp"
 #include "daltools/common/compression.h"
 
 
 namespace {
 
     namespace fs = std::filesystem;
-
-
-    bool walk_bundle(
-        const fs::path& file_path,
-        dal::IDirWalker& walker,
-        dal::IFileSubsys& subsys,
-        size_t depth
-    ) {
-        dal::BundleHeader header;
-        {
-            const auto res = subsys.read_file(
-                file_path,
-                reinterpret_cast<uint8_t*>(&header),
-                sizeof(dal::BundleHeader)
-            );
-            if (res != sizeof(dal::BundleHeader))
-                return false;
-            if (!header.is_magic_valid())
-                return false;
-        }
-
-        std::vector<uint8_t> file_content;
-        {
-            const auto items_buf_size = sizeof(dal::BundleHeader) +
-                                        header.items_size_z();
-            file_content.resize(items_buf_size);
-            const auto res = subsys.read_file(
-                file_path, file_content.data(), file_content.size()
-            );
-            if (res != items_buf_size)
-                return false;
-        }
-
-        const auto item_block = dal::decomp_bro(
-            file_content.data() + header.items_offset(),
-            header.items_size_z(),
-            header.items_size()
-        );
-        if (!item_block.has_value())
-            return false;
-
-        std::vector<std::string> item_names;
-        {
-            sung::BytesReader items_reader{ item_block->data(),
-                                            item_block->size() };
-            for (uint64_t i = 0; i < header.items_count(); ++i) {
-                const auto name = items_reader.read_nt_str();
-                items_reader.advance(sizeof(uint64_t) * 2);
-                item_names.push_back(name);
-            }
-            if (!items_reader.is_eof())
-                return false;
-        }
-
-        walker.on_bundle(file_path, depth);
-        for (const auto& name : item_names) {
-            walker.on_file(file_path / name, depth + 1);
-        }
-
-        return true;
-    }
 
 }  // namespace
 
@@ -93,17 +33,6 @@ namespace {
                 return true;
 
             return false;
-        }
-
-        size_t read_file(const fs::path& path, uint8_t* buf, size_t buf_size)
-            override {
-            const auto raw_path = this->make_raw_path(path);
-            if (!raw_path.has_value())
-                return 0;
-
-            std::ifstream file(*raw_path, std::ios::binary);
-            file.read(reinterpret_cast<char*>(buf), buf_size);
-            return file.gcount();
         }
 
         bool read_file(const fs::path& i_path, bindata_t& out) override {
@@ -171,8 +100,6 @@ namespace dal {
 
     Filesystem::Filesystem() : pimpl_(std::make_unique<Impl>()) {}
     Filesystem::~Filesystem() {}
-
-    BundleRepository& Filesystem::bundle_repo() { return pimpl_->bundles_; }
 
     void Filesystem::add_subsys(std::unique_ptr<IFileSubsys> subsys) {
         pimpl_->subsys_.push_back(std::move(subsys));

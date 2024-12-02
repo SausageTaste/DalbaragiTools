@@ -5,8 +5,6 @@
 #include <optional>
 #include <vector>
 
-#include "daltools/bundle/repo.hpp"
-
 
 namespace dal {
 
@@ -22,9 +20,6 @@ namespace dal {
 
         virtual bool is_file(const fs::path& path) = 0;
 
-        virtual size_t read_file(
-            const fs::path& path, uint8_t* buf, size_t buf_size
-        ) = 0;
         virtual bool read_file(const fs::path& path, bindata_t& out) = 0;
     };
 
@@ -46,7 +41,6 @@ namespace dal {
         Filesystem();
         ~Filesystem();
 
-        BundleRepository& bundle_repo();
         void add_subsys(std::unique_ptr<IFileSubsys> subsys);
 
         bool is_file(const fs::path& path);
