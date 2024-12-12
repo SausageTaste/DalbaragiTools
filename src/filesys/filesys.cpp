@@ -35,17 +35,36 @@ namespace {
             return false;
         }
 
-        bool read_file(const fs::path& i_path, bindata_t& out) override {
+        bool read_file(const fs::path& i_path, std::vector<uint8_t>& out)
+            override {
             const auto raw_path = this->make_raw_path(i_path);
             if (!raw_path.has_value())
                 return false;
 
-            std::ifstream file(*raw_path, std::ios::binary);
+            std::ifstream file(*raw_path, std::ios::binary | std::ios::ate);
             if (file.is_open()) {
-                out.assign(
-                    std::istreambuf_iterator<char>(file),
-                    std::istreambuf_iterator<char>()
-                );
+                const auto content_size = file.tellg();
+                out.resize(content_size);
+                file.seekg(0, std::ios::beg);
+                file.read(reinterpret_cast<char*>(out.data()), out.size());
+                return true;
+            }
+
+            return false;
+        }
+
+        bool read_file(const fs::path& i_path, std::vector<std::byte>& out)
+            override {
+            const auto raw_path = this->make_raw_path(i_path);
+            if (!raw_path.has_value())
+                return false;
+
+            std::ifstream file(*raw_path, std::ios::binary | std::ios::ate);
+            if (file.is_open()) {
+                const auto content_size = file.tellg();
+                out.resize(content_size);
+                file.seekg(0, std::ios::beg);
+                file.read(reinterpret_cast<char*>(out.data()), out.size());
                 return true;
             }
 
@@ -78,6 +97,25 @@ namespace {
 
 
 namespace dal {
+
+    std::optional<fs::path> find_parent_path_that_has(
+        const fs::path& path, const std::string& item_name_ext
+    ) {
+        auto current = path;
+        while (true) {
+            if (fs::exists(current / item_name_ext))
+                return current;
+            if (current == current.parent_path())
+                return std::nullopt;
+            current = current.parent_path();
+        }
+    }
+
+    std::optional<fs::path> find_parent_path_that_has(
+        const std::string& item_name_ext
+    ) {
+        return find_parent_path_that_has(fs::current_path(), item_name_ext);
+    }
 
     std::unique_ptr<IFileSubsys> create_filesubsys_std(
         const std::string& prefix, const fs::path& root
@@ -180,6 +218,49 @@ namespace dal {
                     bundle_file_data.first,
                     bundle_file_data.first + bundle_file_data.second
                 );
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool Filesystem::read_file(
+        const fs::path& path, std::vector<std::byte>& out
+    ) {
+        for (const auto& subsys : this->pimpl_->subsys_) {
+            if (subsys->read_file(path, out)) {
+                return true;
+            }
+        }
+
+        // Check if the file is in a bundle
+        const auto parent_path = path.parent_path();
+        for (const auto& subsys : this->pimpl_->subsys_) {
+            if (!subsys->is_file(parent_path))
+                continue;
+
+            auto [data_ptr, data_size] = pimpl_->bundles_.get_file_data(
+                parent_path.u8string(), path.filename().u8string()
+            );
+            if (nullptr != data_ptr) {
+                auto p_data = reinterpret_cast<const std::byte*>(data_ptr);
+                out.assign(p_data, p_data + data_size);
+                return true;
+            }
+
+            std::vector<uint8_t> file_content;
+            if (!subsys->read_file(parent_path, file_content))
+                continue;
+            if (!pimpl_->bundles_.notify(parent_path.u8string(), file_content))
+                continue;
+
+            std::tie(data_ptr, data_size) = pimpl_->bundles_.get_file_data(
+                parent_path.u8string(), path.filename().u8string()
+            );
+            if (nullptr != data_ptr) {
+                auto p_data = reinterpret_cast<const std::byte*>(data_ptr);
+                out.assign(p_data, p_data + data_size);
                 return true;
             }
         }

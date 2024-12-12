@@ -4,83 +4,53 @@
 #include <sung/general/stringtool.hpp>
 
 #include "daltools/filesys/filesys.hpp"
+#include "daltools/filesys/res_mgr.hpp"
+#include "daltools/img/backend/ktx.hpp"
 
 
 namespace {
 
-    namespace fs = std::filesystem;
+    namespace fs = dal::fs;
 
-    std::filesystem::path find_root_path() {
-        namespace fs = std::filesystem;
-        constexpr int DEPTH = 10;
-
-        fs::path current_dir = ".";
-
-        for (int i = 0; i < DEPTH; ++i) {
-            for (const auto& entry : fs::directory_iterator(current_dir)) {
-                if (entry.path().filename().u8string() == ".git") {
-                    return fs::absolute(current_dir);
-                }
-            }
-
-            current_dir /= "..";
-        }
-
-        throw std::runtime_error{ "Failed to find root folder" };
+    std::optional<fs::path> find_root_path() {
+        return dal::find_parent_path_that_has(".git");
     }
 
 
-    class Walker : public dal::IDirWalker {
-
-    public:
-        Walker(dal::Filesystem& filesys) : filesys_{ filesys } {}
-
-        bool on_folder(const fs::path& path, size_t depth) override {
-            for (size_t i = 0; i < depth; ++i) fmt::print("  ");
-            fmt::print("(Fold) {}\n", path.u8string());
-            return true;
-        }
-
-        bool on_bundle(const fs::path& path, size_t depth) override {
-            for (size_t i = 0; i < depth; ++i) fmt::print("  ");
-            fmt::print("(Bndl) {}\n", path.u8string());
-            return true;
-        }
-
-        void on_file(const fs::path& path, size_t depth) override {
-            for (size_t i = 0; i < depth; ++i) fmt::print("  ");
-            if (const auto content = filesys_.read_file(path))
-                fmt::print(
-                    "(File) {} ({})\n",
-                    path.u8string(),
-                    sung::format_bytes(content->size())
-                );
-            else
-                fmt::print("(File) {} (not found)\n", path.u8string());
-        }
-
-    private:
-        dal::Filesystem& filesys_;
-    };
-
-
     TEST(DaltestFilesys, FileSubsysStd) {
-        system("chcp 65001");
-        const auto test_path = ::find_root_path() / "test";
+        const auto root_path = ::find_root_path();
+        ASSERT_TRUE(root_path.has_value());
+        const auto test_path = root_path.value() / "test";
 
-        dal::Filesystem filesys;
-        filesys.add_subsys(
-            dal::create_filesubsys_std(":test", test_path.u8string(), filesys)
+        auto filesys = std::make_shared<dal::Filesystem>();
+        filesys->add_subsys(dal::create_filesubsys_std(":test", test_path));
+        ASSERT_TRUE(filesys->is_file(":test/json/sponza.json"));
+
+        auto& res_mgr = dal::create_resmgr(filesys);
+
+        while (res_mgr->request(":test/json/sponza.json") ==
+               dal::ReqResult::loading) {
+        }
+        ASSERT_EQ(
+            res_mgr->request(":test/json/sponza.json"),
+            dal::ReqResult::not_supported_file
         );
 
-        ::Walker walker{ filesys };
-        filesys.walk(":test", walker);
+        auto img_path = ":test/img/stripes.ktx";
+        while (res_mgr->request(img_path) == dal::ReqResult::loading) {
+        }
+        ASSERT_EQ(res_mgr->request(img_path), dal::ReqResult::ready);
+        ASSERT_EQ(res_mgr->get_dmd(img_path), nullptr);
+        auto img = res_mgr->get_img(img_path);
+        ASSERT_NE(img, nullptr);
+        ASSERT_NE(dynamic_cast<const dal::KtxImage*>(img), nullptr);
     }
 
 }  // namespace
 
 
 int main(int argc, char** argv) {
+    system("chcp 65001");
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

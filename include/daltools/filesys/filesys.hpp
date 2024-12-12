@@ -11,27 +11,28 @@ namespace dal {
     namespace fs = std::filesystem;
 
 
+    std::optional<fs::path> find_parent_path_that_has(
+        const fs::path& path, const std::string& item_name_ext
+    );
+    std::optional<fs::path> find_parent_path_that_has(
+        const std::string& item_name_ext
+    );
+
+
     class IFileSubsys {
 
     public:
-        using bindata_t = std::vector<uint8_t>;
-
         virtual ~IFileSubsys() = default;
 
         virtual bool is_file(const fs::path& path) = 0;
 
-        virtual bool read_file(const fs::path& path, bindata_t& out) = 0;
-    };
+        virtual bool read_file(
+            const fs::path& path, std::vector<uint8_t>& out
+        ) = 0;
 
-
-    class IDirWalker {
-
-    public:
-        virtual ~IDirWalker() = default;
-
-        virtual bool on_folder(const fs::path& path, size_t depth) = 0;
-        virtual bool on_bundle(const fs::path& path, size_t depth) = 0;
-        virtual void on_file(const fs::path& path, size_t depth) = 0;
+        virtual bool read_file(
+            const fs::path& path, std::vector<std::byte>& out
+        ) = 0;
     };
 
 
@@ -46,6 +47,7 @@ namespace dal {
         bool is_file(const fs::path& path);
 
         bool read_file(const fs::path& path, std::vector<uint8_t>& out);
+        bool read_file(const fs::path& path, std::vector<std::byte>& out);
         std::optional<std::vector<uint8_t>> read_file(const fs::path& path);
 
     private:
