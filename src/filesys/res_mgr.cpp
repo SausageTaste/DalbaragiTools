@@ -1,5 +1,7 @@
 #include "daltools/filesys/res_mgr.hpp"
 
+#include <map>
+#include <set>
 #include <unordered_map>
 #include <variant>
 
@@ -14,15 +16,18 @@ namespace {
 
 
     dal::ResType deduce_res_type(const fs::path& path) {
-        const auto ext = path.extension().u8string();
-        if (ext == ".ktx" || ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
-            ext == ".bmp" || ext == ".tga") {
-            return dal::ResType::img;
-        } else if (ext == ".dmd") {
-            return dal::ResType::dmd;
-        } else {
-            return dal::ResType::unknown;
+        static const std::map<dal::ResType, std::set<std::string>> exts{
+            { dal::ResType::img,
+              { ".ktx", ".png", ".jpg", ".jpeg", ".bmp", ".tga" } },
+            { dal::ResType::dmd, { ".dmd" } },
+        };
+
+        for (const auto& [type, ext_set] : exts) {
+            if (ext_set.find(path.extension().u8string()) != ext_set.end())
+                return type;
         }
+
+        return dal::ResType::unknown;
     }
 
 
@@ -32,6 +37,9 @@ namespace {
         ResItem(const fs::path& path) : path_(path) {}
 
         dal::ReqResult udpate(dal::Filesystem& filesys) {
+            if (res_data_.index() != 0)
+                return dal::ReqResult::ready;
+
             if (raw_data_.empty()) {
                 filesys.read_file(path_, raw_data_);
                 if (raw_data_.empty())
@@ -43,17 +51,22 @@ namespace {
             if (res_data_.index() == 0) {
                 switch (::deduce_res_type(path_)) {
                     case dal::ResType::img:
-                        this->try_parse_img();
-                        return dal::ReqResult::loading;
+                        if (this->try_parse_img())
+                            return dal::ReqResult::ready;
                     case dal::ResType::dmd:
-                        this->try_parse_dmd();
-                        return dal::ReqResult::loading;
+                        if (this->try_parse_dmd())
+                            return dal::ReqResult::ready;
                     default:
-                        return dal::ReqResult::not_supported_file;
+                        break;
                 }
             }
 
-            return dal::ReqResult::ready;
+            if (this->try_parse_img())
+                return dal::ReqResult::ready;
+            if (this->try_parse_dmd())
+                return dal::ReqResult::ready;
+
+            return dal::ReqResult::not_supported_file;
         }
 
         dal::ResType res_type() {
@@ -67,7 +80,7 @@ namespace {
             }
         }
 
-        const dal::IImage* get_img() {
+        dal::IImage* get_img() {
             if (res_data_.index() == 1) {
                 return std::get<1>(res_data_).get();
             } else {
@@ -75,7 +88,15 @@ namespace {
             }
         }
 
-        const dal::parser::Model* get_dmd() {
+        const dal::IImage* get_img() const {
+            if (res_data_.index() == 1) {
+                return std::get<1>(res_data_).get();
+            } else {
+                return nullptr;
+            }
+        }
+
+        const dal::parser::Model* get_dmd() const {
             if (res_data_.index() == 2) {
                 return &std::get<dal::parser::Model>(res_data_);
             } else {
@@ -84,7 +105,7 @@ namespace {
         }
 
     private:
-        void try_parse_img() {
+        bool try_parse_img() {
             dal::ImageParseInfo pinfo;
             pinfo.file_path_ = path_.u8string();
             pinfo.data_ = reinterpret_cast<uint8_t*>(raw_data_.data());
@@ -93,10 +114,13 @@ namespace {
 
             if (auto img = dal::parse_img(pinfo)) {
                 res_data_ = std::move(img);
+                return true;
             }
+
+            return false;
         }
 
-        void try_parse_dmd() {
+        bool try_parse_dmd() {
             res_data_ = dal::parser::Model{};
             const auto parse_result = dal::parser::parse_dmd(
                 std::get<dal::parser::Model>(res_data_),
@@ -106,7 +130,10 @@ namespace {
 
             if (parse_result != dal::parser::ModelParseResult::success) {
                 res_data_ = std::monostate{};
+                return false;
             }
+
+            return true;
         }
 
         fs::path path_;
@@ -120,6 +147,13 @@ namespace {
 
 
     class ResourceManager : public dal::IResourceManager {
+
+    private:
+        using ReadLock = dal::IResourceManager::ReadLock;
+        using WriteLock = dal::IResourceManager::WriteLock;
+
+        template <typename TResType, typename TLockType>
+        using ResLckOpt = dal::IResourceManager::ResLckOpt<TResType, TLockType>;
 
     public:
         ResourceManager(std::shared_ptr<dal::Filesystem>& filesys)
@@ -137,11 +171,28 @@ namespace {
             return dal::ResType::unknown;
         }
 
-        const dal::IImage* get_img(const fs::path& path) override {
-            if (auto item = this->get(path))
-                return item->get_img();
+        using ImmutableImage = ResLckOpt<const dal::IImage, ReadLock>;
+        ImmutableImage get_img(const fs::path& path) override {
+            auto item = this->get(path);
+            if (!item)
+                return std::nullopt;
+            auto image = item->get_img();
+            if (!image)
+                return std::nullopt;
 
-            return nullptr;
+            return std::make_pair(std::cref(*image), ReadLock{});
+        }
+
+        using MutableImage = ResLckOpt<dal::IImage, WriteLock>;
+        MutableImage get_img_mut(const fs::path& path) override {
+            auto item = this->get(path);
+            if (!item)
+                return std::nullopt;
+            auto image = item->get_img();
+            if (!image)
+                return std::nullopt;
+
+            return std::make_pair(std::ref(*image), WriteLock{});
         }
 
         const dal::parser::Model* get_dmd(const fs::path& path) override {
