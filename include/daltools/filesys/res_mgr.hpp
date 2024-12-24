@@ -49,9 +49,7 @@ namespace dal {
         virtual const dal::parser::Model* get_dmd(const fs::path& path) = 0;
     };
 
-
-    std::unique_ptr<IResourceManager> create_resmgr(
-        std::shared_ptr<Filesystem>& filesys
-    );
+    using HResMgr = std::shared_ptr<IResourceManager>;
+    HResMgr create_resmgr(std::shared_ptr<Filesystem>& filesys);
 
 }  // namespace dal

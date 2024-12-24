@@ -241,10 +241,8 @@ namespace {
 
 namespace dal {
 
-    std::unique_ptr<IResourceManager> create_resmgr(
-        std::shared_ptr<Filesystem>& filesys
-    ) {
-        return std::make_unique<ResourceManager>(filesys);
+    HResMgr create_resmgr(std::shared_ptr<Filesystem>& filesys) {
+        return std::make_shared<::ResourceManager>(filesys);
     }
 
 }  // namespace dal
