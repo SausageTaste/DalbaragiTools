@@ -46,7 +46,7 @@ namespace {
             if (raw_data_.empty()) {
                 filesys.read_file(path_, raw_data_);
                 if (raw_data_.empty())
-                    return this->set_per_res(dal::ReqResult::unknown_error);
+                    return dal::ReqResult::cannot_read_file;
                 else
                     return dal::ReqResult::loading;
             }
