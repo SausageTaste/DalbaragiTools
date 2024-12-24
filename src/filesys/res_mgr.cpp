@@ -37,13 +37,16 @@ namespace {
         ResItem(const fs::path& path) : path_(path) {}
 
         dal::ReqResult udpate(dal::Filesystem& filesys) {
+            if (perma_res_.has_value())
+                return perma_res_.value();
+
             if (res_data_.index() != 0)
-                return dal::ReqResult::ready;
+                return this->set_per_res(dal::ReqResult::ready);
 
             if (raw_data_.empty()) {
                 filesys.read_file(path_, raw_data_);
                 if (raw_data_.empty())
-                    return dal::ReqResult::unknown_error;
+                    return this->set_per_res(dal::ReqResult::unknown_error);
                 else
                     return dal::ReqResult::loading;
             }
@@ -52,21 +55,21 @@ namespace {
                 switch (::deduce_res_type(path_)) {
                     case dal::ResType::img:
                         if (this->try_parse_img())
-                            return dal::ReqResult::ready;
+                            return this->set_per_res(dal::ReqResult::ready);
                     case dal::ResType::dmd:
                         if (this->try_parse_dmd())
-                            return dal::ReqResult::ready;
+                            return this->set_per_res(dal::ReqResult::ready);
                     default:
                         break;
                 }
             }
 
             if (this->try_parse_img())
-                return dal::ReqResult::ready;
+                return this->set_per_res(dal::ReqResult::ready);
             if (this->try_parse_dmd())
-                return dal::ReqResult::ready;
+                return this->set_per_res(dal::ReqResult::ready);
 
-            return dal::ReqResult::not_supported_file;
+            return this->set_per_res(dal::ReqResult::not_supported_file);
         }
 
         dal::ResType res_type() {
@@ -110,7 +113,7 @@ namespace {
             pinfo.file_path_ = path_.u8string();
             pinfo.data_ = reinterpret_cast<uint8_t*>(raw_data_.data());
             pinfo.size_ = raw_data_.size();
-            pinfo.force_rgba_ = false;
+            pinfo.force_rgba_ = true;
 
             if (auto img = dal::parse_img(pinfo)) {
                 res_data_ = std::move(img);
@@ -136,6 +139,11 @@ namespace {
             return true;
         }
 
+        dal::ReqResult set_per_res(dal::ReqResult res) {
+            perma_res_ = res;
+            return res;
+        }
+
         fs::path path_;
         std::vector<std::byte> raw_data_;
         std::variant<
@@ -143,6 +151,7 @@ namespace {
             std::shared_ptr<dal::IImage>,
             dal::parser::Model>
             res_data_;
+        std::optional<dal::ReqResult> perma_res_ = std::nullopt;
     };
 
 
