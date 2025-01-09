@@ -1,5 +1,7 @@
 #include "daltools/filesys/filesys.hpp"
 
+#include <mutex>
+
 #include <spdlog/fmt/fmt.h>
 #include <fstream>
 #include <sung/general/bytes.hpp>
@@ -131,6 +133,7 @@ namespace dal {
     class Filesystem::Impl {
 
     public:
+        std::mutex mut_;
         BundleRepository bundles_;
         std::vector<std::unique_ptr<IFileSubsys>> subsys_;
     };
@@ -140,10 +143,13 @@ namespace dal {
     Filesystem::~Filesystem() {}
 
     void Filesystem::add_subsys(std::unique_ptr<IFileSubsys> subsys) {
+        std::lock_guard<std::mutex> lock{ this->pimpl_->mut_ };
         pimpl_->subsys_.push_back(std::move(subsys));
     }
 
     bool Filesystem::is_file(const fs::path& path) {
+        std::lock_guard<std::mutex> lock{ this->pimpl_->mut_ };
+
         for (const auto& subsys : this->pimpl_->subsys_) {
             if (subsys->is_file(path)) {
                 return true;
@@ -181,6 +187,8 @@ namespace dal {
     bool Filesystem::read_file(
         const fs::path& path, std::vector<uint8_t>& out
     ) {
+        std::lock_guard<std::mutex> lock{ this->pimpl_->mut_ };
+
         for (const auto& subsys : this->pimpl_->subsys_) {
             if (subsys->read_file(path, out)) {
                 return true;
@@ -228,6 +236,8 @@ namespace dal {
     bool Filesystem::read_file(
         const fs::path& path, std::vector<std::byte>& out
     ) {
+        std::lock_guard<std::mutex> lock{ this->pimpl_->mut_ };
+
         for (const auto& subsys : this->pimpl_->subsys_) {
             if (subsys->read_file(path, out)) {
                 return true;
