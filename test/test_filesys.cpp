@@ -26,7 +26,8 @@ namespace {
         filesys->add_subsys(dal::create_filesubsys_std(":test", test_path));
         ASSERT_TRUE(filesys->is_file(":test/json/sponza.json"));
 
-        auto res_mgr = dal::create_resmgr(filesys);
+        sung::HDataCentral datacen = sung::create_data_central();
+        auto res_mgr = dal::create_resmgr(filesys, datacen);
 
         while (res_mgr->request(":test/json/sponza.json") ==
                dal::ReqResult::loading) {
