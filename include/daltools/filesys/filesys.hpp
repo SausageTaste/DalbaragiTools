@@ -54,6 +54,7 @@ namespace dal {
         class Impl;
         std::unique_ptr<Impl> pimpl_;
     };
+    using HFilesys = std::shared_ptr<Filesystem>;
 
 
     std::unique_ptr<IFileSubsys> create_filesubsys_std(
