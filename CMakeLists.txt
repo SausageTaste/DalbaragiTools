@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 3.11.0)
 
 set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
 
-project(Dalbaragi)
+project(Dalbaragi
+    VERSION 0.1.0
+    LANGUAGES CXX
+)
 
 
 set(DALTOOLS_ENABLE_TEST OFF CACHE BOOL "Enable testing")
@@ -32,7 +35,7 @@ find_package(unofficial-brotli CONFIG REQUIRED)
 # Define project library
 # ----------------------------------------------------------------------------------
 
-add_library(libdaltools STATIC
+add_library(dalbaragi_tools STATIC
     ${source_dir}/bundle/bundle.cpp
     ${source_dir}/bundle/repo.cpp
     ${source_dir}/common/byte_tool.cpp
@@ -50,27 +53,27 @@ add_library(libdaltools STATIC
     ${source_dir}/scene/modifier.cpp
     ${source_dir}/scene/struct.cpp
 )
-target_include_directories(libdaltools PUBLIC
+target_include_directories(dalbaragi_tools PUBLIC
     ${PROJECT_SOURCE_DIR}/include
     ${Stb_INCLUDE_DIR}
 )
-target_compile_features(libdaltools PUBLIC cxx_std_17)
-add_library(dalbaragi::daltools ALIAS libdaltools)
+target_compile_features(dalbaragi_tools PUBLIC cxx_std_17)
+add_library(dalbaragi::dalbaragi_tools ALIAS dalbaragi_tools)
 
 
 # Import external libraries
 # ----------------------------------------------------------------------------------
 
 if (ANDROID)
-    target_link_libraries(libdaltools PRIVATE z)
+    target_link_libraries(dalbaragi_tools PRIVATE z)
 
 else()
     find_package(ZLIB REQUIRED)
-    target_link_libraries(libdaltools PRIVATE ZLIB::ZLIB)
+    target_link_libraries(dalbaragi_tools PRIVATE ZLIB::ZLIB)
 
 endif()
 
-target_link_libraries(libdaltools PUBLIC
+target_link_libraries(dalbaragi_tools PUBLIC
     aklomp::base64
     glm::glm
     KTX::ktx
@@ -80,6 +83,10 @@ target_link_libraries(libdaltools PUBLIC
     unofficial::brotli::brotlidec
     unofficial::brotli::brotlienc
 )
+
+
+# Install
+# ----------------------------------------------------------------------------------
 
 
 # Add subdirectories
