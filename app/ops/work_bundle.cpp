@@ -1,9 +1,9 @@
 #include "work_functions.hpp"
 
+#include <filesystem>
 #include <fstream>
 #include <unordered_set>
 
-#include <glob/glob.h>
 #include <spdlog/spdlog.h>
 #include <argparse/argparse.hpp>
 #include <sung/general/bytes.hpp>
@@ -66,6 +66,10 @@ namespace {
 namespace dal {
 
     void work_bundle(int argc, char* argv[]) {
+        spdlog::error("Not implemented yet");
+        return;
+
+        /*
         argparse::ArgumentParser parser{ "daltools" };
         parser.add_argument("operation").help("Operation name").required();
         parser.add_argument("-o", "--output")
@@ -151,9 +155,14 @@ namespace dal {
         );
 
         return;
+        */
     }
 
     void work_bundle_view(int argc, char* argv[]) {
+        spdlog::error("Not implemented yet");
+        return;
+
+        /*
         argparse::ArgumentParser parser{ "daltools" };
         parser.add_argument("operation").help("Operation name").required();
         parser.add_argument("inputs").help("Input paths").remaining();
@@ -281,9 +290,14 @@ namespace dal {
 
             continue;
         }
+        */
     }
 
     void work_extract(int argc, char* argv[]) {
+        spdlog::error("Not implemented yet");
+        return;
+
+        /*
         argparse::ArgumentParser parser{ "daltools" };
         parser.add_argument("operation").help("Operation name").required();
         parser.add_argument("inputs").help("Input paths").remaining();
@@ -385,6 +399,7 @@ namespace dal {
                 fmt::print("Extracted {} files\n", count);
             }
         }
+        */
     }
 
 }  // namespace dal

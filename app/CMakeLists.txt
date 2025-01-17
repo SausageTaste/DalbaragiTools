@@ -15,5 +15,4 @@ target_link_libraries(daltools
     PRIVATE
         dalbaragi::daltools
         argparse::argparse
-        Glob
 )

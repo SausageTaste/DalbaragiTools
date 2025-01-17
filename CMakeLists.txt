@@ -4,8 +4,6 @@ set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
 
 project(DalbaragiTools)
 
-include(FetchContent)
-
 
 set(DALTOOLS_ENABLE_TEST OFF CACHE BOOL "Enable testing")
 
@@ -18,16 +16,6 @@ set(source_dir ${PROJECT_SOURCE_DIR}/src)
 
 # Define external libraries
 # ----------------------------------------------------------------------------------
-
-FetchContent_Declare(
-    fetch_glob
-    GIT_REPOSITORY https://github.com/p-ranav/glob
-    GIT_TAG        d025092c0e1eb1a8b226d3a799fd32680d2fd13f
-)
-
-FetchContent_MakeAvailable(
-    fetch_glob
-)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/extern/SungToolsCpp)
 
