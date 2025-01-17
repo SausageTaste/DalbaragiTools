@@ -9,7 +9,7 @@ project(dalbaragi
 )
 
 
-set(DAL_USE_SUNGTOOLS_SUBMODULE OFF CACHE BOOL "Use SungToolsCpp as a submodule")
+set(DAL_USE_SUNGTOOLS_SUBMODULE OFF CACHE BOOL "Use sungtools as a submodule")
 set(DAL_ENABLE_TEST OFF CACHE BOOL "Enable testing")
 
 set(source_dir ${PROJECT_SOURCE_DIR}/src)
@@ -23,7 +23,7 @@ set(source_dir ${PROJECT_SOURCE_DIR}/src)
 # ----------------------------------------------------------------------------------
 
 if (DAL_USE_SUNGTOOLS_SUBMODULE)
-    add_subdirectory(${PROJECT_SOURCE_DIR}/extern/SungToolsCpp)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/extern/sungtools)
 else()
     find_package(sungtools CONFIG REQUIRED)
 endif()
