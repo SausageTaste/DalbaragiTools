@@ -36,6 +36,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(Stb MODULE REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
+find_package(ZLIB REQUIRED)
 
 
 # Define project library
@@ -71,15 +72,6 @@ add_library(dalbaragi::dalbaragi_tools ALIAS dalbaragi_tools)
 # Import external libraries
 # ----------------------------------------------------------------------------------
 
-if (ANDROID)
-    target_link_libraries(dalbaragi_tools PRIVATE z)
-
-else()
-    find_package(ZLIB REQUIRED)
-    target_link_libraries(dalbaragi_tools PRIVATE ZLIB::ZLIB)
-
-endif()
-
 target_link_libraries(dalbaragi_tools PUBLIC
     aklomp::base64
     glm::glm
@@ -89,6 +81,7 @@ target_link_libraries(dalbaragi_tools PUBLIC
     sungtools::sungtools_basic
     unofficial::brotli::brotlidec
     unofficial::brotli::brotlienc
+    ZLIB::ZLIB
 )
 
 
