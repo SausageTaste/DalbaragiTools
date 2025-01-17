@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.11.0)
 
 set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
 
-project(Dalbaragi
+project(dalbaragi
     VERSION 0.1.0
     LANGUAGES CXX
 )
@@ -54,8 +54,9 @@ add_library(dalbaragi_tools STATIC
     ${source_dir}/scene/struct.cpp
 )
 target_include_directories(dalbaragi_tools PUBLIC
-    ${PROJECT_SOURCE_DIR}/include
-    ${Stb_INCLUDE_DIR}
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${Stb_INCLUDE_DIR}>
+    $<INSTALL_INTERFACE:include>
 )
 target_compile_features(dalbaragi_tools PUBLIC cxx_std_17)
 add_library(dalbaragi::dalbaragi_tools ALIAS dalbaragi_tools)
@@ -87,6 +88,38 @@ target_link_libraries(dalbaragi_tools PUBLIC
 
 # Install
 # ----------------------------------------------------------------------------------
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    INSTALL_DESTINATION share/${PROJECT_NAME}
+)
+
+install(TARGETS dalbaragi_tools
+    EXPORT ${PROJECT_NAME}Targets
+    LIBRARY DESTINATION $<IF:$<CONFIG:Debug>,debug/lib,lib>
+    ARCHIVE DESTINATION $<IF:$<CONFIG:Debug>,debug/lib,lib>
+    RUNTIME DESTINATION $<IF:$<CONFIG:Debug>,debug/bin,bin>
+    INCLUDES DESTINATION include
+)
+install(DIRECTORY include/ DESTINATION include)
+install(EXPORT ${PROJECT_NAME}Targets
+    FILE ${PROJECT_NAME}Targets.cmake
+    NAMESPACE ${PROJECT_NAME}::
+    DESTINATION share/${PROJECT_NAME}
+)
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    DESTINATION share/${PROJECT_NAME}
+)
 
 
 # Add subdirectories
