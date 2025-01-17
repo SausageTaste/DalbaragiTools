@@ -12,6 +12,7 @@
         "nlohmann-json",
         "spdlog",
         "stb",
+        "sungtools",
         "zlib",
         {
             "name": "ktx",

@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.11.0)
 
 set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+set(VCPKG_OVERLAY_PORTS ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/ports)
 
 project(dalbaragi
     VERSION 0.1.0
@@ -8,7 +9,8 @@ project(dalbaragi
 )
 
 
-set(DALTOOLS_ENABLE_TEST OFF CACHE BOOL "Enable testing")
+set(DAL_USE_SUNGTOOLS_SUBMODULE OFF CACHE BOOL "Use SungToolsCpp as a submodule")
+set(DAL_ENABLE_TEST OFF CACHE BOOL "Enable testing")
 
 set(source_dir ${PROJECT_SOURCE_DIR}/src)
 
@@ -20,7 +22,11 @@ set(source_dir ${PROJECT_SOURCE_DIR}/src)
 # Define external libraries
 # ----------------------------------------------------------------------------------
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/extern/SungToolsCpp)
+if (DAL_USE_SUNGTOOLS_SUBMODULE)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/extern/SungToolsCpp)
+else()
+    find_package(sungtools CONFIG REQUIRED)
+endif()
 
 find_package(argparse CONFIG REQUIRED)
 find_package(base64 CONFIG REQUIRED)
@@ -127,7 +133,7 @@ install(FILES
 
 add_subdirectory(./app)
 
-if (DALTOOLS_ENABLE_TEST)
+if (DAL_ENABLE_TEST)
     enable_testing()
     find_package(GTest CONFIG REQUIRED)
     add_subdirectory(./test)
