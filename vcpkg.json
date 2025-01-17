@@ -1,6 +1,6 @@
 {
     "name": "dalbaragi",
-    "version-string": "0.1.0",
+    "version-string": "0.1.1",
     "description": "Sungmin's C++ Game engine helper library",
     "homepage": "https://github.com/SausageTaste/dalbaragi",
     "dependencies": [
