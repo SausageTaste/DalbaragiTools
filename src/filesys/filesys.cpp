@@ -4,7 +4,7 @@
 
 #include <spdlog/fmt/fmt.h>
 #include <fstream>
-#include <sung/general/bytes.hpp>
+#include <sung/basic/bytes.hpp>
 
 #include "daltools/bundle/bundle.hpp"
 #include "daltools/bundle/repo.hpp"

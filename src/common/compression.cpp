@@ -7,7 +7,7 @@
 #include <libbase64.h>
 #include <zlib.h>
 
-#include <sung/general/mamath.hpp>
+#include <sung/basic/mamath.hpp>
 
 #include "daltools/common/byte_tool.h"
 

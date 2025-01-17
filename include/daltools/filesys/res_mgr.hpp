@@ -1,7 +1,8 @@
 #pragma once
 
-#include <sung/gameengine/data_central.hpp>
-#include <sung/general/threading.hpp>
+#include <shared_mutex>
+
+#include <sung/basic/threading.hpp>
 
 #include "daltools/filesys/filesys.hpp"
 #include "daltools/img/img2d.hpp"
@@ -51,10 +52,6 @@ namespace dal {
     };
 
     using HResMgr = std::shared_ptr<IResourceManager>;
-    HResMgr create_resmgr(
-        std::shared_ptr<Filesystem> filesys,
-        sung::HTaskSche task_sche,
-        sung::HDataCentral datacen
-    );
+    HResMgr create_resmgr(HFilesys filesys, sung::HTaskSche task_sche);
 
 }  // namespace dal

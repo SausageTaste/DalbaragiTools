@@ -6,8 +6,8 @@
 
 #include <spdlog/spdlog.h>
 #include <argparse/argparse.hpp>
-#include <sung/general/bytes.hpp>
-#include <sung/general/stringtool.hpp>
+#include <sung/basic/bytes.hpp>
+#include <sung/basic/stringtool.hpp>
 
 #include "daltools/bundle/bundle.hpp"
 #include "daltools/common/compression.h"

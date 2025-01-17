@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-#include <sung/general/time.hpp>
+#include <sung/basic/time.hpp>
 
 
 // BundleHeader

@@ -6,8 +6,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include <sung/general/aabb.hpp>
-#include <sung/general/geometry2d.hpp>
+#include <sung/basic/aabb.hpp>
+#include <sung/basic/geometry2d.hpp>
 
 #include "daltools/common/glm_tool.hpp"
 #include "daltools/img/backend/ktx.hpp"

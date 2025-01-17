@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <spdlog/fmt/fmt.h>
-#include <sung/general/time.hpp>
+#include <sung/basic/time.hpp>
 
 #include "daltools/common/util.h"
 #include "daltools/dmd/exporter.h"

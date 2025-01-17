@@ -155,7 +155,6 @@ namespace {
             res_data_;
         std::optional<dal::ReqResult> perma_res_ = std::nullopt;
     };
-    */
 
 
     class ResAdaptor : public sung::IDataAdapter {
@@ -476,18 +475,15 @@ namespace {
         sung::HDataCentral datacen_;
         std::unordered_map<std::string, ResItem> items_;
     };
+    */
 
 }  // namespace
 
 
 namespace dal {
 
-    HResMgr create_resmgr(
-        std::shared_ptr<Filesystem> filesys,
-        sung::HTaskSche task_sche,
-        sung::HDataCentral datacen
-    ) {
-        return std::make_shared<::ResourceManager>(filesys, task_sche, datacen);
+    HResMgr create_resmgr(HFilesys filesys, sung::HTaskSche task_sche) {
+        return nullptr;
     }
 
 }  // namespace dal

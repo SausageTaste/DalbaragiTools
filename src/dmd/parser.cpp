@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include <sung/general/bytes.hpp>
+#include <sung/basic/bytes.hpp>
 
 #include "daltools/common/byte_tool.h"
 #include "daltools/common/compression.h"

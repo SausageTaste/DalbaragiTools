@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <glm/vec4.hpp>
-#include <sung/general/mamath.hpp>
+#include <sung/basic/mamath.hpp>
 
 #include "daltools/img/img.hpp"
 

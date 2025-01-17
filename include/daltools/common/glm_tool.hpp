@@ -1,7 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include <sung/general/linalg.hpp>
+#include <sung/basic/linalg.hpp>
 
 
 namespace dal {

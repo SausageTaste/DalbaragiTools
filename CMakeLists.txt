@@ -76,7 +76,7 @@ target_link_libraries(libdaltools PUBLIC
     KTX::ktx
     nlohmann_json::nlohmann_json
     spdlog::spdlog
-    sungtools::gameengine
+    sungtools::sungtools_basic
     unofficial::brotli::brotlidec
     unofficial::brotli::brotlienc
 )
