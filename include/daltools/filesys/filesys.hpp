@@ -6,9 +6,24 @@
 #include <vector>
 
 
+#if false
+namespace std {
+
+    template <>
+    struct hash<std::filesystem::path> {
+        size_t operator()(const std::filesystem::path& path) const {
+            return std::hash<std::string>{}(path.u8string());
+        }
+    };
+
+}  // namespace std
+#endif
+
+
 namespace dal {
 
     namespace fs = std::filesystem;
+    using path = fs::path;
 
 
     std::optional<fs::path> find_parent_path_that_has(
