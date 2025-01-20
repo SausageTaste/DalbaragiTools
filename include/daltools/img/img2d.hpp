@@ -39,6 +39,9 @@ namespace dal {
 
     public:
         // `x` is in range [0, width), `y` is in range [0, height)
+        virtual T* texel_ptr(int x, int y) = 0;
+
+        // `x` is in range [0, width), `y` is in range [0, height)
         virtual const T* texel_ptr(int x, int y) const = 0;
     };
 
@@ -50,11 +53,12 @@ namespace dal {
         bool init(
             const T* data, uint32_t width, uint32_t height, uint32_t channels
         ) {
-            if (nullptr == data)
-                return false;
-
             const auto data_size = width * height * channels;
-            this->data_.assign(data, data + data_size);
+            if (nullptr != data) {
+                data_.assign(data, data + data_size);
+            } else {
+                data_.resize(data_size);
+            }
 
             this->width_ = width;
             this->height_ = height;
@@ -76,6 +80,13 @@ namespace dal {
         uint32_t height() const override { return height_; }
         uint32_t channels() const override { return channels_; }
         uint32_t value_type_size() const override { return sizeof(T); }
+
+        T* texel_ptr(int x, int y) override {
+            x = sung::clamp<int>(x, 0, width_ - 1);
+            y = sung::clamp<int>(y, 0, height_ - 1);
+            const auto index = (x + width_ * y) * channels_;
+            return data_.data() + index;
+        }
 
         const T* texel_ptr(int x, int y) const override {
             x = sung::clamp<int>(x, 0, width_ - 1);
