@@ -51,6 +51,7 @@ namespace dal {
         // All in one
         ValuesReport& add(int indent, str label, str v);
         ValuesReport& add(int indent, str label, uint32_t v);
+        ValuesReport& add(int indent, str label, uint64_t v);
         ValuesReport& add(int indent, str label, double v);
         ValuesReport& add(int indent, str label);
 

@@ -171,6 +171,10 @@ namespace dal {
         return this->add(indent, label, fmt::format("{}", value));
     }
 
+    ValuesReport& ValuesReport::add(int indent, str label, uint64_t v) {
+        return this->add(indent, label, fmt::format("{}", v));
+    }
+
     ValuesReport& ValuesReport::add(
         int indent, str label, const uint32_t* arr, size_t size
     ) {
