@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.11.0)
 if (NOT CMAKE_TOOLCHAIN_FILE)
     set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
 endif()
-set(VCPKG_OVERLAY_PORTS ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/ports)
 
 project(dalbaragi
     VERSION 0.1.2
