@@ -38,8 +38,8 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(Stb MODULE REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
+find_package(yaml-cpp CONFIG REQUIRED)
 find_package(ZLIB REQUIRED)
-
 
 # Define project library
 # ----------------------------------------------------------------------------------
@@ -83,6 +83,7 @@ target_link_libraries(dalbaragi_tools PUBLIC
     sungtools::sungtools_basic
     unofficial::brotli::brotlidec
     unofficial::brotli::brotlienc
+    yaml-cpp::yaml-cpp
     ZLIB::ZLIB
 )
 

@@ -17,6 +17,7 @@ int main(int argc, char* argv[]) try {
         { "bundle"s, dal::work_bundle },
         { "bundleview"s, dal::work_bundle_view },
         { "extract"s, dal::work_extract },
+        { "batch"s, dal::work_batch },
     };
 
     if (argc < 2)

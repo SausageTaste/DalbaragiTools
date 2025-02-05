@@ -1,4 +1,5 @@
 add_executable(daltools
+    ops/work_batch.cpp
     ops/work_bundle.cpp
     ops/work_compile.cpp
     ops/work_key.cpp
