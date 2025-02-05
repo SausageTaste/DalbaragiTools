@@ -11,6 +11,7 @@ project(dalbaragi
 
 
 set(DAL_USE_SUNGTOOLS_SUBMODULE OFF CACHE BOOL "Use sungtools as a submodule")
+set(DAL_BUILD_APP OFF CACHE BOOL "Build projects in app folder")
 set(DAL_ENABLE_TEST OFF CACHE BOOL "Enable testing")
 
 set(source_dir ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -125,7 +126,9 @@ install(FILES
 # Add subdirectories
 # ----------------------------------------------------------------------------------
 
-add_subdirectory(./app)
+if (DAL_BUILD_APP)
+    add_subdirectory(./app)
+endif()
 
 if (DAL_ENABLE_TEST)
     enable_testing()
